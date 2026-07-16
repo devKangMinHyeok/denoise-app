@@ -41,19 +41,27 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC):
     return clean, text
 
 
-def synthesize(text, ref_wav, ref_text, output_path, fast=False):
-    """참조 목소리로 대본을 읽은 wav 생성."""
+def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1):
+    """참조 목소리로 대본을 읽은 wav 생성.
+
+    mlx_audio가 간헐적으로 파일을 안 만들고도 종료코드 0을 내는 경우가 있어
+    (저사양 CI 러너에서 관찰됨) 출력 파일 존재를 직접 검증하고 재시도한다.
+    """
     model = MODEL_FAST if fast else MODEL_BEST
     out_dir = os.path.dirname(os.path.abspath(output_path)) or "."
     prefix = os.path.splitext(os.path.basename(output_path))[0]
-    subprocess.run(
-        [sys.executable, "-m", "mlx_audio.tts.generate",
-         "--model", model, "--text", text,
-         "--ref_audio", ref_wav, "--ref_text", ref_text,
-         "--join_audio", "--audio_format", "wav",
-         "--output_path", out_dir, "--file_prefix", prefix],
-        check=True, stdout=subprocess.DEVNULL)
-    return output_path
+    cmd = [sys.executable, "-m", "mlx_audio.tts.generate",
+           "--model", model, "--text", text,
+           "--ref_audio", ref_wav, "--ref_text", ref_text,
+           "--join_audio", "--audio_format", "wav",
+           "--output_path", out_dir, "--file_prefix", prefix]
+    proc = None
+    for _ in range(1 + retries):
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and os.path.exists(output_path):
+            return output_path
+    detail = (proc.stderr or proc.stdout or "")[-400:]
+    raise RuntimeError(f"TTS 생성 실패 (재시도 포함 {1 + retries}회): {detail}")
 
 
 def clone_voice(ref_path, text, output_path, fast=False, workdir=None):
