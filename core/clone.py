@@ -9,6 +9,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import tempfile
 
 from .denoise import build_audio_filter
 from .audio import run_ffmpeg
@@ -64,10 +65,8 @@ def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1):
     raise RuntimeError(f"TTS 생성 실패 (재시도 포함 {1 + retries}회): {detail}")
 
 
-def clone_voice(ref_path, text, output_path, fast=False, workdir=None):
-    """참조 파일 + 대본 → 클론 음성. 전체 파이프라인 한 번에."""
-    import tempfile
+def clone_voice(ref_path, text, output_path, fast=False):
+    """참조 파일 + 대본 → 클론 음성. 전체 파이프라인 한 번에. (앱 계층 진입점)"""
     with tempfile.TemporaryDirectory() as wd:
-        wd = workdir or wd
         ref_wav, ref_text = prepare_reference(ref_path, wd)
         return synthesize(text, ref_wav, ref_text, output_path, fast=fast)

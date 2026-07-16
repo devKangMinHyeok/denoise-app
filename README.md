@@ -116,6 +116,29 @@ python3 voice/clone_say.py --ref 내목소리.wav --script 대본.txt -o out.wav
 > 타인 목소리 무단 클로닝은 법적 문제와 악용(보이스피싱 등) 소지가 있다.
 > AI 생성 음성을 콘텐츠에 쓸 때는 고지하는 것을 권장한다.
 
+## 아키텍처: 앱 계층과 코어의 분리
+
+```
+┌─ 앱 계층 (얇게) ──────────────────────────────────┐
+│  denoise.py(CLI)   voice/clone_say.py(CLI)        │
+│  web/server.py(HTTP)   macapp(실행기)   quality(CI)│
+└───────────────┬───────────────────────────────────┘
+                │  함수 호출만 (단방향 의존)
+┌───────────────▼───────────────────────────────────┐
+│  core/  — 순수 로직                                │
+│  audio(ffmpeg) · denoise(RNNoise) · clone(TTS)     │
+│  metrics(SIM/CER/MOS/VCS + 게이트)                 │
+└───────────────────────────────────────────────────┘
+```
+
+**규칙** (tests/test_architecture.py 가 CI에서 강제):
+- 앱 계층은 ffmpeg·모델을 직접 만지지 않는다 — `subprocess` 금지, core 호출만.
+- core는 flask·argparse·print를 모른다 — HTTP 코드/CLI 파싱/화면 출력은 앱 몫.
+- 의존은 앱 → core 단방향. core가 앱 계층을 임포트하면 테스트가 깨진다.
+
+새 인터페이스(예: 메뉴바 앱, 자동화 스크립트)를 만들 때는 core 함수 3개만 알면 된다:
+`run_denoise(in, out, boost)` · `clone_voice(ref, text, out, fast)` · `evaluate_clone(ref, script, gen)`
+
 ## 품질 시스템
 
 품질은 느낌이 아니라 숫자로 지킨다 — **[QUALITY.md](QUALITY.md)** 참고.

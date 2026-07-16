@@ -29,3 +29,8 @@ def audio_codec_args(out_ext):
     if out_ext == ".wav":
         return ["-c:a", "pcm_s16le"]
     return ["-c:a", "aac", "-b:a", "192k"]
+
+
+def default_output_ext(in_ext):
+    """입력 확장자에 대한 권장 출력 확장자 (mp3는 재인코딩 대신 m4a로)."""
+    return ".m4a" if in_ext == ".mp3" else in_ext
