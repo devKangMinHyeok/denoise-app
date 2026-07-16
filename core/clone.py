@@ -42,11 +42,12 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC):
     return clean, text
 
 
-def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1):
+def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1,
+               timeout_sec=600):
     """참조 목소리로 대본을 읽은 wav 생성.
 
-    mlx_audio가 간헐적으로 파일을 안 만들고도 종료코드 0을 내는 경우가 있어
-    (저사양 CI 러너에서 관찰됨) 출력 파일 존재를 직접 검증하고 재시도한다.
+    저사양(GPU 없는) CI 러너에서 mlx_audio가 파일을 안 만들고 종료코드 0을
+    내거나 아예 멈추는 경우가 관찰됨 → 출력 파일 검증 + 타임아웃 + 재시도.
     """
     model = MODEL_FAST if fast else MODEL_BEST
     out_dir = os.path.dirname(os.path.abspath(output_path)) or "."
@@ -56,12 +57,17 @@ def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1):
            "--ref_audio", ref_wav, "--ref_text", ref_text,
            "--join_audio", "--audio_format", "wav",
            "--output_path", out_dir, "--file_prefix", prefix]
-    proc = None
+    detail = ""
     for _ in range(1 + retries):
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True,
+                                  timeout=timeout_sec)
+        except subprocess.TimeoutExpired:
+            detail = f"{timeout_sec}초 타임아웃 (생성이 멈춘 것으로 판단)"
+            continue
         if proc.returncode == 0 and os.path.exists(output_path):
             return output_path
-    detail = (proc.stderr or proc.stdout or "")[-400:]
+        detail = (proc.stderr or proc.stdout or "")[-400:]
     raise RuntimeError(f"TTS 생성 실패 (재시도 포함 {1 + retries}회): {detail}")
 
 

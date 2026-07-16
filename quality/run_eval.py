@@ -33,10 +33,14 @@ def main():
     ap.add_argument("--fast", action="store_true", help="0.6B 모델 사용 (CI 기본)")
     ap.add_argument("--report", help="JSON 리포트 저장 경로")
     ap.add_argument("--no-gate", action="store_true", help="게이트 실패해도 종료코드 0")
+    ap.add_argument("--limit", type=int, default=0,
+                    help="대본 N개만 평가 (호스티드 러너 스모크 게이트용, 0=전체)")
     args = ap.parse_args()
 
     scripts = [line.strip() for line in open(TESTSET, encoding="utf-8")
                if line.strip()]
+    if args.limit:
+        scripts = scripts[:args.limit]
     results = []
 
     with tempfile.TemporaryDirectory() as wd:

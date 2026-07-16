@@ -7,8 +7,11 @@ on:
 
 jobs:
   quality:
-    runs-on: macos-14  # Apple Silicon (MLX 필요)
-    timeout-minutes: 60
+    # GitHub 호스티드 맥 러너에는 GPU(Metal)가 없어 생성이 느리고 불안정할 수 있다.
+    # 여기서는 대본 1개 스모크 게이트만 돌리고, 전체 게이트는 로컬/셀프호스티드에서:
+    #   python3 quality/run_eval.py --fast   (QUALITY.md 참고)
+    runs-on: macos-14
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,7 +31,7 @@ jobs:
       - name: Unit tests
         run: pytest tests -q
       - name: Quality eval (generate → score → gate)
-        run: python3 quality/run_eval.py --fast --report quality-report.json
+        run: python3 quality/run_eval.py --fast --limit 1 --report quality-report.json
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
