@@ -7,9 +7,10 @@ on:
 
 jobs:
   quality:
-    # GitHub 호스티드 맥 러너에는 GPU(Metal)가 없어 생성이 느리고 불안정할 수 있다.
-    # 여기서는 대본 1개 스모크 게이트만 돌리고, 전체 게이트는 로컬/셀프호스티드에서:
-    #   python3 quality/run_eval.py --fast   (QUALITY.md 참고)
+    # GitHub 호스티드 맥 러너는 Metal 커널 컴파일이 안 돼 TTS 생성이 불가능하다
+    # (실측: implicit_gemm_conv_2d 커널 로드 실패). 그래서 여기서는 로컬에서
+    # 생성해 커밋한 "골든 샘플"을 채점하는 게이트만 돌린다 — 평가 스택 회귀 감지.
+    # 실제 생성 게이트는 로컬(GPU 있는 맥)에서: python3 quality/run_eval.py --fast
     runs-on: macos-14
     timeout-minutes: 45
     steps:
@@ -30,8 +31,8 @@ jobs:
           pip install resemblyzer jiwer onnxruntime librosa "setuptools<81" pytest
       - name: Unit tests
         run: pytest tests -q
-      - name: Quality eval (generate → score → gate)
-        run: python3 quality/run_eval.py --fast --limit 1 --report quality-report.json
+      - name: Quality eval (score golden sample → gate)
+        run: python3 quality/run_eval.py --golden --limit 1 --report quality-report.json
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4

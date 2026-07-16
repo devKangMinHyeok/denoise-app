@@ -7,8 +7,13 @@
 
 사용:
   python3 quality/run_eval.py                # 기본 모델 (1.7B)
-  python3 quality/run_eval.py --fast         # CI용 (0.6B, 빠름)
+  python3 quality/run_eval.py --fast         # 0.6B, 빠름 (릴리스 전 로컬 기준)
+  python3 quality/run_eval.py --golden       # 생성 없이 커밋된 골든 샘플만 채점
+                                             # (GPU 없는 호스티드 CI용 — 평가 스택 회귀 감지)
   python3 quality/run_eval.py --report r.json
+
+골든 샘플 갱신(파이프라인 개선으로 소리가 좋아졌을 때):
+  로컬에서 재생성해 tests/fixtures/golden_clone_N.wav 를 교체 커밋한다.
 """
 import argparse
 import json
@@ -35,6 +40,8 @@ def main():
     ap.add_argument("--no-gate", action="store_true", help="게이트 실패해도 종료코드 0")
     ap.add_argument("--limit", type=int, default=0,
                     help="대본 N개만 평가 (호스티드 러너 스모크 게이트용, 0=전체)")
+    ap.add_argument("--golden", action="store_true",
+                    help="생성 없이 커밋된 골든 샘플 채점 (GPU 없는 CI용)")
     args = ap.parse_args()
 
     scripts = [line.strip() for line in open(TESTSET, encoding="utf-8")
@@ -47,12 +54,23 @@ def main():
         print("· 픽스처 참조 준비 (노이즈 제거 + 받아쓰기)…")
         ref_wav, ref_text = prepare_reference(FIXTURE, wd)
         for i, script in enumerate(scripts, 1):
-            out = os.path.join(wd, f"gen_{i}.wav")
-            print(f"· [{i}/{len(scripts)}] 생성: {script[:30]}…")
-            synthesize(script, ref_wav, ref_text, out, fast=args.fast)
+            if args.golden:
+                out = os.path.join(ROOT, "tests", "fixtures",
+                                   f"golden_clone_{i}.wav")
+                if not os.path.exists(out):
+                    print(f"· [{i}/{len(scripts)}] 골든 샘플 없음 — 건너뜀")
+                    continue
+                print(f"· [{i}/{len(scripts)}] 골든 채점: {script[:30]}…")
+            else:
+                out = os.path.join(wd, f"gen_{i}.wav")
+                print(f"· [{i}/{len(scripts)}] 생성: {script[:30]}…")
+                synthesize(script, ref_wav, ref_text, out, fast=args.fast)
             r = evaluate_clone(ref_wav, script, out)
             r["script"] = script
             results.append(r)
+
+    if not results:
+        sys.exit("평가할 샘플이 없습니다 (골든 파일 누락?)")
 
     agg = {k: statistics.mean(r[k] for r in results)
            for k in ("sim", "cer", "mos")}
