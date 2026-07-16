@@ -1,5 +1,8 @@
 # 🎙️ Noise Cleaner (denoise-app)
 
+[![CI](https://github.com/devKangMinHyeok/denoise-app/actions/workflows/ci.yml/badge.svg)](https://github.com/devKangMinHyeok/denoise-app/actions/workflows/ci.yml)
+[![Quality Gate](https://github.com/devKangMinHyeok/denoise-app/actions/workflows/quality.yml/badge.svg)](https://github.com/devKangMinHyeok/denoise-app/actions/workflows/quality.yml)
+
 영상·음성에서 **목소리는 그대로 두고 배경 소음(백색소음, 팬 소리 등)만 제거**하는 로컬 도구.
 모든 처리가 내 컴퓨터 안에서만 이루어지고, 원본 파일은 절대 수정되지 않는다.
 
@@ -38,11 +41,13 @@ python3 web/server.py
 
 브라우저에서 `http://127.0.0.1:8756` 접속 → 파일을 끌어다 놓으면 끝.
 서버는 로컬(127.0.0.1)에만 열리므로 파일이 외부로 나가지 않는다.
+**보이스 클로닝 탭**도 있다 — 클로닝 의존성(아래)을 설치한 환경이면 자동으로 활성화된다.
 
 ## 3) 맥 앱으로 쓰기
 
 ```bash
-bash macapp/build_app.sh
+bash macapp/build_app.sh                # 노이즈 제거만
+bash macapp/build_app.sh --with-voice   # + 보이스 클로닝 탭 (Apple Silicon)
 open dist/NoiseCleaner.app
 ```
 
@@ -111,14 +116,33 @@ python3 voice/clone_say.py --ref 내목소리.wav --script 대본.txt -o out.wav
 > 타인 목소리 무단 클로닝은 법적 문제와 악용(보이스피싱 등) 소지가 있다.
 > AI 생성 음성을 콘텐츠에 쓸 때는 고지하는 것을 권장한다.
 
+## 품질 시스템
+
+품질은 느낌이 아니라 숫자로 지킨다 — **[QUALITY.md](QUALITY.md)** 참고.
+
+- **북극성 지표 VCS** (0~100): 화자 유사도·대본 정확도·자연스러움의 가중 합성. 현재 약 91~93점.
+- **CI 2단**: 모든 푸시마다 유닛 테스트(`ci.yml`, ~1분) + 주 1회/수동으로
+  실제 생성→채점→게이트(`quality.yml`, Apple Silicon 러너).
+- 게이트: SIM ≥ 0.85, CER ≤ 3%, MOS ≥ 3.0, VCS ≥ 85 — 미달이면 CI 실패.
+
 ## 폴더 구성
 
 ```
-denoise.py            CLI 본체 (공용 ffmpeg 파이프라인 포함)
-evaluate.py           품질 채점 스크립트 (선택)
-models/               RNNoise 모델
-web/                  로컬 웹 서버(Flask) + UI
+core/                 ★ 핵심 로직 패키지 (여기만 보면 됨)
+  audio.py              ffmpeg 래퍼
+  denoise.py            노이즈 제거 파이프라인
+  clone.py              보이스 클로닝 파이프라인
+  metrics.py            평가지표 SIM/CER/MOS + 북극성 VCS + 게이트
+denoise.py            노이즈 제거 CLI (얇은 래퍼)
+voice/clone_say.py    보이스 클로닝 CLI (얇은 래퍼)
+voice/evaluate_tts.py 클로닝 결과물 채점 CLI
+web/                  로컬 웹 서버(Flask) + UI (노이즈 제거 / 클로닝 탭)
 macapp/build_app.sh   맥 앱(.app) 빌드 스크립트
+tests/                유닛 테스트 + 픽스처(AI 생성 가상 목소리)
+quality/              품질 회귀 평가 (run_eval.py + 테스트 대본 세트)
+.github/workflows/    CI (ci.yml 유닛 / quality.yml 품질 게이트)
+models/               RNNoise 모델
+evaluate.py           노이즈 제거 채점 스크립트
 scripts/              DNSMOS 채점 모델 다운로드
 ```
 

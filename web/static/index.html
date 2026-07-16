@@ -18,115 +18,199 @@
     font-family: -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif;
     min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
   }
-  main { width: 100%; max-width: 520px; }
+  main { width: 100%; max-width: 560px; }
   h1 { font-size: 1.5rem; margin-bottom: 6px; }
-  p.sub { color: var(--sub); font-size: .9rem; margin-bottom: 24px; line-height: 1.5; }
-  #drop {
-    background: var(--card); border: 2px dashed var(--line); border-radius: 16px;
-    padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  p.sub { color: var(--sub); font-size: .9rem; margin-bottom: 20px; line-height: 1.5; }
+  nav { display: flex; gap: 8px; margin-bottom: 16px; }
+  nav button {
+    flex: 1; padding: 11px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--sub); font-size: .95rem; font-weight: 600; cursor: pointer;
   }
-  #drop.over { border-color: var(--accent); background: rgba(91,108,255,.08); }
-  #drop .icon { font-size: 2.2rem; margin-bottom: 10px; }
-  #drop strong { display: block; margin-bottom: 4px; }
-  #drop span { color: var(--sub); font-size: .85rem; }
+  nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  nav button:disabled { opacity: .4; cursor: default; }
+  section { display: none; }
+  section.active { display: block; }
+  .drop {
+    background: var(--card); border: 2px dashed var(--line); border-radius: 16px;
+    padding: 34px 24px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .drop.over { border-color: var(--accent); background: rgba(91,108,255,.08); }
+  .drop .icon { font-size: 2rem; margin-bottom: 8px; }
+  .drop strong { display: block; margin-bottom: 4px; }
+  .drop span { color: var(--sub); font-size: .85rem; }
   input[type=file] { display: none; }
-  .row { display: flex; align-items: center; gap: 10px; margin-top: 18px; color: var(--sub); font-size: .9rem; }
+  .row { display: flex; align-items: center; gap: 10px; margin-top: 16px; color: var(--sub); font-size: .9rem; }
   .row input[type=range] { flex: 1; accent-color: var(--accent); }
   .row output { min-width: 52px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
-  button {
-    width: 100%; margin-top: 18px; padding: 14px; border: 0; border-radius: 12px;
+  textarea {
+    width: 100%; margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--text); font: inherit; font-size: .95rem;
+    min-height: 110px; resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  label.chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--sub); font-size: .9rem; cursor: pointer; }
+  .go {
+    width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 12px;
     background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
   }
-  button:disabled { opacity: .45; cursor: default; }
-  #status { margin-top: 16px; font-size: .9rem; color: var(--sub); text-align: center; min-height: 1.4em; }
-  #status.ok { color: var(--ok); }
-  #status.err { color: var(--err); }
+  .go:disabled { opacity: .45; cursor: default; }
+  .status { margin-top: 14px; font-size: .9rem; color: var(--sub); text-align: center; min-height: 1.4em; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line);
     border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
     vertical-align: -2px; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  footer { margin-top: 22px; text-align: center; color: var(--sub); font-size: .78rem; line-height: 1.6; }
+  audio { width: 100%; margin-top: 14px; display: none; }
+  .notice {
+    margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+    color: var(--sub); font-size: .82rem; line-height: 1.6; background: var(--card);
+  }
+  footer { margin-top: 20px; text-align: center; color: var(--sub); font-size: .78rem; line-height: 1.6; }
+  footer a { color: var(--sub); }
 </style>
 </head>
 <body>
 <main>
   <h1>🎙️ 노이즈 클리너</h1>
-  <p class="sub">영상·음성에서 목소리는 그대로 두고 배경 소음만 제거합니다.<br>
-  모든 처리는 이 컴퓨터 안에서만 이루어집니다.</p>
+  <p class="sub">모든 처리는 이 컴퓨터 안에서만 이루어집니다. 원본 파일은 수정되지 않습니다.</p>
 
-  <div id="drop">
-    <div class="icon">📂</div>
-    <strong id="fileLabel">파일을 끌어다 놓거나 클릭해서 선택</strong>
-    <span>mov · mp4 · mkv · wav · m4a · mp3</span>
-    <input type="file" id="file" accept=".mov,.mp4,.m4v,.mkv,.wav,.m4a,.mp3,.aac">
-  </div>
+  <nav>
+    <button id="tabDenoise" class="active">🧹 노이즈 제거</button>
+    <button id="tabClone">🗣️ 보이스 클로닝</button>
+  </nav>
 
-  <div class="row">
-    <label for="boost">볼륨 키우기</label>
-    <input type="range" id="boost" min="0" max="20" step="1" value="0">
-    <output id="boostVal">0 dB</output>
-  </div>
+  <!-- 노이즈 제거 -->
+  <section id="secDenoise" class="active">
+    <div class="drop" id="dnDrop">
+      <div class="icon">📂</div>
+      <strong id="dnLabel">파일을 끌어다 놓거나 클릭해서 선택</strong>
+      <span>mov · mp4 · mkv · wav · m4a · mp3</span>
+      <input type="file" id="dnFile" accept=".mov,.mp4,.m4v,.mkv,.wav,.m4a,.mp3,.aac">
+    </div>
+    <div class="row">
+      <label for="dnBoost">볼륨 키우기</label>
+      <input type="range" id="dnBoost" min="0" max="20" step="1" value="0">
+      <output id="dnBoostVal">0 dB</output>
+    </div>
+    <button class="go" id="dnGo" disabled>노이즈 제거하기</button>
+    <div class="status" id="dnStatus"></div>
+  </section>
 
-  <button id="go" disabled>노이즈 제거하기</button>
-  <div id="status"></div>
+  <!-- 보이스 클로닝 -->
+  <section id="secClone">
+    <div class="drop" id="clDrop">
+      <div class="icon">🎤</div>
+      <strong id="clLabel">목소리가 담긴 파일 (영상도 됨)</strong>
+      <span>또렷한 발화 10초 이상 · mov · mp4 · wav · m4a</span>
+      <input type="file" id="clFile" accept=".mov,.mp4,.m4v,.mkv,.wav,.m4a,.mp3,.aac">
+    </div>
+    <textarea id="clText" placeholder="이 목소리로 읽어줄 대본을 입력하세요 (2000자 이내)"></textarea>
+    <label class="chk"><input type="checkbox" id="clFast"> 빠른 모드 (가벼운 모델, 품질 약간 낮음)</label>
+    <button class="go" id="clGo" disabled>이 목소리로 읽어주기</button>
+    <div class="status" id="clStatus"></div>
+    <audio id="clAudio" controls></audio>
+    <div class="notice">⚠️ <b>본인 목소리이거나 명시적으로 동의받은 목소리만</b> 사용하세요.
+    타인 목소리 무단 클로닝은 법적 문제와 악용 소지가 있습니다.
+    생성 음성을 콘텐츠에 쓸 때는 AI 생성임을 밝히는 것을 권장합니다.</div>
+  </section>
 
-  <footer>RNNoise 기반 · 원본 파일은 수정되지 않습니다</footer>
+  <footer>RNNoise + Qwen3-TTS · 파일은 외부로 전송되지 않습니다 ·
+  <a href="https://github.com/devKangMinHyeok/denoise-app">GitHub</a></footer>
 </main>
 
 <script>
-const drop = document.getElementById('drop');
-const fileInput = document.getElementById('file');
-const fileLabel = document.getElementById('fileLabel');
-const boost = document.getElementById('boost');
-const boostVal = document.getElementById('boostVal');
-const go = document.getElementById('go');
-const status = document.getElementById('status');
-let picked = null;
+const $ = id => document.getElementById(id);
 
-function setFile(f) {
-  picked = f;
-  fileLabel.textContent = f ? f.name : '파일을 끌어다 놓거나 클릭해서 선택';
-  go.disabled = !f;
-  status.textContent = ''; status.className = '';
+// ---- 탭 ----
+function showTab(name) {
+  $('tabDenoise').classList.toggle('active', name === 'dn');
+  $('tabClone').classList.toggle('active', name === 'cl');
+  $('secDenoise').classList.toggle('active', name === 'dn');
+  $('secClone').classList.toggle('active', name === 'cl');
 }
-drop.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
-['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
-['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
-drop.addEventListener('drop', ev => setFile(ev.dataTransfer.files[0]));
-boost.addEventListener('input', () => boostVal.textContent = boost.value + ' dB');
+$('tabDenoise').onclick = () => showTab('dn');
+$('tabClone').onclick = () => showTab('cl');
 
-go.addEventListener('click', async () => {
-  if (!picked) return;
-  go.disabled = true;
-  status.className = '';
-  status.innerHTML = '<span class="spinner"></span>처리 중… 파일 길이에 따라 수십 초 걸릴 수 있어요';
+// 서버 기능 감지: 클로닝 미설치면 탭 비활성화
+fetch('/api/health').then(r => r.json()).then(h => {
+  if (!h.clone) {
+    $('tabClone').disabled = true;
+    $('tabClone').textContent = '🗣️ 클로닝 (미설치)';
+    $('tabClone').title = 'pip install -r voice/requirements-voice.txt 후 서버 재시작';
+    $('tabClone').onclick = null;
+  }
+}).catch(() => {});
+
+// ---- 공용: 드롭존 ----
+function wireDrop(dropId, fileId, labelId, defaultLabel, onPick) {
+  const drop = $(dropId), input = $(fileId), label = $(labelId);
+  const set = f => { label.textContent = f ? f.name : defaultLabel; onPick(f || null); };
+  drop.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => set(input.files[0]));
+  ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', ev => set(ev.dataTransfer.files[0]));
+}
+function setStatus(el, html, cls = '') { el.className = 'status ' + cls; el.innerHTML = html; }
+function filenameFrom(res, fallback) {
+  const cd = res.headers.get('Content-Disposition') || '';
+  const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i);
+  return m ? decodeURIComponent(m[1]) : fallback;
+}
+
+// ---- 노이즈 제거 ----
+let dnPicked = null;
+wireDrop('dnDrop', 'dnFile', 'dnLabel', '파일을 끌어다 놓거나 클릭해서 선택',
+  f => { dnPicked = f; $('dnGo').disabled = !f; });
+$('dnBoost').addEventListener('input', () => $('dnBoostVal').textContent = $('dnBoost').value + ' dB');
+$('dnGo').onclick = async () => {
+  $('dnGo').disabled = true;
+  setStatus($('dnStatus'), '<span class="spinner"></span>처리 중… 파일 길이에 따라 수십 초 걸릴 수 있어요');
   const fd = new FormData();
-  fd.append('file', picked);
-  fd.append('boost', boost.value);
+  fd.append('file', dnPicked);
+  fd.append('boost', $('dnBoost').value);
   try {
     const res = await fetch('/api/denoise', { method: 'POST', body: fd });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      throw new Error(j.error || ('서버 오류 ' + res.status));
-    }
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || ('서버 오류 ' + res.status));
     const blob = await res.blob();
-    const cd = res.headers.get('Content-Disposition') || '';
-    const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i);
-    const name = m ? decodeURIComponent(m[1]) : 'clean_' + picked.name;
+    const name = filenameFrom(res, 'clean_' + dnPicked.name);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    URL.revokeObjectURL(a.href);
+    setStatus($('dnStatus'), '✅ 완료! 다운로드 폴더를 확인하세요 — ' + name, 'ok');
+  } catch (e) { setStatus($('dnStatus'), '❌ ' + e.message, 'err'); }
+  finally { $('dnGo').disabled = false; }
+};
+
+// ---- 보이스 클로닝 ----
+let clPicked = null;
+function clReady() { $('clGo').disabled = !(clPicked && $('clText').value.trim()); }
+wireDrop('clDrop', 'clFile', 'clLabel', '목소리가 담긴 파일 (영상도 됨)',
+  f => { clPicked = f; clReady(); });
+$('clText').addEventListener('input', clReady);
+$('clGo').onclick = async () => {
+  $('clGo').disabled = true;
+  $('clAudio').style.display = 'none';
+  setStatus($('clStatus'), '<span class="spinner"></span>참조 분석 + 생성 중… 1~3분 정도 걸려요 (최초엔 모델 다운로드로 더 걸릴 수 있음)');
+  const fd = new FormData();
+  fd.append('ref', clPicked);
+  fd.append('text', $('clText').value.trim());
+  fd.append('fast', $('clFast').checked ? '1' : '0');
+  try {
+    const res = await fetch('/api/clone', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || ('서버 오류 ' + res.status));
+    const blob = await res.blob();
+    const name = filenameFrom(res, '클론낭독.wav');
     const url = URL.createObjectURL(blob);
+    const audio = $('clAudio');
+    audio.src = url; audio.style.display = 'block';
     const a = document.createElement('a');
     a.href = url; a.download = name; a.click();
-    URL.revokeObjectURL(url);
-    status.className = 'ok';
-    status.textContent = '✅ 완료! 다운로드 폴더를 확인하세요 — ' + name;
-  } catch (e) {
-    status.className = 'err';
-    status.textContent = '❌ ' + e.message;
-  } finally {
-    go.disabled = false;
-  }
-});
+    setStatus($('clStatus'), '✅ 완료! 아래에서 바로 들어보세요 — ' + name, 'ok');
+  } catch (e) { setStatus($('clStatus'), '❌ ' + e.message, 'err'); }
+  finally { $('clGo').disabled = false; clReady(); }
+};
 </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 #!/bin/bash
 # 맥 앱(.app 번들) 빌드 스크립트.
+#   bash macapp/build_app.sh                # 노이즈 제거만
+#   bash macapp/build_app.sh --with-voice   # + 보이스 클로닝 (Apple Silicon)
 # 실행하면 dist/NoiseCleaner.app 이 만들어진다.
 # 앱을 더블클릭하면: 로컬 서버를 켜고 → 브라우저로 웹 UI를 연다.
 set -euo pipefail
@@ -8,12 +10,22 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
 APP="$DIST/NoiseCleaner.app"
 PORT=8756
+WITH_VOICE="${1:-}"
 
-# 파이썬 가상환경 준비 (없으면 생성 + flask 설치)
+# mlx가 지원하는 파이썬 우선 (3.12/3.13), 없으면 시스템 python3
+PYBIN=python3
+for p in python3.12 python3.13; do
+  if command -v "$p" >/dev/null 2>&1; then PYBIN="$p"; break; fi
+done
+
 if [ ! -x "$ROOT/.venv/bin/python3" ]; then
-  echo "가상환경 생성 중..."
-  python3 -m venv "$ROOT/.venv"
+  echo "가상환경 생성 중 ($PYBIN)..."
+  "$PYBIN" -m venv "$ROOT/.venv"
   "$ROOT/.venv/bin/pip" install -q -r "$ROOT/requirements.txt"
+fi
+if [ "$WITH_VOICE" = "--with-voice" ]; then
+  echo "보이스 클로닝 의존성 설치 중..."
+  "$ROOT/.venv/bin/pip" install -q -r "$ROOT/voice/requirements-voice.txt"
 fi
 
 rm -rf "$APP"
@@ -28,8 +40,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key><string>노이즈 클리너</string>
   <key>CFBundleExecutable</key><string>run</string>
   <key>CFBundleIdentifier</key><string>dev.minhyeok.noisecleaner</string>
-  <key>CFBundleVersion</key><string>1.0</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleVersion</key><string>2.0</string>
+  <key>CFBundleShortVersionString</key><string>2.0</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
 </dict>
