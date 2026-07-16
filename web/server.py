@@ -99,7 +99,8 @@ def clone_api():
 
     out_path = os.path.join(WORK, f"clone_{uuid.uuid4().hex[:8]}.wav")
     try:
-        clone_voice(ref_path, text, out_path, fast=fast)
+        # 빠른 모드는 단일 테이크, 기본은 best-of-3 (운율 점수로 자동 선별)
+        clone_voice(ref_path, text, out_path, fast=fast, takes=1 if fast else 3)
     except RuntimeError as e:
         return jsonify(error=str(e)), 500
     finally:

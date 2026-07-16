@@ -13,6 +13,8 @@ from core.denoise import build_audio_filter  # noqa: E402
 from core.audio import audio_codec_args  # noqa: E402
 from core.metrics import (GATES, SIM_HUMAN_BASELINE, check_gates,  # noqa: E402
                           normalize_ko, voice_clone_score)
+from core.prosody import (band_score, prosody_match_scores,  # noqa: E402
+                          prosody_naturalness_score)
 
 
 # ---- 노이즈 제거 필터 체인 ----
@@ -64,6 +66,40 @@ def test_vcs_current_release_level():
     # 확정 설정의 실측치 (SIM 0.917, CER 0, MOS 3.50) → 게이트 통과 수준
     vcs = voice_clone_score(0.917, 0.0, 3.50)
     assert vcs >= GATES["vcs"]
+
+
+# ---- 운율 북극성 (PNS) ----
+
+def test_band_score_full_credit_within_tolerance():
+    assert band_score(1.2, 1.0, tolerance=0.3) == pytest.approx(1.0)
+
+
+def test_band_score_penalizes_deviation_both_ways():
+    assert band_score(3.0, 1.0) < 0.5   # 과다
+    assert band_score(0.3, 1.0) < 0.5   # 과소 (단조로움)
+    assert band_score(0.0, 1.0) == 0.0  # 완전 결여
+
+
+def test_short_clip_gets_wider_statistical_band():
+    """짧은 클립은 휴지 표본이 적어 밴드를 넓힌다 — 같은 이탈이라도 덜 감점."""
+    ref = {"f0_st_std": 3.5, "pause_ratio": 0.14, "pause_rate": 0.3, "npvi": 50}
+    gen = {"f0_st_std": 3.5, "pause_ratio": 0.08, "pause_rate": 0.3, "npvi": 50}
+    short = prosody_match_scores({**gen, "duration": 4.0}, ref)
+    long_ = prosody_match_scores({**gen, "duration": 30.0}, ref)
+    assert short["pause"] > long_["pause"]
+
+
+def test_pns_perfect_and_monotone():
+    perfect = prosody_naturalness_score(5.0, {"f0": 1, "pause": 1, "rhythm": 1})
+    assert perfect == pytest.approx(100.0)
+    monotone = prosody_naturalness_score(4.0, {"f0": 0, "pause": 0, "rhythm": 1})
+    assert monotone < GATES["pns"]  # 단조+무호흡은 게이트 미달이어야 함
+
+
+def test_gates_include_pns():
+    ok, failures = check_gates({"sim": 0.92, "cer": 0.0, "mos": 3.5,
+                                "vcs": 92.0, "pns": 70.0})
+    assert not ok and any("PNS" in f for f in failures)
 
 
 # ---- 게이트 판정 ----

@@ -15,6 +15,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install deps (light)
-        run: pip install flask pytest
+        run: pip install flask pytest numpy
       - name: Unit tests
         run: pytest tests -q

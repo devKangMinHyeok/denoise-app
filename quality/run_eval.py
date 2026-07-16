@@ -26,8 +26,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
-from core.clone import prepare_reference, synthesize  # noqa: E402
-from core.metrics import GATES, check_gates, evaluate_clone, voice_clone_score  # noqa: E402
+from core.clone import prepare_reference, synthesize_best  # noqa: E402
+from core.metrics import (GATES, PNS_ITEM_MIN, check_gates,  # noqa: E402
+                          evaluate_clone, voice_clone_score)
 
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "ref_fixture.wav")
 TESTSET = os.path.join(HERE, "testset.txt")
@@ -51,8 +52,8 @@ def main():
     results = []
 
     with tempfile.TemporaryDirectory() as wd:
-        print("· 픽스처 참조 준비 (노이즈 제거 + 받아쓰기)…")
-        ref_wav, ref_text = prepare_reference(FIXTURE, wd)
+        print("· 픽스처 참조 준비 (노이즈 제거 + 창 선택 + 받아쓰기)…")
+        ref_wav, ref_text, natural_wav = prepare_reference(FIXTURE, wd)
         for i, script in enumerate(scripts, 1):
             if args.golden:
                 out = os.path.join(ROOT, "tests", "fixtures",
@@ -63,9 +64,10 @@ def main():
                 print(f"· [{i}/{len(scripts)}] 골든 채점: {script[:30]}…")
             else:
                 out = os.path.join(wd, f"gen_{i}.wav")
-                print(f"· [{i}/{len(scripts)}] 생성: {script[:30]}…")
-                synthesize(script, ref_wav, ref_text, out, fast=args.fast)
-            r = evaluate_clone(ref_wav, script, out)
+                print(f"· [{i}/{len(scripts)}] 생성(best-of-N): {script[:30]}…")
+                synthesize_best(script, ref_wav, ref_text, natural_wav, out,
+                                fast=args.fast)
+            r = evaluate_clone(ref_wav, script, out, natural_wav=natural_wav)
             r["script"] = script
             results.append(r)
 
@@ -73,20 +75,25 @@ def main():
         sys.exit("평가할 샘플이 없습니다 (골든 파일 누락?)")
 
     agg = {k: statistics.mean(r[k] for r in results)
-           for k in ("sim", "cer", "mos")}
+           for k in ("sim", "cer", "mos", "pns")}
     agg["vcs"] = voice_clone_score(agg["sim"], agg["cer"], agg["mos"])
     ok, failures = check_gates(agg)
+    pns_min = min(r["pns"] for r in results)
+    if pns_min < PNS_ITEM_MIN:
+        ok = False
+        failures.append(f"PNS 항목 최저 {pns_min:.1f} < {PNS_ITEM_MIN}")
 
-    hdr = f"{'#':<3} {'SIM':>6} {'CER%':>6} {'MOS':>5} {'VCS':>6}  script"
+    hdr = f"{'#':<3} {'SIM':>6} {'CER%':>6} {'MOS':>5} {'VCS':>6} {'PNS':>6}  script"
     print("\n" + hdr)
-    print("-" * 60)
+    print("-" * 66)
     for i, r in enumerate(results, 1):
         print(f"{i:<3} {r['sim']:6.3f} {r['cer']:6.1f} {r['mos']:5.2f} "
-              f"{r['vcs']:6.1f}  {r['script'][:28]}…")
-    print("-" * 60)
-    print(f"평균  SIM {agg['sim']:.3f} | CER {agg['cer']:.1f}% | "
-          f"MOS {agg['mos']:.2f} | VCS(북극성) {agg['vcs']:.1f}")
-    print(f"게이트 {GATES} → {'✅ 통과' if ok else '❌ 실패: ' + '; '.join(failures)}")
+              f"{r['vcs']:6.1f} {r['pns']:6.1f}  {r['script'][:26]}…")
+    print("-" * 66)
+    print(f"평균  SIM {agg['sim']:.3f} | CER {agg['cer']:.1f}% | MOS {agg['mos']:.2f} | "
+          f"VCS {agg['vcs']:.1f} | PNS(운율 북극성) {agg['pns']:.1f} (min {pns_min:.1f})")
+    print(f"게이트 {GATES} + PNS최저 {PNS_ITEM_MIN} → "
+          f"{'✅ 통과' if ok else '❌ 실패: ' + '; '.join(failures)}")
 
     if args.report:
         with open(args.report, "w", encoding="utf-8") as f:

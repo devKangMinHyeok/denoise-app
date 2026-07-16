@@ -24,7 +24,9 @@ from . import DNSMOS_MODEL
 
 SIM_HUMAN_BASELINE = 0.909
 
-GATES = {"sim": 0.85, "cer": 3.0, "mos": 3.0, "vcs": 85.0}
+GATES = {"sim": 0.85, "cer": 3.0, "mos": 3.0, "vcs": 85.0,
+         "pns": 82.0}  # 운율 북극성 (평균). 항목별 최저는 PNS_ITEM_MIN.
+PNS_ITEM_MIN = 78.0  # 테스트 항목 하나라도 이 밑이면 실패
 
 DNSMOS_URL = ("https://github.com/microsoft/DNS-Challenge/raw/master/"
               "DNSMOS/DNSMOS/sig_bak_ovr.onnx")
@@ -105,7 +107,7 @@ def voice_clone_score(sim, cer, mos):
 
 
 def check_gates(scores, gates=GATES):
-    """게이트 판정. scores: {'sim','cer','mos','vcs'} → (통과여부, 실패목록)."""
+    """게이트 판정. scores: {'sim','cer','mos','vcs'[,'pns']} → (통과, 실패목록)."""
     failures = []
     if scores["sim"] < gates["sim"]:
         failures.append(f"SIM {scores['sim']:.3f} < {gates['sim']}")
@@ -115,14 +117,22 @@ def check_gates(scores, gates=GATES):
         failures.append(f"MOS {scores['mos']:.2f} < {gates['mos']}")
     if scores["vcs"] < gates["vcs"]:
         failures.append(f"VCS {scores['vcs']:.1f} < {gates['vcs']}")
+    if "pns" in scores and scores["pns"] < gates["pns"]:
+        failures.append(f"PNS {scores['pns']:.1f} < {gates['pns']}")
     return (not failures), failures
 
 
-def evaluate_clone(ref_wav, script_text, gen_wav):
-    """생성물 종합 평가 → 지표 dict (북극성 포함)."""
+def evaluate_clone(ref_wav, script_text, gen_wav, natural_wav=None):
+    """생성물 종합 평가 → 지표 dict (북극성 VCS·PNS 포함).
+
+    natural_wav: 운율 기준이 될 화자의 자연 발화 (없으면 ref_wav 사용).
+    """
+    from .prosody import evaluate_prosody
     sim = speaker_similarity(ref_wav, gen_wav)
     cer, hyp = char_error_rate(script_text, gen_wav)
     sig, bak, ovrl = dnsmos(gen_wav)
     vcs = voice_clone_score(sim, cer, ovrl)
+    pro = evaluate_prosody(natural_wav or ref_wav, gen_wav)
     return {"sim": sim, "cer": cer, "sig": sig, "mos": ovrl,
-            "vcs": vcs, "transcript": hyp.strip()}
+            "vcs": vcs, "pns": pro["pns"], "utmos": pro["utmos"],
+            "prosody_match": pro["match"], "transcript": hyp.strip()}

@@ -26,6 +26,8 @@ def main():
     g.add_argument("--script", help="읽어줄 대본 텍스트 파일")
     ap.add_argument("-o", "--output", default="cloned_voice.wav", help="출력 wav 경로")
     ap.add_argument("--fast", action="store_true", help="가벼운 0.6B 모델 사용 (약간 낮은 품질)")
+    ap.add_argument("--takes", type=int, default=3,
+                    help="테이크 수 — 여러 번 생성해 운율 점수(PNS) 최고를 채택 (기본 3, 1=최속)")
     args = ap.parse_args()
 
     try:
@@ -38,9 +40,9 @@ def main():
         sys.exit(f"참조 파일이 없습니다: {args.ref}")
 
     text = args.text or open(args.script, encoding="utf-8").read().strip()
-    print("· 참조 음성 준비 중 (노이즈 제거 + 받아쓰기)…")
+    print("· 참조 음성 준비 중 (노이즈 제거 + 참조 창 자동 선택 + 받아쓰기)…")
     try:
-        clone_voice(args.ref, text, args.output, fast=args.fast)
+        clone_voice(args.ref, text, args.output, fast=args.fast, takes=args.takes)
     except RuntimeError as e:
         sys.exit(str(e))
     print(f"완료: {args.output}")

@@ -20,11 +20,13 @@ jobs:
           python-version: "3.12"
       - name: Install ffmpeg
         run: brew install ffmpeg
-      - name: Cache HF models
+      - name: Cache HF + torch.hub models
         uses: actions/cache@v4
         with:
-          path: ~/.cache/huggingface
-          key: hf-models-${{ runner.os }}-v1
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/torch
+          key: hf-models-${{ runner.os }}-v2
       - name: Install deps
         run: |
           pip install -r requirements.txt -r voice/requirements-voice.txt
