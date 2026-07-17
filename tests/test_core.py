@@ -169,6 +169,15 @@ def test_bpa_overlong_pause_penalized():
     assert boundary_pause_adequacy([1.9]) < 0.2
 
 
+# ---- 테이크 선별 (속도 가드 + 긴 대본 청크) ----
+
+def test_selection_score_penalizes_fast_takes():
+    from core.clone import _selection_score
+    # 자연 속도(±15%) 안이면 감점 없음, 빠른 테이크(+25%)는 감점
+    assert _selection_score(85.0, 9.1, 9.1) == pytest.approx(85.0)
+    assert _selection_score(85.0, 11.4, 9.1) < 84.0
+
+
 # ---- 게이트 판정 ----
 
 def test_gates_pass():

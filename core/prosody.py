@@ -101,9 +101,11 @@ def prosody_features(wav_path):
     pause_rate = pause_count / max(dur, 1e-6)
 
     # ③ 리듬 변동성 (onset 간격의 nPVI, Grabe & Low 2002) —
-    #    로봇 발화 = 간격이 균일 = nPVI 낮음
+    #    로봇 발화 = 간격이 균일 = nPVI 낮음. 조음속도(음절핵/발화시간)도 함께.
     onsets = librosa.onset.onset_detect(y=y, sr=sr, units="time",
                                         backtrack=False)
+    speech_time = max(dur - pause_time, 1e-6)
+    artic_rate = len(onsets) / speech_time
     iois = np.diff(onsets)
     iois = iois[(iois > 0.05) & (iois < 1.0)]
     if len(iois) >= 3:
@@ -114,7 +116,8 @@ def prosody_features(wav_path):
 
     return {"f0_st_std": f0_st_std, "f0_span_st": f0_span_st,
             "f0_move": f0_move, "pause_ratio": pause_ratio,
-            "pause_rate": pause_rate, "npvi": npvi, "duration": dur}
+            "pause_rate": pause_rate, "npvi": npvi,
+            "artic_rate": artic_rate, "duration": dur}
 
 
 def band_score(gen_val, ref_val, tolerance=0.3, floor_octaves=0.7):
@@ -240,6 +243,10 @@ def split_sentences(text):
     import re
     parts = re.split(r"(?<=[.!?…])\s+", text.strip())
     return [p for p in parts if p]
+
+
+# (긴 대본 청크 분할 생성은 실측 기각 — core/clone.py 주석 참고.
+#  이 모델은 긴 글을 통째로 읽을 때 페이스·리듬이 가장 자연스럽다.)
 
 
 def _normalize_chars(text):

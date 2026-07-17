@@ -144,13 +144,30 @@ def ensure_breath_pauses(wav_path, script):
     return wav_path
 
 
+RATE_TOLERANCE = 0.15   # 조음속도 허용 편차 (±15%) — 벗어나면 선별 감점
+RATE_PENALTY = 15.0     # 편차 1.0당 PNS 감점량
+# 주의: 긴 대본의 청크 분할 생성은 실측으로 기각됨 — 2문장/4~5문장 청크 모두
+# 통짜 생성보다 나빴다 (PNS 77~81 vs 85, 페이스 6.7~7.9 vs 9.2음절/s).
+# 이 모델은 긴 글을 통째로 읽을 때 페이스·리듬이 가장 자연스럽다.
+
+
+def _selection_score(pns, gen_rate, natural_rate):
+    """테이크 선별 점수 = PNS − 말 속도 이탈 감점. 순수 함수.
+
+    속도는 PNS에 없던 사각지대였다 (실측: 테이크마다 8.6~10.7음절/s로
+    출렁이고, 빠른 테이크가 '붙여 읽는' 느낌의 주범인데 그대로 통과됐음).
+    """
+    ratio = gen_rate / max(natural_rate, 1e-6)
+    return pns - RATE_PENALTY * max(0.0, abs(ratio - 1.0) - RATE_TOLERANCE)
+
+
 def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
                     fast=False, takes=DEFAULT_TAKES):
-    """best-of-N 테이크: 여러 번 생성해 운율 점수(PNS) 최고 테이크를 채택.
+    """best-of-N 테이크: 여러 번 생성해 선별 점수(PNS − 속도 이탈) 최고를 채택.
 
     생성은 확률적이라 테이크 편차가 크다 (실측: 같은 설정으로 50~84점).
     사람 성우가 여러 테이크를 녹음해 고르듯, 북극성 지표로 자동 선별한다.
-    PNS_TARGET을 넘으면 조기 종료. 운율 의존성이 없으면 단일 테이크 폴백.
+    운율 의존성이 없으면 단일 테이크 폴백.
     """
     from .audio import normalize_speech_level
     from .prosody import prosody_deps_available
@@ -161,22 +178,25 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             normalize_speech_level(out)
         return out, None
 
-    from .prosody import evaluate_prosody
-    best_pns, best_path = -1.0, None
+    from .prosody import evaluate_prosody, prosody_features
+    natural_rate = prosody_features(natural_wav)["artic_rate"]
+    best_sel, best_pns, best_path = -1e9, None, None
     with tempfile.TemporaryDirectory() as wd:
         for i in range(takes):
             take = os.path.join(wd, f"take_{i}.wav")
             synthesize(text, ref_wav, ref_text, take, fast=fast)
             ensure_breath_pauses(take, text)  # 문장 경계 호흡 보장 후 채점
-            pns = evaluate_prosody(natural_wav, take, script=text)["pns"]
-            if pns > best_pns:
-                best_pns = pns
+            r = evaluate_prosody(natural_wav, take, script=text)
+            sel = _selection_score(r["pns"], r["gen"]["artic_rate"],
+                                   natural_rate)
+            if sel > best_sel:
+                best_sel, best_pns = sel, r["pns"]
                 if best_path:
                     os.remove(best_path)
                 best_path = take
             else:
                 os.remove(take)
-            if best_pns >= PNS_TARGET:
+            if best_sel >= PNS_TARGET:
                 break
         os.replace(best_path, output_path)
     normalize_speech_level(output_path)  # 배포 기준 음량으로 (정적 게인)
