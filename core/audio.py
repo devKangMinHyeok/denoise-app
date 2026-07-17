@@ -36,6 +36,18 @@ def default_output_ext(in_ext):
     return ".m4a" if in_ext == ".mp3" else in_ext
 
 
+def concat_to_wav(input_paths, output_path):
+    """여러 오디오/영상 파일을 이어붙여 모노 wav로 변환 (가이드 녹음 병합용)."""
+    args = []
+    for p in input_paths:
+        args += ["-i", p]
+    n = len(input_paths)
+    filt = "".join(f"[{i}:a]" for i in range(n)) + f"concat=n={n}:v=0:a=1[out]"
+    run_ffmpeg([*args, "-filter_complex", filt, "-map", "[out]",
+                "-ac", "1", "-c:a", "pcm_s16le", output_path])
+    return output_path
+
+
 SPEECH_TARGET_DB = -19.0  # 발화 RMS 목표 (유튜브/팟캐스트 배포 기준 -19~-16)
 PEAK_CEILING_DB = -1.5    # 클리핑 방지 피크 상한
 

@@ -8,6 +8,7 @@
   :root {
     --bg: #0f1115; --card: #181b22; --line: #2a2f3a;
     --text: #e8eaf0; --sub: #9aa3b2; --accent: #5b6cff; --ok: #3ecf8e; --err: #ff6b6b;
+    --warn: #f0b544;
   }
   @media (prefers-color-scheme: light) {
     :root { --bg: #f5f6f8; --card: #ffffff; --line: #e3e6ec; --text: #1b1f27; --sub: #5d6674; }
@@ -16,15 +17,15 @@
   body {
     background: var(--bg); color: var(--text);
     font-family: -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif;
-    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    min-height: 100vh; display: flex; justify-content: center; padding: 32px 20px;
   }
-  main { width: 100%; max-width: 560px; }
+  main { width: 100%; max-width: 620px; }
   h1 { font-size: 1.5rem; margin-bottom: 6px; }
   p.sub { color: var(--sub); font-size: .9rem; margin-bottom: 20px; line-height: 1.5; }
-  nav { display: flex; gap: 8px; margin-bottom: 16px; }
+  nav { display: flex; gap: 8px; margin-bottom: 18px; }
   nav button {
-    flex: 1; padding: 11px; border: 1px solid var(--line); border-radius: 12px;
-    background: var(--card); color: var(--sub); font-size: .95rem; font-weight: 600; cursor: pointer;
+    flex: 1; padding: 11px 6px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--sub); font-size: .9rem; font-weight: 600; cursor: pointer;
   }
   nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   nav button:disabled { opacity: .4; cursor: default; }
@@ -32,42 +33,81 @@
   section.active { display: block; }
   .drop {
     background: var(--card); border: 2px dashed var(--line); border-radius: 16px;
-    padding: 34px 24px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+    padding: 30px 24px; text-align: center; cursor: pointer; transition: .15s;
   }
   .drop.over { border-color: var(--accent); background: rgba(91,108,255,.08); }
   .drop .icon { font-size: 2rem; margin-bottom: 8px; }
   .drop strong { display: block; margin-bottom: 4px; }
   .drop span { color: var(--sub); font-size: .85rem; }
   input[type=file] { display: none; }
-  .row { display: flex; align-items: center; gap: 10px; margin-top: 16px; color: var(--sub); font-size: .9rem; }
+  .row { display: flex; align-items: center; gap: 10px; margin-top: 14px; color: var(--sub); font-size: .9rem; }
   .row input[type=range] { flex: 1; accent-color: var(--accent); }
-  .row output { min-width: 52px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
-  textarea {
-    width: 100%; margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px;
+  .row output { min-width: 52px; text-align: right; color: var(--text); }
+  textarea, input[type=text], select {
+    width: 100%; margin-top: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 12px;
     background: var(--card); color: var(--text); font: inherit; font-size: .95rem;
-    min-height: 110px; resize: vertical;
   }
-  textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  textarea { min-height: 100px; resize: vertical; }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
   label.chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--sub); font-size: .9rem; cursor: pointer; }
   .go {
-    width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 12px;
+    width: 100%; margin-top: 14px; padding: 14px; border: 0; border-radius: 12px;
     background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
   }
   .go:disabled { opacity: .45; cursor: default; }
-  .status { margin-top: 14px; font-size: .9rem; color: var(--sub); text-align: center; min-height: 1.4em; }
-  .status.ok { color: var(--ok); }
-  .status.err { color: var(--err); }
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line);
+  .go.secondary { background: var(--card); color: var(--text); border: 1px solid var(--line); }
+  .status { margin-top: 12px; font-size: .9rem; color: var(--sub); text-align: center; min-height: 1.4em; }
+  .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--line);
     border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
-    vertical-align: -2px; margin-right: 8px; }
+    vertical-align: -2px; margin-right: 7px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  audio { width: 100%; margin-top: 14px; display: none; }
-  .notice {
-    margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
-    color: var(--sub); font-size: .82rem; line-height: 1.6; background: var(--card);
-  }
-  footer { margin-top: 20px; text-align: center; color: var(--sub); font-size: .78rem; line-height: 1.6; }
+  audio { width: 100%; margin-top: 12px; }
+  .notice { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+    color: var(--sub); font-size: .82rem; line-height: 1.6; background: var(--card); }
+  footer { margin-top: 22px; text-align: center; color: var(--sub); font-size: .78rem; }
   footer a { color: var(--sub); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 12px; }
+  .card h3 { font-size: 1rem; margin-bottom: 6px; }
+  .muted { color: var(--sub); font-size: .84rem; }
+  /* 과정 시각화 */
+  .stages { display: flex; gap: 6px; margin-top: 14px; }
+  .stage { flex: 1; text-align: center; font-size: .78rem; color: var(--sub);
+    padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
+  .stage.on { border-color: var(--accent); color: var(--text); }
+  .stage.done { border-color: var(--ok); color: var(--ok); }
+  .takes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .take {
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: .8rem;
+    background: var(--card); color: var(--sub); min-width: 96px;
+  }
+  .take.best { border-color: var(--ok); color: var(--text); }
+  .take .score { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+  .take.best .score { color: var(--ok); }
+  .take .sub2 { font-size: .72rem; }
+  /* 녹음 위저드 */
+  .sentence-box { font-size: 1.15rem; line-height: 1.7; padding: 18px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-top: 12px; }
+  .tip { color: var(--warn); font-size: .84rem; margin-top: 8px; }
+  .meter { width: 100%; height: 44px; margin-top: 12px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; }
+  .rec-controls { display: flex; gap: 8px; margin-top: 12px; }
+  .rec-controls button { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--card); color: var(--text); font-weight: 600; cursor: pointer; font-size: .95rem; }
+  .rec-controls button.recording { background: var(--err); border-color: var(--err); color: #fff; }
+  .rec-controls button:disabled { opacity: .4; cursor: default; }
+  .progress-dots { display: flex; gap: 5px; margin-top: 14px; justify-content: center; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .dot.done { background: var(--ok); } .dot.cur { background: var(--accent); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
+  .stat b { display: block; font-size: 1.05rem; }
+  .stat span { font-size: .72rem; color: var(--sub); }
+  .plist-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .plist-item:last-child { border-bottom: 0; }
+  .plist-item .grow { flex: 1; }
+  .mini { padding: 7px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg);
+    color: var(--text); cursor: pointer; font-size: .82rem; }
 </style>
 </head>
 <body>
@@ -78,9 +118,10 @@
   <nav>
     <button id="tabDenoise" class="active">🧹 노이즈 제거</button>
     <button id="tabClone">🗣️ 보이스 클로닝</button>
+    <button id="tabVoice">🎤 내 목소리</button>
   </nav>
 
-  <!-- 노이즈 제거 -->
+  <!-- ===== 노이즈 제거 ===== -->
   <section id="secDenoise" class="active">
     <div class="drop" id="dnDrop">
       <div class="icon">📂</div>
@@ -97,22 +138,79 @@
     <div class="status" id="dnStatus"></div>
   </section>
 
-  <!-- 보이스 클로닝 -->
+  <!-- ===== 보이스 클로닝 ===== -->
   <section id="secClone">
-    <div class="drop" id="clDrop">
-      <div class="icon">🎤</div>
+    <select id="clSource"></select>
+    <div class="drop" id="clDrop" style="margin-top:12px; padding:20px;">
       <strong id="clLabel">목소리가 담긴 파일 (영상도 됨)</strong>
-      <span>또렷한 발화 10초 이상 · mov · mp4 · wav · m4a</span>
+      <span>또렷한 발화 10초 이상</span>
       <input type="file" id="clFile" accept=".mov,.mp4,.m4v,.mkv,.wav,.m4a,.mp3,.aac">
     </div>
     <textarea id="clText" placeholder="이 목소리로 읽어줄 대본을 입력하세요 (2000자 이내)"></textarea>
-    <label class="chk"><input type="checkbox" id="clFast"> 빠른 모드 (가벼운 모델, 품질 약간 낮음)</label>
+    <label class="chk"><input type="checkbox" id="clFast"> 빠른 모드 (1테이크, 품질 낮음)</label>
     <button class="go" id="clGo" disabled>이 목소리로 읽어주기</button>
-    <div class="status" id="clStatus"></div>
-    <audio id="clAudio" controls></audio>
+
+    <div id="jobPanel" style="display:none">
+      <div class="stages">
+        <div class="stage" id="stg0">1. 참조 분석</div>
+        <div class="stage" id="stg1">2. 테이크 오디션</div>
+        <div class="stage" id="stg2">3. 마무리 손질</div>
+        <div class="stage" id="stg3">✓ 완성</div>
+      </div>
+      <div class="takes" id="takeCards"></div>
+      <div class="status" id="clStatus"></div>
+      <audio id="clAudio" controls style="display:none"></audio>
+    </div>
+
+    <div class="card" id="historyCard" style="display:none">
+      <h3>📼 최근 세션</h3>
+      <div id="historyList"></div>
+    </div>
+
     <div class="notice">⚠️ <b>본인 목소리이거나 명시적으로 동의받은 목소리만</b> 사용하세요.
-    타인 목소리 무단 클로닝은 법적 문제와 악용 소지가 있습니다.
     생성 음성을 콘텐츠에 쓸 때는 AI 생성임을 밝히는 것을 권장합니다.</div>
+  </section>
+
+  <!-- ===== 내 목소리 (프로필) ===== -->
+  <section id="secVoice">
+    <div class="card">
+      <h3>내 보이스 프로필</h3>
+      <p class="muted">가이드 문장 10개(약 1분 30초)를 녹음하면, 억양·호흡·끝음·강세를 분석해
+      전용 프로필을 만듭니다. 한 번 만들면 클로닝할 때마다 재사용돼요.</p>
+      <div id="profileList"></div>
+      <button class="go" id="wizStart">🎤 새 프로필 만들기</button>
+    </div>
+
+    <div id="wizard" style="display:none">
+      <div class="card">
+        <h3 id="wizTitle">프로필 이름</h3>
+        <div id="wizNameStep">
+          <input type="text" id="wizName" placeholder="예: 유튜브용 목소리" value="내 목소리">
+          <button class="go" id="wizNameNext">시작하기</button>
+        </div>
+        <div id="wizRecStep" style="display:none">
+          <div class="muted" id="wizFocus"></div>
+          <div class="sentence-box" id="wizSentence"></div>
+          <div class="tip" id="wizTip"></div>
+          <canvas class="meter" id="meter" width="560" height="44"></canvas>
+          <div class="rec-controls">
+            <button id="recBtn">● 녹음</button>
+            <button id="playBtn" disabled>▶ 들어보기</button>
+            <button id="nextBtn" disabled>다음 →</button>
+          </div>
+          <div class="progress-dots" id="dots"></div>
+          <div class="status" id="wizStatus"></div>
+        </div>
+        <div id="wizBuildStep" style="display:none">
+          <div class="status" id="buildStatus"><span class="spinner"></span>업로드 및 분석 중…</div>
+        </div>
+        <div id="wizDoneStep" style="display:none">
+          <div class="status ok">✅ 프로필이 준비됐습니다!</div>
+          <div class="stats" id="wizStats"></div>
+          <button class="go" id="wizFinish">완료</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <footer>RNNoise + Qwen3-TTS · 파일은 외부로 전송되지 않습니다 ·
@@ -121,28 +219,31 @@
 
 <script>
 const $ = id => document.getElementById(id);
+const api = (p, opt) => fetch(p, opt).then(async r => {
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('서버 오류 ' + r.status));
+  return j;
+});
 
 // ---- 탭 ----
+const tabs = { dn: ['tabDenoise','secDenoise'], cl: ['tabClone','secClone'], vc: ['tabVoice','secVoice'] };
 function showTab(name) {
-  $('tabDenoise').classList.toggle('active', name === 'dn');
-  $('tabClone').classList.toggle('active', name === 'cl');
-  $('secDenoise').classList.toggle('active', name === 'dn');
-  $('secClone').classList.toggle('active', name === 'cl');
+  for (const [k, [t, s]] of Object.entries(tabs)) {
+    $(t).classList.toggle('active', k === name);
+    $(s).classList.toggle('active', k === name);
+  }
+  if (name === 'cl') { loadProfilesIntoSelect(); loadHistory(); }
+  if (name === 'vc') loadProfileList();
 }
 $('tabDenoise').onclick = () => showTab('dn');
 $('tabClone').onclick = () => showTab('cl');
+$('tabVoice').onclick = () => showTab('vc');
 
-// 서버 기능 감지: 클로닝 미설치면 탭 비활성화
 fetch('/api/health').then(r => r.json()).then(h => {
-  if (!h.clone) {
-    $('tabClone').disabled = true;
-    $('tabClone').textContent = '🗣️ 클로닝 (미설치)';
-    $('tabClone').title = 'pip install -r voice/requirements-voice.txt 후 서버 재시작';
-    $('tabClone').onclick = null;
-  }
+  if (!h.clone) { $('tabClone').disabled = $('tabVoice').disabled = true; }
 }).catch(() => {});
 
-// ---- 공용: 드롭존 ----
+// ---- 공용 ----
 function wireDrop(dropId, fileId, labelId, defaultLabel, onPick) {
   const drop = $(dropId), input = $(fileId), label = $(labelId);
   const set = f => { label.textContent = f ? f.name : defaultLabel; onPick(f || null); };
@@ -153,64 +254,297 @@ function wireDrop(dropId, fileId, labelId, defaultLabel, onPick) {
   drop.addEventListener('drop', ev => set(ev.dataTransfer.files[0]));
 }
 function setStatus(el, html, cls = '') { el.className = 'status ' + cls; el.innerHTML = html; }
-function filenameFrom(res, fallback) {
-  const cd = res.headers.get('Content-Disposition') || '';
-  const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i);
-  return m ? decodeURIComponent(m[1]) : fallback;
-}
 
-// ---- 노이즈 제거 ----
+// ---- 노이즈 제거 (기존) ----
 let dnPicked = null;
 wireDrop('dnDrop', 'dnFile', 'dnLabel', '파일을 끌어다 놓거나 클릭해서 선택',
   f => { dnPicked = f; $('dnGo').disabled = !f; });
 $('dnBoost').addEventListener('input', () => $('dnBoostVal').textContent = $('dnBoost').value + ' dB');
 $('dnGo').onclick = async () => {
   $('dnGo').disabled = true;
-  setStatus($('dnStatus'), '<span class="spinner"></span>처리 중… 파일 길이에 따라 수십 초 걸릴 수 있어요');
+  setStatus($('dnStatus'), '<span class="spinner"></span>처리 중…');
   const fd = new FormData();
-  fd.append('file', dnPicked);
-  fd.append('boost', $('dnBoost').value);
+  fd.append('file', dnPicked); fd.append('boost', $('dnBoost').value);
   try {
     const res = await fetch('/api/denoise', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || ('서버 오류 ' + res.status));
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '오류');
     const blob = await res.blob();
-    const name = filenameFrom(res, 'clean_' + dnPicked.name);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = name; a.click();
-    URL.revokeObjectURL(a.href);
-    setStatus($('dnStatus'), '✅ 완료! 다운로드 폴더를 확인하세요 — ' + name, 'ok');
+    a.href = URL.createObjectURL(blob); a.download = 'clean_' + dnPicked.name; a.click();
+    setStatus($('dnStatus'), '✅ 완료! 다운로드 폴더를 확인하세요', 'ok');
   } catch (e) { setStatus($('dnStatus'), '❌ ' + e.message, 'err'); }
   finally { $('dnGo').disabled = false; }
 };
 
-// ---- 보이스 클로닝 ----
-let clPicked = null;
-function clReady() { $('clGo').disabled = !(clPicked && $('clText').value.trim()); }
+// ---- 보이스 클로닝 (프로필 + 비동기 작업 + 시각화) ----
+let clPicked = null, pollTimer = null;
+
+async function loadProfilesIntoSelect() {
+  const sel = $('clSource');
+  const cur = sel.value;
+  try {
+    const { profiles } = await api('/api/profiles');
+    sel.innerHTML = '<option value="">📁 파일 업로드로 클로닝</option>' +
+      profiles.filter(p => p.ready).map(p =>
+        `<option value="${p.id}">🎤 프로필: ${p.name}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch {}
+  onSourceChange();
+}
+function onSourceChange() {
+  $('clDrop').style.display = $('clSource').value ? 'none' : 'block';
+  clReady();
+}
+$('clSource').addEventListener('change', onSourceChange);
 wireDrop('clDrop', 'clFile', 'clLabel', '목소리가 담긴 파일 (영상도 됨)',
   f => { clPicked = f; clReady(); });
 $('clText').addEventListener('input', clReady);
+function clReady() {
+  const hasSource = $('clSource').value || clPicked;
+  $('clGo').disabled = !(hasSource && $('clText').value.trim());
+}
+
+function setStages(n) { // 0~3 진행, -1 리셋
+  for (let i = 0; i < 4; i++) {
+    const el = $('stg' + i);
+    el.className = 'stage' + (i < n ? ' done' : i === n ? ' on' : '');
+  }
+}
+function renderTakes(takes) {
+  let bestIdx = -1, bestSel = -1e9;
+  takes.forEach((t, i) => { if (t.sel > bestSel) { bestSel = t.sel; bestIdx = i; } });
+  $('takeCards').innerHTML = takes.map((t, i) => `
+    <div class="take${i === bestIdx ? ' best' : ''}">
+      <div class="sub2">테이크 ${t.i}${i === bestIdx ? ' 👑' : ''}</div>
+      <div class="score">${t.pns}</div>
+      <div class="sub2">끝음 ${t.ending} · 강약 ${t.stress}<br>속도 ${t.rate}/s</div>
+    </div>`).join('');
+}
+
 $('clGo').onclick = async () => {
   $('clGo').disabled = true;
-  $('clAudio').style.display = 'none';
-  setStatus($('clStatus'), '<span class="spinner"></span>참조 분석 + 여러 테이크 생성·선별 중… 3~5분 정도 걸려요 (빠른 모드는 ~1분)');
+  $('jobPanel').style.display = 'block';
+  $('takeCards').innerHTML = ''; $('clAudio').style.display = 'none';
+  setStages(0);
+  setStatus($('clStatus'), '<span class="spinner"></span>참조 목소리 분석 중…');
   const fd = new FormData();
-  fd.append('ref', clPicked);
   fd.append('text', $('clText').value.trim());
   fd.append('fast', $('clFast').checked ? '1' : '0');
+  if ($('clSource').value) fd.append('profile_id', $('clSource').value);
+  else fd.append('ref', clPicked);
   try {
-    const res = await fetch('/api/clone', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || ('서버 오류 ' + res.status));
-    const blob = await res.blob();
-    const name = filenameFrom(res, '클론낭독.wav');
-    const url = URL.createObjectURL(blob);
-    const audio = $('clAudio');
-    audio.src = url; audio.style.display = 'block';
-    const a = document.createElement('a');
-    a.href = url; a.download = name; a.click();
-    setStatus($('clStatus'), '✅ 완료! 아래에서 바로 들어보세요 — ' + name, 'ok');
-  } catch (e) { setStatus($('clStatus'), '❌ ' + e.message, 'err'); }
-  finally { $('clGo').disabled = false; clReady(); }
+    const { job_id } = await api('/api/jobs', { method: 'POST', body: fd });
+    poll(job_id);
+  } catch (e) {
+    setStatus($('clStatus'), '❌ ' + e.message, 'err');
+    $('clGo').disabled = false;
+  }
 };
+
+function poll(jobId) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const job = await api('/api/jobs/' + jobId);
+      if (job.takes?.length) renderTakes(job.takes);
+      if (job.status === 'preparing') {
+        setStages(0);
+        setStatus($('clStatus'), '<span class="spinner"></span>참조 목소리 분석 중… (노이즈 제거 → 최적 구간 선택 → 받아쓰기)');
+      } else if (job.status === 'generating') {
+        setStages(job.stage === 'post' ? 2 : 1);
+        setStatus($('clStatus'), `<span class="spinner"></span>${job.stage === 'post' ? '호흡·강세·음량 마무리 중…' : '테이크 오디션 중 — 억양·호흡·끝음·강약을 채점해 최고를 뽑습니다 (' + job.stage + ')'}`);
+      } else if (job.status === 'done') {
+        clearInterval(pollTimer);
+        setStages(4); $('stg3').classList.add('done');
+        setStatus($('clStatus'), `✅ 완성! 최종 운율 점수 ${job.pns ?? '-'}`, 'ok');
+        const audio = $('clAudio');
+        audio.src = '/api/jobs/' + jobId + '/audio';
+        audio.style.display = 'block';
+        $('clGo').disabled = false; clReady();
+        loadHistory();
+      } else if (job.status === 'error') {
+        clearInterval(pollTimer);
+        setStatus($('clStatus'), '❌ ' + (job.error || '실패'), 'err');
+        $('clGo').disabled = false; clReady();
+      }
+    } catch {}
+  }, 1500);
+}
+
+async function loadHistory() {
+  try {
+    const { items } = await api('/api/history');
+    if (!items.length) { $('historyCard').style.display = 'none'; return; }
+    $('historyCard').style.display = 'block';
+    $('historyList').innerHTML = items.map(j => `
+      <div class="plist-item">
+        <div class="grow">
+          <div>${(j.text || '').slice(0, 30)}${(j.text || '').length > 30 ? '…' : ''}</div>
+          <div class="muted">${j.created} · ${j.profile ? '프로필 ' + j.profile : '파일 업로드'} ·
+            ${j.status === 'done' ? 'PNS ' + (j.pns ?? '-') : j.status}</div>
+        </div>
+        ${j.status === 'done' ? `<button class="mini" onclick="playHistory('${j.id}')">▶ 재생</button>
+        <a class="mini" href="/api/jobs/${j.id}/audio" download="클론낭독_${j.id}.wav">↓</a>` : ''}
+      </div>`).join('');
+  } catch {}
+}
+window.playHistory = id => {
+  const audio = $('clAudio');
+  $('jobPanel').style.display = 'block';
+  audio.src = '/api/jobs/' + id + '/audio';
+  audio.style.display = 'block';
+  audio.play();
+};
+
+// ---- 내 목소리: 프로필 목록 + 녹음 위저드 ----
+async function loadProfileList() {
+  try {
+    const { profiles } = await api('/api/profiles');
+    $('profileList').innerHTML = profiles.length ? profiles.map(p => `
+      <div class="plist-item">
+        <div class="grow">
+          <div>🎤 ${p.name} ${p.ready ? '' : '<span class="muted">(분석 전)</span>'}</div>
+          <div class="muted">${p.created} · 녹음 ${p.recordings}개${p.stats ? ` · ${p.stats.duration}s · 억양 ${p.stats.f0_std}st · ${p.stats.rate}음절/s` : ''}</div>
+        </div>
+        <button class="mini" onclick="delProfile('${p.id}')">삭제</button>
+      </div>`).join('') : '<p class="muted" style="margin-top:8px">아직 프로필이 없어요.</p>';
+  } catch {}
+}
+window.delProfile = async id => {
+  if (!confirm('이 프로필을 삭제할까요?')) return;
+  await api('/api/profiles/' + id, { method: 'DELETE' });
+  loadProfileList();
+};
+
+let GUIDE = [], recIdx = 0, blobs = [], mediaRec = null, chunks = [], audioCtx = null, meterRAF = null;
+
+$('wizStart').onclick = async () => {
+  const { sentences } = await api('/api/guide');
+  GUIDE = sentences; recIdx = 0; blobs = new Array(GUIDE.length).fill(null);
+  $('wizard').style.display = 'block';
+  $('wizStart').style.display = 'none';
+  $('wizNameStep').style.display = 'block';
+  $('wizRecStep').style.display = $('wizBuildStep').style.display = $('wizDoneStep').style.display = 'none';
+  $('wizTitle').textContent = '프로필 이름';
+};
+
+$('wizNameNext').onclick = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false } });
+    window._stream = stream;
+    audioCtx = new AudioContext();
+    const src = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512; src.connect(analyser);
+    drawMeter(analyser);
+  } catch (e) {
+    setStatus($('wizStatus'), '❌ 마이크 권한이 필요합니다', 'err'); return;
+  }
+  $('wizNameStep').style.display = 'none';
+  $('wizRecStep').style.display = 'block';
+  showSentence();
+};
+
+function drawMeter(analyser) {
+  const c = $('meter'), ctx = c.getContext('2d');
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  const bars = [];
+  (function loop() {
+    meterRAF = requestAnimationFrame(loop);
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (const v of data) sum += (v - 128) ** 2;
+    bars.push(Math.min(1, Math.sqrt(sum / data.length) / 40));
+    if (bars.length > 90) bars.shift();
+    const style = getComputedStyle(document.documentElement);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = style.getPropertyValue('--accent');
+    bars.forEach((b, i) => {
+      const h = Math.max(2, b * c.height);
+      ctx.fillRect(i * (c.width / 90), (c.height - h) / 2, c.width / 90 - 2, h);
+    });
+  })();
+}
+
+function showSentence() {
+  const s = GUIDE[recIdx];
+  $('wizTitle').textContent = `문장 ${recIdx + 1} / ${GUIDE.length}`;
+  $('wizFocus').textContent = '🎯 ' + s.focus;
+  $('wizSentence').textContent = s.text;
+  $('wizTip').textContent = '💡 ' + s.tip;
+  $('playBtn').disabled = !blobs[recIdx];
+  $('nextBtn').disabled = !blobs[recIdx];
+  $('nextBtn').textContent = recIdx === GUIDE.length - 1 ? '완료 ✓' : '다음 →';
+  $('dots').innerHTML = GUIDE.map((_, i) =>
+    `<div class="dot${blobs[i] ? ' done' : i === recIdx ? ' cur' : ''}"></div>`).join('');
+  setStatus($('wizStatus'), blobs[recIdx] ? '녹음됨 — 다시 녹음하거나 다음으로' : '');
+}
+
+$('recBtn').onclick = () => {
+  if (mediaRec && mediaRec.state === 'recording') { mediaRec.stop(); return; }
+  chunks = [];
+  mediaRec = new MediaRecorder(window._stream, { mimeType: 'audio/webm' });
+  mediaRec.ondataavailable = e => chunks.push(e.data);
+  mediaRec.onstop = () => {
+    blobs[recIdx] = new Blob(chunks, { type: 'audio/webm' });
+    $('recBtn').textContent = '● 다시 녹음';
+    $('recBtn').classList.remove('recording');
+    showSentence();
+  };
+  mediaRec.start();
+  $('recBtn').textContent = '■ 정지';
+  $('recBtn').classList.add('recording');
+  setStatus($('wizStatus'), '<span class="spinner"></span>녹음 중 — 문장을 읽고 정지를 누르세요');
+};
+
+$('playBtn').onclick = () => {
+  const a = new Audio(URL.createObjectURL(blobs[recIdx]));
+  a.play();
+};
+
+$('nextBtn').onclick = async () => {
+  if (recIdx < GUIDE.length - 1) { recIdx++; showSentence(); return; }
+  // 전부 녹음됨 → 업로드 & 분석
+  $('wizRecStep').style.display = 'none';
+  $('wizBuildStep').style.display = 'block';
+  $('wizTitle').textContent = '프로필 만드는 중';
+  try {
+    const meta = await api('/api/profiles', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: $('wizName').value }) });
+    for (let i = 0; i < blobs.length; i++) {
+      setStatus($('buildStatus'), `<span class="spinner"></span>녹음 업로드 중… (${i + 1}/${blobs.length})`);
+      const fd = new FormData();
+      fd.append('audio', blobs[i], `${i}.webm`); fd.append('idx', i);
+      await api(`/api/profiles/${meta.id}/recordings`, { method: 'POST', body: fd });
+    }
+    setStatus($('buildStatus'), '<span class="spinner"></span>목소리 분석 중… (노이즈 제거 → 최적 구간 선택 → 받아쓰기 → 억양·호흡·강세 분석, 약 1분)');
+    const built = await api(`/api/profiles/${meta.id}/build`, { method: 'POST' });
+    const s = built.stats;
+    $('wizStats').innerHTML = `
+      <div class="stat"><b>${s.f0_std}st</b><span>억양 역동성</span></div>
+      <div class="stat"><b>${s.rate}/s</b><span>말 속도</span></div>
+      <div class="stat"><b>${s.pause_rate}/s</b><span>호흡 빈도</span></div>
+      <div class="stat"><b>${s.peak_range}dB</b><span>강세 구조</span></div>
+      <div class="stat"><b>${s.ending > 0 ? '상승형' : '하강형'}</b><span>끝음 스타일</span></div>
+      <div class="stat"><b>${s.duration}s</b><span>학습 음성</span></div>`;
+    $('wizBuildStep').style.display = 'none';
+    $('wizDoneStep').style.display = 'block';
+    $('wizTitle').textContent = '완성! 이 목소리의 특징';
+  } catch (e) {
+    setStatus($('buildStatus'), '❌ ' + e.message, 'err');
+  }
+};
+
+$('wizFinish').onclick = () => {
+  $('wizard').style.display = 'none';
+  $('wizStart').style.display = 'block';
+  if (window._stream) window._stream.getTracks().forEach(t => t.stop());
+  cancelAnimationFrame(meterRAF);
+  loadProfileList();
+};
+
+loadProfilesIntoSelect();
 </script>
 </body>
 </html>

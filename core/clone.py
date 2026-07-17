@@ -163,8 +163,17 @@ def _selection_score(pns, gen_rate, natural_rate):
     return pns - RATE_PENALTY * max(0.0, abs(ratio - 1.0) - RATE_TOLERANCE)
 
 
+def _notify(on_progress, **event):
+    """진행 콜백 (선택). 앱 계층이 시각화에 쓴다 — 실패해도 파이프라인은 계속."""
+    if on_progress:
+        try:
+            on_progress(event)
+        except Exception:
+            pass
+
+
 def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
-                    fast=False, takes=DEFAULT_TAKES):
+                    fast=False, takes=DEFAULT_TAKES, on_progress=None):
     """best-of-N 테이크: 여러 번 생성해 선별 점수(PNS − 속도 이탈) 최고를 채택.
 
     생성은 확률적이라 테이크 편차가 크다 (실측: 같은 설정으로 50~84점).
@@ -174,12 +183,14 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
     from .audio import normalize_speech_level
     from .prosody import prosody_deps_available
     if takes <= 1 or not prosody_deps_available():
+        _notify(on_progress, stage="take", i=1, n=1)
         out = synthesize(text, ref_wav, ref_text, output_path, fast=fast)
         if prosody_deps_available():
             from .prosody import reshape_energy_contour
             ensure_breath_pauses(out, text)
             reshape_energy_contour(out, out)
             normalize_speech_level(out)
+        _notify(on_progress, stage="done")
         return out, None
 
     from .prosody import (ending_style_score, evaluate_prosody,
@@ -193,6 +204,7 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
     with tempfile.TemporaryDirectory() as wd:
         for i in range(takes):
             take = os.path.join(wd, f"take_{i}.wav")
+            _notify(on_progress, stage="take", i=i + 1, n=takes)
             synthesize(text, ref_wav, ref_text, take, fast=fast)
             ensure_breath_pauses(take, text)  # 문장 경계 호흡 보장
             reshape_energy_contour(take, take)  # 강세 구조 재조형 후 채점
@@ -203,6 +215,11 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
                                     natural_rate)
                    - ENDING_PENALTY * (1.0 - ending)
                    - STRESS_PENALTY * (1.0 - stress))
+            _notify(on_progress, stage="take_scored", i=i + 1, n=takes,
+                    pns=round(r["pns"], 1), sel=round(sel, 1),
+                    ending=round(ending, 2), stress=round(stress, 2),
+                    rate=round(r["gen"]["artic_rate"], 1),
+                    best=bool(sel > best_sel))
             if sel > best_sel:
                 best_sel, best_pns = sel, r["pns"]
                 if best_path:
@@ -214,13 +231,18 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
                 break
         os.replace(best_path, output_path)
     normalize_speech_level(output_path)  # 배포 기준 음량으로 (정적 게인)
+    _notify(on_progress, stage="done", pns=round(best_pns, 1))
     return output_path, best_pns
 
 
-def clone_voice(ref_path, text, output_path, fast=False, takes=DEFAULT_TAKES):
+def clone_voice(ref_path, text, output_path, fast=False, takes=DEFAULT_TAKES,
+                on_progress=None):
     """참조 파일 + 대본 → 클론 음성. 전체 파이프라인 한 번에. (앱 계층 진입점)"""
     with tempfile.TemporaryDirectory() as wd:
+        _notify(on_progress, stage="reference")
         ref_wav, ref_text, full_clean = prepare_reference(ref_path, wd)
+        _notify(on_progress, stage="reference_done", ref_text=ref_text)
         out, _ = synthesize_best(text, ref_wav, ref_text, full_clean,
-                                 output_path, fast=fast, takes=takes)
+                                 output_path, fast=fast, takes=takes,
+                                 on_progress=on_progress)
         return out

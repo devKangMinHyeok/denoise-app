@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 from core.audio import default_output_ext, ensure_ffmpeg  # noqa: E402
 from core.clone import clone_available, clone_voice  # noqa: E402
 from core.denoise import run_denoise  # noqa: E402
+from web import profiles  # noqa: E402
 
 WORK = os.path.join(tempfile.gettempdir(), "denoise-app-work")
 os.makedirs(WORK, exist_ok=True)
@@ -80,6 +81,7 @@ def denoise_api():
 
 @app.post("/api/clone")
 def clone_api():
+    """동기 클로닝 (구버전 호환 — CLI/스크립트용)."""
     if not clone_available():
         return jsonify(error="이 서버 환경에 mlx-audio가 설치되어 있지 않습니다. "
                              "pip install -r voice/requirements-voice.txt"), 501
@@ -99,7 +101,6 @@ def clone_api():
 
     out_path = os.path.join(WORK, f"clone_{uuid.uuid4().hex[:8]}.wav")
     try:
-        # 빠른 모드는 단일 테이크, 기본은 best-of-N (운율 점수 87 목표 선별)
         clone_voice(ref_path, text, out_path, fast=fast,
                     takes=1 if fast else 6)
     except RuntimeError as e:
@@ -108,6 +109,107 @@ def clone_api():
         os.remove(ref_path)
     return send_file(out_path, as_attachment=True,
                      download_name=f"{name}_클론낭독.wav")
+
+
+# ---- 가이드 녹음 / 보이스 프로필 ----
+
+@app.get("/api/guide")
+def guide_api():
+    return jsonify(sentences=profiles.GUIDE_SENTENCES)
+
+
+@app.get("/api/profiles")
+def profiles_list_api():
+    return jsonify(profiles=profiles.list_profiles())
+
+
+@app.post("/api/profiles")
+def profiles_create_api():
+    name = (request.form.get("name") or request.json.get("name", "")
+            if request.is_json else request.form.get("name", ""))
+    return jsonify(profiles.create_profile(name or "내 목소리"))
+
+
+@app.post("/api/profiles/<pid>/recordings")
+def profiles_recording_api(pid):
+    f = request.files.get("audio")
+    if not f:
+        return jsonify(error="녹음 파일이 없습니다"), 400
+    try:
+        return jsonify(profiles.add_recording(pid, f, request.form.get("idx", 0)))
+    except FileNotFoundError:
+        return jsonify(error="프로필이 없습니다"), 404
+
+
+@app.post("/api/profiles/<pid>/build")
+def profiles_build_api(pid):
+    try:
+        return jsonify(profiles.build_profile(pid))
+    except (RuntimeError, FileNotFoundError) as e:
+        return jsonify(error=str(e)), 400
+
+
+@app.delete("/api/profiles/<pid>")
+def profiles_delete_api(pid):
+    profiles.delete_profile(pid)
+    return jsonify(ok=True)
+
+
+# ---- 비동기 생성 작업 (진행 시각화 + 세션 저장) ----
+
+@app.post("/api/jobs")
+def jobs_create_api():
+    if not clone_available():
+        return jsonify(error="mlx-audio 미설치"), 501
+    text = (request.form.get("text") or "").strip()
+    fast = request.form.get("fast") == "1"
+    profile_id = request.form.get("profile_id") or None
+    if not text:
+        return jsonify(error="읽어줄 대본이 비어 있습니다"), 400
+    if len(text) > MAX_TEXT_LEN:
+        return jsonify(error=f"대본이 너무 깁니다 ({MAX_TEXT_LEN}자 이내)"), 400
+
+    ref_path = profile_name = None
+    if profile_id:
+        try:
+            metas = {m["id"]: m for m in profiles.list_profiles()}
+            profile_name = metas.get(profile_id, {}).get("name")
+        except OSError:
+            pass
+    else:
+        f = request.files.get("ref")
+        if not f or not f.filename:
+            return jsonify(error="참조 목소리 파일 또는 프로필이 필요합니다"), 400
+        try:
+            ref_path, _, _ = _save_upload(f)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+
+    job_id = profiles.start_clone_job(text, fast, ref_path=ref_path,
+                                      profile_id=profile_id,
+                                      profile_name=profile_name)
+    return jsonify(job_id=job_id)
+
+
+@app.get("/api/jobs/<job_id>")
+def jobs_get_api(job_id):
+    job = profiles.get_job(job_id)
+    if not job:
+        return jsonify(error="작업을 찾을 수 없습니다"), 404
+    return jsonify(job)
+
+
+@app.get("/api/jobs/<job_id>/audio")
+def jobs_audio_api(job_id):
+    p = profiles.job_output(job_id)
+    if not p:
+        return jsonify(error="결과가 아직 없습니다"), 404
+    return send_file(p, as_attachment=False, download_name="클론낭독.wav")
+
+
+@app.get("/api/history")
+def history_api():
+    return jsonify(items=profiles.list_history())
 
 
 def main():

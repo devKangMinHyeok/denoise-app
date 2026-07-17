@@ -233,6 +233,27 @@ def test_gates_fail_lists_reasons():
     assert len(failures) == 4
 
 
+# ---- 가이드 문장 / 프로필 저장소 ----
+
+def test_guide_sentences_cover_prosody_dimensions():
+    from web.profiles import GUIDE_SENTENCES
+    focuses = " ".join(s["focus"] for s in GUIDE_SENTENCES)
+    assert len(GUIDE_SENTENCES) >= 8
+    for needed in ("의문문", "마무리", "숫자", "빠른", "느린"):
+        assert needed in focuses, f"가이드에 '{needed}' 유형 문장이 필요"
+
+
+def test_profile_store_roundtrip(tmp_path, monkeypatch):
+    import web.profiles as P
+    monkeypatch.setattr(P, "PROFILES_DIR", str(tmp_path / "profiles"))
+    monkeypatch.setattr(P, "HISTORY_DIR", str(tmp_path / "history"))
+    meta = P.create_profile("테스트 목소리")
+    assert meta["ready"] is False
+    assert any(m["id"] == meta["id"] for m in P.list_profiles())
+    P.delete_profile(meta["id"])
+    assert not any(m["id"] == meta["id"] for m in P.list_profiles())
+
+
 # ---- 웹 서버 (기능 감지 포함) ----
 
 def test_health_endpoint():
