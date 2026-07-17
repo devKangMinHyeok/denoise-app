@@ -312,6 +312,32 @@ def splice_paragraphs_meta(paragraphs, index, new_dur):
     return out
 
 
+def prepare_performance(rec_path, workdir, denoise=True):
+    """사용자 연기 녹음 → (참조 wav, 받아쓰기). 연기 반영 재생성의 준비 단계.
+
+    클론은 참조의 운율을 따라 읽는다(참조 전이 원리) — 참조를 사용자의 연기
+    녹음으로 바꾸면 그 감정·리듬·강조가 결과에 전이된다 (ElevenLabs Voice
+    Changer와 같은 발상). 노이즈 제거(기본) + 레벨 보정 + 받아쓰기.
+    """
+    perf = os.path.join(workdir, "performance.wav")
+    if denoise:
+        from .denoise import denoise_to_wav
+        denoise_to_wav(rec_path, perf, max_sec=300)
+    else:
+        run_ffmpeg(["-i", rec_path, "-t", "300",
+                    "-af", "aformat=channel_layouts=mono",
+                    "-c:a", "pcm_s16le", perf])
+    from .audio import normalize_speech_level
+    normalize_speech_level(perf)
+    import mlx_whisper
+    text = mlx_whisper.transcribe(
+        perf, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
+    if not text:
+        raise RuntimeError("연기 녹음에서 말소리를 찾지 못했습니다. "
+                           "문장을 또렷하게 읽어주세요.")
+    return perf, text
+
+
 def regenerate_paragraph(parent_wav, paragraphs, index, ref_wav, ref_text,
                          natural_wav, output_path, fast=False,
                          takes=DEFAULT_TAKES, on_progress=None):

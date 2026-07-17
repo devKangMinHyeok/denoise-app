@@ -422,6 +422,66 @@ def start_regen_job(parent_id, index):
     return job_id
 
 
+def start_performance_job(parent_id, index, rec_path, denoise=True):
+    """선택한 문단을 사용자 연기 녹음의 운율로 다시 생성한 새 버전 작업.
+
+    참조를 연기 녹음으로 교체하므로 감정·리듬·강조가 결과에 전이되고,
+    테이크 채점 기준도 자동으로 '연기를 얼마나 잘 따라했나'가 된다.
+    """
+    from core.clone import (DEFAULT_TAKES, prepare_performance,
+                            regenerate_paragraph)
+
+    parent = get_job(parent_id)
+    if not parent or parent.get("status") != "done":
+        raise ValueError("완성된 작업이 아닙니다")
+    paras = parent.get("paragraphs")
+    if not paras or not (0 <= index < len(paras)):
+        raise ValueError("문단 정보가 없는 작업입니다 (새로 만든 작업부터 지원돼요)")
+    src = job_output(parent_id)
+    if not src:
+        raise ValueError("원본 오디오 파일이 없습니다")
+
+    _ensure_dirs()
+    settings = parent.get("settings") or {}
+    job_id = uuid.uuid4().hex[:10]
+    job = _new_job(job_id, parent["text"], parent.get("profile"),
+                   parent.get("profile_id"), settings,
+                   title=parent.get("title"),
+                   parent={"job": parent_id, "kind": "performance",
+                           "index": index},
+                   version=int(parent.get("version", 1)) + 1)
+    job.update({"status": "generating", "stage": "performance"})
+    with _LOCK:
+        JOBS[job_id] = job
+    on_progress = _make_progress(job)
+
+    def run():
+        jdir = os.path.join(HISTORY_DIR, job_id)
+        os.makedirs(jdir, exist_ok=True)
+        out = os.path.join(jdir, "output.wav")
+        t_start = time.time()
+        try:
+            perf, perf_text = prepare_performance(rec_path, jdir,
+                                                  denoise=denoise)
+            job["perf_text"] = perf_text  # "이렇게 들렸어요" (투명성)
+            job["status"] = "generating"
+            job["stage"] = "takes"
+            regenerate_paragraph(src, paras, index, perf, perf_text, perf,
+                                 out, fast=settings.get("fast", False),
+                                 takes=settings.get("takes", DEFAULT_TAKES),
+                                 on_progress=on_progress)
+            _finish_job(job, out, t_start)
+        except Exception as e:
+            job.update({"status": "error", "error": str(e)[-300:]})
+        finally:
+            if rec_path and os.path.exists(rec_path):
+                os.remove(rec_path)
+            _persist_job(job, jdir)
+
+    threading.Thread(target=run, daemon=True).start()
+    return job_id
+
+
 def rename_history(job_id, title):
     """작업 이름 변경 — 라이브러리에서 알아보기 쉽게."""
     title = (title or "").strip()[:60]

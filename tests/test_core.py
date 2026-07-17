@@ -432,6 +432,22 @@ def test_regen_job_rejects_unfinished(tmp_path, monkeypatch):
         P.start_regen_job("j1", 0)
 
 
+def test_performance_job_rejects_bad_targets(tmp_path, monkeypatch):
+    """연기 반영은 완성작 + 문단 정보가 있어야 시작된다."""
+    import web.profiles as P
+    monkeypatch.setattr(P, "PROFILES_DIR", str(tmp_path / "profiles"))
+    monkeypatch.setattr(P, "HISTORY_DIR", str(tmp_path / "history"))
+    with pytest.raises(ValueError):
+        P.start_performance_job("없는작업", 0, str(tmp_path / "r.webm"))
+    jdir = tmp_path / "history" / "j1"
+    jdir.mkdir(parents=True)
+    (jdir / "meta.json").write_text(
+        '{"id": "j1", "status": "done", "text": "t", "paragraphs": null}',
+        encoding="utf-8")
+    with pytest.raises(ValueError):
+        P.start_performance_job("j1", 0, str(tmp_path / "r.webm"))
+
+
 def test_new_job_defaults_title_from_text():
     from web.profiles import _new_job
     job = _new_job("x", "안녕하세요. 오늘은 테스트입니다. " * 5, None, None, {})

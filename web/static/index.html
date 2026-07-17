@@ -230,6 +230,24 @@
       <div id="historyList"></div>
     </div>
 
+    <div class="card" id="perfPanel" style="display:none">
+      <h3>🎙 직접 연기해서 다시 만들기</h3>
+      <p class="muted">아래 문장을 원하는 감정·리듬·강조로 직접 읽어주세요.
+      그 연기가 이 문단의 참조가 되어, 클론 목소리가 <b>당신의 연기를 따라</b> 다시 읽습니다.
+      (테이크 채점 기준도 "연기를 얼마나 잘 따라했나"로 바뀌어요)</p>
+      <div class="sentence-box" id="perfScript"></div>
+      <canvas class="meter" id="perfMeter" width="560" height="44"></canvas>
+      <div class="rec-controls">
+        <button id="perfRec">● 녹음</button>
+        <button id="perfPlay" disabled>▶ 들어보기</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="perfDn" checked>
+        🧹 녹음에 노이즈 제거 적용 (권장)</label>
+      <button class="go" id="perfGo" disabled>이 연기를 반영해 다시 생성 →</button>
+      <button class="go secondary" id="perfCancel">닫기</button>
+      <div class="status" id="perfStatus"></div>
+    </div>
+
     <div class="notice">⚠️ <b>본인 목소리이거나 명시적으로 동의받은 목소리만</b> 사용하세요.
     생성 음성을 콘텐츠에 쓸 때는 AI 생성임을 밝히는 것을 권장합니다.</div>
   </section>
@@ -634,7 +652,12 @@ function poll(jobId) {
       } else if (job.status === 'generating') {
         setStages(job.stage === 'post' ? 2 : 1);
         const para = job.paragraph ? `문단 ${job.paragraph.i}/${job.paragraph.n} · ` : '';
-        setStatus($('clStatus'), `<span class="spinner"></span>${job.stage === 'post' ? '호흡·강세·음량 마무리 중…' : para + '테이크 오디션 중 — 억양·호흡·끝음·강약을 채점해 최고를 뽑습니다 (' + job.stage + ')'}${elapsed}`);
+        const msg = job.stage === 'post' ? '호흡·강세·음량 마무리 중…'
+          : job.stage === 'performance' ? '연기 녹음 분석 중… (노이즈 제거 → 받아쓰기)'
+          : para + (job.parent?.kind === 'performance'
+            ? '테이크 오디션 중 — 연기를 얼마나 잘 따라했는지 채점합니다 (' + job.stage + ')'
+            : '테이크 오디션 중 — 억양·호흡·끝음·강약을 채점해 최고를 뽑습니다 (' + job.stage + ')');
+        setStatus($('clStatus'), `<span class="spinner"></span>${msg}${elapsed}`);
       } else if (job.status === 'done') {
         clearInterval(pollTimer);
         setStages(4); $('stg3').classList.add('done');
@@ -646,6 +669,9 @@ function poll(jobId) {
         if (job.composed?.length) {
           $('composeNote').textContent = '🧩 문장 조합: 문장마다 최고 테이크를 골라 이어붙였어요 — '
             + job.composed.map(c => (c || []).join('·')).join(' | ');
+        }
+        if (job.perf_text) {
+          $('composeNote').textContent += `\n🎙 연기 받아쓰기: "${job.perf_text.slice(0, 80)}"`;
         }
         const audio = $('clAudio');
         audio.src = '/api/jobs/' + jobId + '/audio';
@@ -667,7 +693,8 @@ let LIB = {}, openParas = new Set();
 
 function verBadge(j) {
   if (!j.version || j.version <= 1) return '';
-  const why = j.parent?.kind === 'paragraph' ? ` · 문단${(j.parent.index ?? 0) + 1} 재생성` : '';
+  const why = j.parent?.kind === 'paragraph' ? ` · 문단${(j.parent.index ?? 0) + 1} 재생성`
+    : j.parent?.kind === 'performance' ? ` · 문단${(j.parent.index ?? 0) + 1} 연기 반영` : '';
   return `<span class="ver">v${j.version}${why}</span>`;
 }
 
@@ -700,6 +727,7 @@ function jobCard(j) {
         <div class="job-actions">
           <button class="mini" onclick="playPara('${j.id}',${i})">▶ 이 문단 듣기</button>
           ${j.profile_id ? `<button class="mini" onclick="regenPara('${j.id}',${i})">🔄 이 문단만 다시 생성</button>` : ''}
+          <button class="mini" onclick="performPara('${j.id}',${i})">🎙 직접 연기해서 반영</button>
         </div></div>`).join('')}
     </div>` : ''}` : ''}
   </div>`;
@@ -770,6 +798,77 @@ window.rerunJob = async id => {
     poll(job_id);
   } catch (e) { alert('재실행 실패: ' + e.message); }
 };
+// ---- 직접 연기 반영: 문단 선택 → 녹음 → 그 연기를 참조로 재생성 ----
+let perf = { jobId: null, index: null, blob: null, rec: null, stream: null };
+
+window.performPara = async (id, i) => {
+  const p = LIB[id]?.paragraphs?.[i]; if (!p) return;
+  perf = { jobId: id, index: i, blob: null, rec: null, stream: null };
+  $('perfScript').textContent = p.text;
+  $('perfPanel').style.display = 'block';
+  $('perfPlay').disabled = $('perfGo').disabled = true;
+  $('perfRec').textContent = '● 녹음';
+  setStatus($('perfStatus'), '');
+  try {
+    perf.stream = await navigator.mediaDevices.getUserMedia(
+      { audio: { echoCancellation: true, noiseSuppression: false } });
+    const ac = new AudioContext();
+    const srcNode = ac.createMediaStreamSource(perf.stream);
+    const an = ac.createAnalyser(); an.fftSize = 512; srcNode.connect(an);
+    cancelAnimationFrame(meterRAF);
+    drawMeter(an, 'perfMeter');
+    setStatus($('perfStatus'), '준비됐어요 — 녹음을 누르고 문장을 연기해 주세요');
+  } catch { setStatus($('perfStatus'), '❌ 마이크 권한이 필요합니다', 'err'); }
+  $('perfPanel').scrollIntoView({ behavior: 'smooth' });
+};
+function closePerf() {
+  $('perfPanel').style.display = 'none';
+  if (perf.stream) perf.stream.getTracks().forEach(t => t.stop());
+  cancelAnimationFrame(meterRAF);
+}
+$('perfCancel').onclick = closePerf;
+$('perfRec').onclick = () => {
+  if (perf.rec && perf.rec.state === 'recording') { perf.rec.stop(); return; }
+  if (!perf.stream) return;
+  const chunks2 = [];
+  perf.rec = new MediaRecorder(perf.stream, { mimeType: 'audio/webm' });
+  perf.rec.ondataavailable = e => chunks2.push(e.data);
+  perf.rec.onstop = () => {
+    perf.blob = new Blob(chunks2, { type: 'audio/webm' });
+    $('perfRec').textContent = '● 다시 녹음';
+    $('perfRec').classList.remove('recording');
+    $('perfPlay').disabled = $('perfGo').disabled = false;
+    setStatus($('perfStatus'), '녹음됨 — 들어보고 마음에 들면 반영을 누르세요');
+  };
+  perf.rec.start();
+  $('perfRec').textContent = '■ 정지';
+  $('perfRec').classList.add('recording');
+  setStatus($('perfStatus'), '<span class="spinner"></span>녹음 중 — 원하는 감정과 리듬으로 읽어주세요');
+};
+$('perfPlay').onclick = () => { new Audio(URL.createObjectURL(perf.blob)).play(); };
+$('perfGo').onclick = async () => {
+  if (!perf.blob) return;
+  $('perfGo').disabled = true;
+  const fd = new FormData();
+  fd.append('audio', perf.blob, 'performance.webm');
+  fd.append('paragraph', perf.index);
+  fd.append('denoise', $('perfDn').checked ? '1' : '0');
+  try {
+    const { job_id } = await api(`/api/jobs/${perf.jobId}/perform`, { method: 'POST', body: fd });
+    closePerf();
+    $('jobPanel').style.display = 'block';
+    $('takeCards').innerHTML = ''; $('composeNote').textContent = '';
+    $('clAudio').style.display = 'none';
+    setStages(1);
+    setStatus($('clStatus'), `<span class="spinner"></span>연기 녹음 분석 중 — 완성되면 새 버전(v${(LIB[perf.jobId]?.version || 1) + 1} · 연기 반영)으로 저장돼요`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    poll(job_id);
+  } catch (e) {
+    setStatus($('perfStatus'), '❌ ' + e.message, 'err');
+    $('perfGo').disabled = false;
+  }
+};
+
 window.renameJob = async id => {
   const t = prompt('작업 이름', LIB[id]?.title || '');
   if (!t?.trim()) return;
@@ -943,8 +1042,8 @@ $('wizNameNext').onclick = async () => {
   showSentence();
 };
 
-function drawMeter(analyser) {
-  const c = $('meter'), ctx = c.getContext('2d');
+function drawMeter(analyser, canvasId = 'meter') {
+  const c = $(canvasId), ctx = c.getContext('2d');
   const data = new Uint8Array(analyser.frequencyBinCount);
   const bars = [];
   (function loop() {

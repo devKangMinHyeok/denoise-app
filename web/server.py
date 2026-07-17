@@ -305,6 +305,30 @@ def jobs_regen_api(job_id):
         return jsonify(error=str(e)), 400
 
 
+@app.post("/api/jobs/<job_id>/perform")
+def jobs_perform_api(job_id):
+    """문단 연기 반영 재생성 — 사용자 녹음의 운율을 참조로 그 문단만 다시."""
+    if not clone_available():
+        return jsonify(error="mlx-audio 미설치"), 501
+    f = request.files.get("audio")
+    if not f:
+        return jsonify(error="연기 녹음 파일이 없습니다"), 400
+    try:
+        idx = int(request.form.get("paragraph", -1))
+    except (TypeError, ValueError):
+        return jsonify(error="문단 번호가 잘못됐습니다"), 400
+    denoise = request.form.get("denoise", "1") != "0"
+    ext = os.path.splitext(f.filename or "rec.webm")[1] or ".webm"
+    rec_path = os.path.join(WORK, f"perf_{uuid.uuid4().hex[:8]}{ext}")
+    f.save(rec_path)
+    try:
+        return jsonify(job_id=profiles.start_performance_job(
+            job_id, idx, rec_path, denoise=denoise))
+    except ValueError as e:
+        os.remove(rec_path)
+        return jsonify(error=str(e)), 400
+
+
 @app.get("/api/jobs/<job_id>")
 def jobs_get_api(job_id):
     job = profiles.get_job(job_id)
