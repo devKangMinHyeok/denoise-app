@@ -110,22 +110,28 @@ def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1,
 # 조기종료 82 시절 웹 출력 PNS 82.5 vs 베스트 테이크 87.0).
 PNS_TARGET = 87.0  # 이 점수를 넘는 테이크가 나오면 조기 채택
 DEFAULT_TAKES = 6  # 일반 모드 테이크 수 (품질 우선 — 사용자 확인: 시간보다 품질)
-BREATH_TARGET = (0.5, 0.7)  # 문장 경계 호흡 삽입 목표 범위(초) — 읽기 발화 실측 분포
+BREATH_TARGET = (0.5, 0.7)   # 문장 경계 호흡 목표 범위(초) — 읽기 발화 실측 분포
+CLAUSE_TARGET = (0.18, 0.28)  # 쉼표(절) 경계 호흡 — 문장보다 짧게 (경계 강도 위계)
+CLAUSE_MIN = 0.10             # 쉼표 호흡 최소치 (실측: 모델이 0.09초로 무시하기도)
 
 
 def ensure_breath_pauses(wav_path, script):
-    """문장 경계 호흡 보장 후처리 (구조적 보정).
+    """경계 호흡 보장 후처리 (구조적 보정) — 문장 경계 + 쉼표(절) 경계.
 
-    통짜 생성은 억양이 자연스럽지만, 문장 경계 호흡은 테이크 운에 달려 있다
-    (실측: 같은 설정에서 0.0~0.6초). 경계 휴지가 BREATH_MIN 미만이면 자연
-    길이(0.5~0.7초, 문헌: 읽기 발화 문장 경계 중앙값 ~0.4~0.5초)로 무음을
-    채워 넣는다 — 오디오북 도구들의 표준 기법. 억양은 건드리지 않는다.
+    통짜 생성은 억양이 자연스럽지만, 경계 호흡은 테이크 운에 달려 있다
+    (실측: 문장 경계 0.0~0.6초, 쉼표는 0.09초로 무시하는 경우도). 부족한
+    경계에 자연 길이 무음을 채워 넣는다 — 문장 0.5~0.7초, 쉼표 0.18~0.28초
+    (문헌: 경계 강도가 높을수록 휴지가 길다). 억양은 건드리지 않는다.
     """
-    from .prosody import BREATH_MIN, sentence_boundary_info, split_sentences
-    if len(split_sentences(script)) < 2:
+    from .prosody import (BREATH_MIN, sentence_boundary_info,
+                          split_breath_units)
+    units = split_breath_units(script)
+    if len(units) < 2:
         return wav_path
-    infos = sentence_boundary_info(wav_path, script)
-    short = [b for b in infos if b["gap"] < BREATH_MIN]
+    infos = sentence_boundary_info(wav_path, script, units=units)
+    short = [b for b in infos
+             if b["gap"] < (BREATH_MIN if b.get("kind") == "sentence"
+                            else CLAUSE_MIN)]
     if not short:
         return wav_path
 
@@ -136,7 +142,8 @@ def ensure_breath_pauses(wav_path, script):
     fade = int(sr * 0.01)
     pieces, cursor = [], 0
     for b in sorted(short, key=lambda x: x["insert_at"]):
-        lo, hi = BREATH_TARGET
+        lo, hi = (BREATH_TARGET if b.get("kind") == "sentence"
+                  else CLAUSE_TARGET)
         need = float(rng.uniform(lo, hi)) - b["gap"]
         cut = int(b["insert_at"] * sr)
         head = y[cursor:cut].copy()
@@ -155,6 +162,7 @@ ENDING_PENALTY = 8.0    # 끝음 스타일 불일치(0~1) 최대 감점 — "끝
 STRESS_PENALTY = 6.0    # 음절 강약 불일치(0~1) 최대 감점 — 균일 강세/과분절 대응
 CLIFF_PENALTY = 8.0     # 끝음 절벽(확 내려꽂음) 최대 감점 — 실측 사람 -7.8 vs 클론 -17
 WORD_DROP_PENALTY = 8.0  # 어미 단어 내부 낙하(줬-어-요 계단 하강) 최대 감점
+SWALLOW_PENALTY = 6.0    # '먹힌 단어'(국소 강약 결함) 최대 감점 — worst-case
 PNS_DOMINANCE = 8.0     # 지배 규칙: 최고 PNS보다 이만큼 낮은 테이크는
                         # 스타일 감점이 유리해도 선정 불가 (실사용 사고:
                         # 프로필 통계가 틀어지자 최저 PNS 테이크가 선정됨)
@@ -225,6 +233,7 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
                           ending_word_drops, evaluate_prosody, final_f0_slopes,
                           prosody_features, reshape_energy_contour,
                           stress_features, stress_style_score,
+                          swallowed_score, swallowed_word_worst,
                           word_drop_score)
     natural_rate = prosody_features(natural_wav)["artic_rate"]
     natural_slopes = final_f0_slopes(natural_wav)
@@ -243,17 +252,20 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             stress = stress_style_score(stress_features(take), natural_stress)
             cliff = cliff_score(ending_cliff(take), natural_cliff)
             wdrop = word_drop_score(ending_word_drops(take, text))
+            swallow = swallowed_score(swallowed_word_worst(take))
             sel = (_selection_score(r["pns"], r["gen"]["artic_rate"],
                                     natural_rate)
                    - ENDING_PENALTY * (1.0 - ending)
                    - STRESS_PENALTY * (1.0 - stress)
                    - CLIFF_PENALTY * (1.0 - cliff)
-                   - WORD_DROP_PENALTY * (1.0 - wdrop))
+                   - WORD_DROP_PENALTY * (1.0 - wdrop)
+                   - SWALLOW_PENALTY * (1.0 - swallow))
             scored.append({"path": take, "pns": r["pns"], "sel": sel})
             _notify(on_progress, stage="take_scored", i=i + 1, n=takes,
                     pns=round(r["pns"], 1), sel=round(sel, 1),
                     ending=round(ending, 2), stress=round(stress, 2),
                     cliff=round(cliff, 2), wdrop=round(wdrop, 2),
+                    swallow=round(swallow, 2),
                     rate=round(r["gen"]["artic_rate"], 1),
                     best=bool(pick_best_take(scored) == len(scored) - 1))
             if sel >= PNS_TARGET:

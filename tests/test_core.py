@@ -210,6 +210,25 @@ def test_word_drop_vacuous_without_data():
     assert word_drop_score([]) == 1.0
 
 
+# ---- 먹힌 단어 (국소 강약) + 호흡 단위 ----
+
+def test_swallowed_score_human_level_full_credit():
+    from core.prosody import swallowed_score
+    assert swallowed_score(-7.2) == pytest.approx(1.0)  # 사람 실측 최악
+
+
+def test_swallowed_score_dead_word_penalized():
+    from core.prosody import swallowed_score
+    assert swallowed_score(-11.5) < 0.5  # 클론 실측 결함
+
+
+def test_split_breath_units_sentence_and_clause():
+    from core.prosody import split_breath_units
+    u = split_breath_units("노이즈를 제거하고, 목소리를 학습합니다. 시작해 볼게요.")
+    assert [k for _, k in u] == ["clause", "sentence", "sentence"]
+    assert u[0][0] == "노이즈를 제거하고"
+
+
 # ---- 문장 경계 호흡 (BPA) ----
 
 def test_split_sentences():

@@ -499,19 +499,41 @@ def sentence_boundary_gaps(wav_path, script):
     return [b["gap"] for b in sentence_boundary_info(wav_path, script)]
 
 
-def sentence_boundary_info(wav_path, script):
-    """문장 경계 상세: [{gap, insert_at, silence:(s,e)|None}, ...].
+def split_breath_units(text):
+    """호흡 단위 분할 (순수 함수): 문장 경계 + 쉼표 경계.
+
+    반환: [(단위 텍스트, 'sentence'|'clause'), ...] — 각 단위의 끝이 경계.
+    마지막 단위는 경계가 아니므로 종류 무관.
+    """
+    import re
+    units = []
+    for sent in split_sentences(text):
+        parts = [p.strip() for p in sent.split(",")]
+        for k, p in enumerate(parts):
+            if not p:
+                continue
+            kind = "sentence" if k == len(parts) - 1 else "clause"
+            units.append((p, kind))
+    return units
+
+
+def sentence_boundary_info(wav_path, script, units=None):
+    """경계 상세: [{gap, insert_at, kind, silence:(s,e)|None}, ...].
 
     Whisper 단어 타임스탬프를 대본과 문자 단위 정렬(difflib)해 경계 위치를
     잡고, 휴지 길이는 에너지 기반 무음 검출로 잰다 (Whisper의 단어 종료
     시각은 무음을 삼키는 경향이 있음 — 실측). insert_at은 호흡을 삽입하기에
-    적절한 시각(기존 무음의 중앙, 없으면 다음 단어 시작 직전).
+    적절한 시각. units를 주면(호흡 단위: 쉼표 포함) 그 경계들을 쓰고,
+    없으면 문장 경계만.
     """
     import difflib
     import mlx_whisper
     from .clone import WHISPER
 
-    sents = split_sentences(script)
+    if units is None:
+        units = [(s, "sentence") for s in split_sentences(script)]
+    sents = [u[0] for u in units]
+    kinds = [u[1] for u in units]
     if len(sents) < 2:
         return []
     r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
@@ -545,7 +567,7 @@ def sentence_boundary_info(wav_path, script):
     silence_runs = _silence_runs(wav_path)
 
     infos = []
-    for pos in cut_positions:
+    for bi, pos in enumerate(cut_positions):
         # 경계 근처에서 매칭된 문자 찾기 (±5자 탐색)
         hyp_pos = None
         for d in range(6):
@@ -567,8 +589,45 @@ def sentence_boundary_info(wav_path, script):
         insert_at = ((best_run[0] + best_run[1]) / 2 if best_run
                      else max(float(words[wi + 1]["start"]) - 0.02, lo))
         infos.append({"gap": best, "insert_at": insert_at,
-                      "silence": best_run})
+                      "silence": best_run, "kind": kinds[bi]})
     return infos
+
+
+def swallowed_word_worst(wav_path):
+    """'먹힌 단어' 최악 편차 (dB): 단어별 피크 레벨의 이웃(±2단어) 롤링
+    중앙값 대비 최악 음(-) 편차.
+
+    강약의 국소 결함 정량화 — 전역 통계(peak_range 등)는 특정 단어 하나가
+    죽어도 통과시킨다. 실측: 사람 최악 -7.2dB vs 클론 -10~-11.5dB.
+    """
+    import librosa
+    import mlx_whisper
+    from .clone import WHISPER
+    y, sr = librosa.load(wav_path, sr=_SR, mono=True)
+    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+                               language="ko", word_timestamps=True)
+    peaks = []
+    for seg in r["segments"]:
+        for w in seg["words"]:
+            a, b = int(w["start"] * sr), int(w["end"] * sr)
+            if b - a < sr // 50:
+                continue
+            env = librosa.feature.rms(y=y[a:b], frame_length=400,
+                                      hop_length=160)[0]
+            peaks.append(20 * np.log10(max(float(env.max()), 1e-6)))
+    if len(peaks) < 5:
+        return 0.0
+    worst = 0.0
+    for i in range(len(peaks)):
+        med = float(np.median(peaks[max(0, i - 2): i + 3]))
+        worst = min(worst, peaks[i] - med)
+    return float(worst)
+
+
+def swallowed_score(worst_dev, allow=-8.0, floor=6.0):
+    """먹힌 단어 점수 (0~1): 최악 편차가 allow(dB)까지는 만점(사람 수준 -7.2),
+    그 아래로 floor만큼에서 0점. 순수 함수."""
+    return float(np.clip(1.0 - max(0.0, allow - worst_dev) / floor, 0.0, 1.0))
 
 
 def _silence_runs(wav_path, min_sec=0.12):
