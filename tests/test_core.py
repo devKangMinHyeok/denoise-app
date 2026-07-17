@@ -191,6 +191,25 @@ def test_cliff_score_vacuous_without_data():
     assert cliff_score(None, -8.0) == 1.0
 
 
+# ---- 어미 단어 내부 낙하 ----
+
+def test_word_drop_level_endings_full_credit():
+    from core.prosody import word_drop_score
+    # 수평/상승 어미 (실측 자연 어미: ±1st 내)
+    assert word_drop_score([0.2, -0.5, 1.1]) == pytest.approx(1.0)
+
+
+def test_word_drop_worst_case_caught():
+    from core.prosody import word_drop_score
+    # 실측 결함: 대부분 수평인데 '줬어요' -2.7, '나왔죠?' -3.8 낙하 → 감점
+    assert word_drop_score([0.2, 0.3, 2.7, 3.8, 0.7]) < 0.6
+
+
+def test_word_drop_vacuous_without_data():
+    from core.prosody import word_drop_score
+    assert word_drop_score([]) == 1.0
+
+
 # ---- 문장 경계 호흡 (BPA) ----
 
 def test_split_sentences():

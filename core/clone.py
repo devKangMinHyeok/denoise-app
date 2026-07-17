@@ -154,6 +154,7 @@ RATE_PENALTY = 15.0     # 편차 1.0당 PNS 감점량
 ENDING_PENALTY = 8.0    # 끝음 스타일 불일치(0~1) 최대 감점 — "끝음이 AI 같다" 대응
 STRESS_PENALTY = 6.0    # 음절 강약 불일치(0~1) 최대 감점 — 균일 강세/과분절 대응
 CLIFF_PENALTY = 8.0     # 끝음 절벽(확 내려꽂음) 최대 감점 — 실측 사람 -7.8 vs 클론 -17
+WORD_DROP_PENALTY = 8.0  # 어미 단어 내부 낙하(줬-어-요 계단 하강) 최대 감점
 PNS_DOMINANCE = 8.0     # 지배 규칙: 최고 PNS보다 이만큼 낮은 테이크는
                         # 스타일 감점이 유리해도 선정 불가 (실사용 사고:
                         # 프로필 통계가 틀어지자 최저 PNS 테이크가 선정됨)
@@ -221,9 +222,10 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
         return out, None
 
     from .prosody import (cliff_score, ending_cliff, ending_style_score,
-                          evaluate_prosody, final_f0_slopes, prosody_features,
-                          reshape_energy_contour, stress_features,
-                          stress_style_score)
+                          ending_word_drops, evaluate_prosody, final_f0_slopes,
+                          prosody_features, reshape_energy_contour,
+                          stress_features, stress_style_score,
+                          word_drop_score)
     natural_rate = prosody_features(natural_wav)["artic_rate"]
     natural_slopes = final_f0_slopes(natural_wav)
     natural_stress = stress_features(natural_wav)
@@ -240,16 +242,18 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             ending = ending_style_score(final_f0_slopes(take), natural_slopes)
             stress = stress_style_score(stress_features(take), natural_stress)
             cliff = cliff_score(ending_cliff(take), natural_cliff)
+            wdrop = word_drop_score(ending_word_drops(take, text))
             sel = (_selection_score(r["pns"], r["gen"]["artic_rate"],
                                     natural_rate)
                    - ENDING_PENALTY * (1.0 - ending)
                    - STRESS_PENALTY * (1.0 - stress)
-                   - CLIFF_PENALTY * (1.0 - cliff))
+                   - CLIFF_PENALTY * (1.0 - cliff)
+                   - WORD_DROP_PENALTY * (1.0 - wdrop))
             scored.append({"path": take, "pns": r["pns"], "sel": sel})
             _notify(on_progress, stage="take_scored", i=i + 1, n=takes,
                     pns=round(r["pns"], 1), sel=round(sel, 1),
                     ending=round(ending, 2), stress=round(stress, 2),
-                    cliff=round(cliff, 2),
+                    cliff=round(cliff, 2), wdrop=round(wdrop, 2),
                     rate=round(r["gen"]["artic_rate"], 1),
                     best=bool(pick_best_take(scored) == len(scored) - 1))
             if sel >= PNS_TARGET:

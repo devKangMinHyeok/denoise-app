@@ -411,6 +411,57 @@ def ending_cliff(wav_path):
     return float(np.median(falls)) if falls else None
 
 
+def ending_word_drops(wav_path, script):
+    """문장 마지막 단어들의 단어 내부 F0 하강량(st) 목록.
+
+    "줬어요의 줬-어-요 사이에 음이 계단식으로 내려간다" 피드백의 정량화 —
+    발화 전체 통계(중앙값)로는 안 잡힌다(일부 어미만 낙하). 실측:
+    자연스러운 어미는 수평(±1st 내), AI 결함 어미는 -2.7~-3.8st 낙하
+    (의문형 '~죠?'가 떨어지는 게 최악의 사례).
+    """
+    import mlx_whisper
+    from .clone import WHISPER
+    import librosa
+    sents = split_sentences(script)
+    finals = {_normalize_chars(s.split()[-1]) for s in sents if s.split()}
+    if not finals:
+        return []
+    y, sr = librosa.load(wav_path, sr=_SR, mono=True)
+    f0 = librosa.pyin(y, fmin=_PYIN_FMIN, fmax=_PYIN_FMAX, sr=sr,
+                      frame_length=1024)[0]
+    hop_t = 512 / sr
+    st = np.full(len(f0), np.nan)
+    v = ~np.isnan(f0)
+    if v.sum() > 10:
+        st[v] = 12 * np.log2(f0[v] / np.nanmedian(f0[v]))
+    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+                               language="ko", word_timestamps=True)
+    drops = []
+    for seg in r["segments"]:
+        for w in seg["words"]:
+            if _normalize_chars(w["word"]) not in finals:
+                continue
+            i0, i1 = int(w["start"] / hop_t), int(w["end"] / hop_t)
+            vals = st[i0:i1]
+            idx = np.where(~np.isnan(vals))[0]
+            if len(idx) < 5:
+                continue
+            vv = vals[idx]
+            third = max(len(vv) // 3, 2)
+            drops.append(float(np.median(vv[:third]) - np.median(vv[-third:])))
+    return drops
+
+
+def word_drop_score(drops, allow=1.5, floor=4.5):
+    """어미 단어 낙하 점수 (0~1): 최악 낙하가 allow(st) 이내면 만점,
+    allow+floor에서 0점. 최악값 기준 — 한두 단어의 낙하도 귀에 걸리므로
+    중앙값이 아니라 worst-case로 채점. 순수 함수."""
+    if not drops:
+        return 1.0
+    worst = max(drops)
+    return float(np.clip(1.0 - max(0.0, worst - allow) / floor, 0.0, 1.0))
+
+
 def cliff_score(gen_cliff, ref_cliff, slack=1.4, floor=3.0):
     """끝음 절벽 점수 (0~1): 목표보다 slack배 이상 가파르면 감점. 순수 함수.
 
@@ -638,6 +689,11 @@ def select_reference_window(full_wav, min_sec=6.0, max_sec=14.0):
                 if f["f0_st_std"] == 0:
                     continue
                 score = f["f0_st_std"] * (1 + min(f["pause_rate"], 0.5))
+                # 끝음이 수평/상승인 창 선호 — 클론은 참조의 어미 처리를
+                # 모방하므로, 낙하형 참조는 '줬-어-요 계단 하강'을 유발 (실측)
+                slopes = final_f0_slopes(tmp.name)
+                if slopes and slopes[-1] >= -3.0:
+                    score *= 1.25
                 if score > best_score:
                     best_score, best = score, (cuts[i], cuts[j])
     if best is None:  # 녹음이 너무 짧거나 무음뿐이면 앞부분 사용
