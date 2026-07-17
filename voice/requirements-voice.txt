@@ -7,6 +7,7 @@ soundfile
 torch
 torchaudio
 pyworld
+setuptools<81  # pyworld·webrtcvad가 pkg_resources를 아직 씀 (81부터 제거됨)
 # (선택) 품질 평가 evaluate_tts.py / quality까지 쓸 때만 필요
 # resemblyzer
 # jiwer
