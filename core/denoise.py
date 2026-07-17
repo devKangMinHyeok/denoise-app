@@ -78,13 +78,52 @@ def preprocess_source(input_path, output_path, denoise=True, max_sec=180):
     return output_path
 
 
+MIN_CLASS_SEP_DB = 12.0   # 무음/발화 두 무리의 평균 차 최소치 (이봉성 증거)
+MIN_CLASS_FRAC = 0.05     # 각 무리가 최소 5%는 되어야 함
+
+
+def vad_threshold(db_frames):
+    """프레임 dB 배열 → 발화 문턱 (없으면 None = 게이트 생략). 순수 함수.
+
+    Otsu 이진화(두 무리 분산을 최대로 가르는 문턱) + 이봉성 가드.
+
+    실사용 사고로 배운 것: 무음/발화 '중간점(p10·p90 평균)' 문턱은 무음이
+    거의 없는 연속 발화 녹음(화면 녹화 나레이션)에서 문턱이 발화 한가운데
+    꽂혀 말끝을 죽이고(-25dB) 분당 20회씩 끊김을 만든다 (실측: 발화
+    프레임의 64%가 무음 판정, 발화 프레임 18%가 15dB+ 손실). 무음 바닥
+    +10dB 고정 오프셋도 실패 — 무음이 있는 녹음에선 문턱이 너무 낮아져
+    무음 잔여 게이트(-55dBFS)가 깨진다 (실측 -48.7). 그래서:
+    - Otsu로 분포를 두 무리로 가르고,
+    - 두 무리 평균이 MIN_CLASS_SEP_DB 이상 벌어지고 양쪽 다 MIN_CLASS_FRAC
+      이상일 때만 게이트 — 아니면 "무음 증거 없음"으로 게이트 생략.
+      (게이트의 존재 이유는 긴 무음의 잔향 블리드 제거이므로,
+      무음이 없으면 할 일도 없다.)
+    """
+    import numpy as np
+    x = np.sort(np.asarray(db_frames, dtype=float))
+    n = len(x)
+    if n < 20:
+        return None
+    c1 = np.cumsum(x)
+    i = np.arange(1, n)          # 하위 무리 크기 후보
+    mu0 = c1[:-1] / i            # 하위(무음 쪽) 평균
+    mu1 = (c1[-1] - c1[:-1]) / (n - i)  # 상위(발화 쪽) 평균
+    between = i * (n - i) * (mu1 - mu0) ** 2  # 무리 간 분산 (Otsu)
+    k = int(np.argmax(between))
+    lo, hi = k + 1, n - k - 1
+    if (mu1[k] - mu0[k] < MIN_CLASS_SEP_DB
+            or lo < n * MIN_CLASS_FRAC or hi < n * MIN_CLASS_FRAC):
+        return None
+    return float((x[k] + x[k + 1]) / 2)
+
+
 def blend_hybrid(protected, full, sr, pause_gain_db=-25, hop_sec=0.03,
                  hang_pre=0.12, hang_post=0.30):
     """하이브리드 블렌딩 (순수 함수): 발화(+말끝 hangover)=protected,
     무음=full×게이트(-25dB).
 
-    - VAD는 full(풀억제) 신호의 무음/발화 분포 **중간점 문턱** — 입력 SNR과
-      무관하게 강건 (실측: 고정 오프셋 문턱은 저SNR·음성 블리드에서 실패).
+    - VAD 문턱은 vad_threshold — 무음 바닥+10dB, 무음 증거가 없으면
+      게이트 생략(전 구간 protected). 문턱 산정 근거는 그 함수 주석 참고.
     - 무음 브랜치에 게이트를 두는 이유: 실녹음의 무음엔 화자 음성의 잔향
       블리드가 섞일 수 있고, DFN은 음성 같은 성분을 보호해 안 지운다(실측:
       Whisper가 '노이즈'에서 단어를 받아씀). 게이트가 이를 -25dB 내린다.
@@ -96,15 +135,18 @@ def blend_hybrid(protected, full, sr, pause_gain_db=-25, hop_sec=0.03,
     nf = max(L // hop, 1)
     db = 20 * np.log10(np.maximum(
         np.sqrt((b[: nf * hop].reshape(nf, hop) ** 2).mean(axis=1)), 1e-9))
-    valid = db > -110
-    th = (np.percentile(db[valid], 10) + np.percentile(db[valid], 90)) / 2
+    # 디지털 무음(-inf 근처)은 제외하지 않고 -80으로 클램프해 '무음 무리'의
+    # 증거로 포함 (제외하면 Otsu가 무음 클래스를 못 본다)
+    th = vad_threshold(np.maximum(db, -80.0))
+    if th is None:
+        return a
     speech = db > th
     mask = np.zeros(nf)
     pre = max(1, int(hang_pre / hop_sec))
     post = max(1, int(hang_post / hop_sec))
     for i in np.where(speech)[0]:
         mask[max(0, i - pre): min(nf, i + post + 1)] = 1
-    mask = np.convolve(mask, np.ones(3) / 3, mode="same")
+    mask = np.convolve(mask, np.ones(5) / 5, mode="same")  # 150ms 램프 — 끊김 방지
     m = np.repeat(mask, hop)
     m = np.pad(m, (0, max(0, L - len(m))), mode="edge")[:L]
     g = 10 ** (pause_gain_db / 20)

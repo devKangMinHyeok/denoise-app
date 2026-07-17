@@ -440,6 +440,41 @@ def test_new_job_defaults_title_from_text():
     assert job["composed"] == [] and job["paragraphs"] is None
 
 
+def test_vad_threshold_bimodal_lands_between_modes():
+    """무음(-70대)과 발화(-25대)가 나뉜 분포 → 문턱은 두 무리 사이."""
+    import numpy as np
+    from core.denoise import vad_threshold
+    rng = np.random.default_rng(0)
+    db = np.concatenate([rng.normal(-70, 3, 400), rng.normal(-25, 3, 600)])
+    th = vad_threshold(db)
+    assert th is not None and -65 < th < -30
+
+
+def test_vad_threshold_dense_speech_skips_gate():
+    """연속 발화(좁은 단봉 분포) → None = 게이트 생략.
+
+    실사용 사고: 무음 없는 화면 녹화에서 중간점 문턱이 발화 프레임 64%를
+    무음으로 오판해 말끝을 죽이고 분당 20회 끊김을 만들었다."""
+    import numpy as np
+    from core.denoise import vad_threshold
+    rng = np.random.default_rng(1)
+    assert vad_threshold(rng.normal(-38, 2.5, 1000)) is None
+
+
+def test_vad_threshold_tiny_minority_skips_gate():
+    """무음이 3%뿐이면 게이트 근거 부족 → None."""
+    import numpy as np
+    from core.denoise import vad_threshold
+    rng = np.random.default_rng(2)
+    db = np.concatenate([rng.normal(-70, 2, 25), rng.normal(-25, 3, 975)])
+    assert vad_threshold(db) is None
+
+
+def test_vad_threshold_too_few_frames():
+    from core.denoise import vad_threshold
+    assert vad_threshold([-30.0] * 5) is None
+
+
 # ---- 웹 서버 (기능 감지 포함) ----
 
 def test_health_endpoint():

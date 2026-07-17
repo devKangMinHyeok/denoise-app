@@ -25,7 +25,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
-GATES = {"tpr": -1.0, "gain_snr5": 5.0, "gain_snr15": 3.0, "floor": -55.0}
+GATES = {"tpr": -1.0, "gain_snr5": 5.0, "gain_snr15": 3.0, "floor": -55.0,
+         "dense_loss": 0.01}  # 연속 발화 클립에서 15dB+ 손실 프레임 ≤1%
 SR = 48_000
 
 
@@ -100,6 +101,22 @@ def score(clean, noisy, out, sr, np):
             "gain": float(np.mean(so) - np.mean(si)), "floor": floor}
 
 
+def score_dense(clean, out, sr, np):
+    """연속 발화 클립: 발화 프레임 중 15dB 이상 깎인 비율 (0이 정상).
+
+    실사용 사고의 재현 케이스 — 무음이 거의 없는 화면 녹화 나레이션에서
+    VAD 문턱이 발화 한가운데 꽂혀 말끝을 죽이고 끊김을 만들었다
+    (실측: 발화 프레임 18%가 15dB+ 손실). 이 게이트가 재발을 막는다.
+    """
+    out, clean = align(out, clean, sr, np)
+    cdb, _ = _frames_db(clean, sr, np)
+    odb, _ = _frames_db(out, sr, np)
+    L = min(len(cdb), len(odb))
+    sp = cdb[:L] > np.percentile(cdb[:L], 90) - 25
+    att = odb[:L] - cdb[:L]
+    return float((sp & (att < -15)).sum() / max(sp.sum(), 1))
+
+
 def main():
     import numpy as np
     import soundfile as sf
@@ -146,6 +163,29 @@ def main():
                     out = out.mean(axis=1)
                 rows[snr].append(score(clean, noisy, out, SR, np))
 
+        # 연속 발화(무음 없음) 케이스 — 발화 구간만 이어붙인 클립
+        import librosa
+        dense_parts = []
+        for fp in fixtures:
+            c, _ = sf.read(fp, dtype="float32")
+            if c.ndim > 1:
+                c = c.mean(axis=1)
+            c = librosa.resample(c, orig_sr=24_000, target_sr=SR)
+            dense_parts += [c[s:e] for s, e in speech_chunks(c, SR, np)]
+        dense = np.concatenate(dense_parts).astype(np.float32)
+        w = rng.standard_normal(len(dense))
+        n = lfilter([1.0], [1.0, -0.97], w)
+        n = (n / np.sqrt((n ** 2).mean())).astype(np.float32)
+        d_rms = float(np.sqrt((dense ** 2).mean()))
+        d_in = os.path.join(wd, "dense_in.wav")
+        d_out = os.path.join(wd, "dense_out.wav")
+        sf.write(d_in, dense + n * (d_rms / 10 ** (15 / 20)), SR)
+        run_denoise(d_in, d_out, engine=engine)
+        d_o, _ = sf.read(d_out, dtype="float32")
+        if d_o.ndim > 1:
+            d_o = d_o.mean(axis=1)
+        dense_loss = score_dense(dense, d_o, SR, np)
+
     print(f"엔진: {engine}")
     print(f"{'SNR':<5} {'TPR(말끝)':>9} {'발화중개선':>8} {'무음잔여':>8}")
     ok_all = True
@@ -158,6 +198,10 @@ def main():
               and fl <= GATES["floor"])
         ok_all &= ok
         print(f"{snr:<5} {t:>+9.1f} {g:>+8.1f} {fl:>8.1f}  {'✅' if ok else '❌'}")
+    ok_dense = dense_loss <= GATES["dense_loss"]
+    ok_all &= ok_dense
+    print(f"연속발화 15dB+ 손실: {dense_loss * 100:.1f}% "
+          f"(≤{GATES['dense_loss'] * 100:.0f}%)  {'✅' if ok_dense else '❌'}")
     print("게이트:", "✅ 통과" if ok_all else "❌ 실패")
     if not ok_all:
         sys.exit(1)
