@@ -141,6 +141,18 @@ def profiles_recording_api(pid):
         return jsonify(error="프로필이 없습니다"), 404
 
 
+@app.post("/api/profiles/<pid>/sources")
+def profiles_source_api(pid):
+    f = request.files.get("audio")
+    if not f:
+        return jsonify(error="파일이 없습니다"), 400
+    denoise = request.form.get("denoise", "1") != "0"
+    try:
+        return jsonify(profiles.add_source(pid, f, denoise=denoise))
+    except FileNotFoundError:
+        return jsonify(error="프로필이 없습니다"), 404
+
+
 @app.post("/api/profiles/<pid>/build")
 def profiles_build_api(pid):
     body = request.get_json(silent=True) or {}

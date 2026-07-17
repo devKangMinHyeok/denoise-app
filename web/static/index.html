@@ -202,8 +202,21 @@
             <button id="playBtn" disabled>▶ 들어보기</button>
             <button id="nextBtn" disabled>다음 →</button>
           </div>
+          <p class="muted" style="margin-top:8px; text-align:center; cursor:pointer" id="skipRec">
+            녹음 없이 기존 파일로만 만들기 →</p>
           <div class="progress-dots" id="dots"></div>
           <div class="status" id="wizStatus"></div>
+        </div>
+        <div id="wizSourceStep" style="display:none">
+          <p class="muted">기존 영상·음성 파일이 있으면 함께 학습시킬 수 있어요 (선택).
+          유튜브 원본, 강의 녹음 등 — 목소리가 또렷한 파일일수록 좋습니다. 파일마다 앞 3분만 사용됩니다.</p>
+          <div class="drop" id="srcDrop" style="margin-top:12px; padding:18px;">
+            <strong>+ 파일 추가 (여러 개 가능)</strong>
+            <span>mov · mp4 · wav · m4a · mp3</span>
+            <input type="file" id="srcFile" multiple accept=".mov,.mp4,.m4v,.mkv,.wav,.m4a,.mp3,.aac">
+          </div>
+          <div id="srcList"></div>
+          <button class="go" id="wizBuild">프로필 만들기 →</button>
         </div>
         <div id="wizBuildStep" style="display:none">
           <div class="status" id="buildStatus"><span class="spinner"></span>업로드 및 분석 중…</div>
@@ -422,9 +435,16 @@ window.delProfile = async id => {
 
 let GUIDE = [], recIdx = 0, blobs = [], mediaRec = null, chunks = [], audioCtx = null, meterRAF = null;
 
+$('skipRec')?.addEventListener('click', () => {
+  $('wizRecStep').style.display = 'none';
+  $('wizSourceStep').style.display = 'block';
+  $('wizTitle').textContent = '소스 파일 추가';
+});
+
 $('wizStart').onclick = async () => {
   const { sentences } = await api('/api/guide');
   GUIDE = sentences; recIdx = 0; blobs = new Array(GUIDE.length).fill(null);
+  srcFiles = []; renderSrcList();
   $('wizard').style.display = 'block';
   $('wizStart').style.display = 'none';
   $('wizNameStep').style.display = 'block';
@@ -506,24 +526,61 @@ $('playBtn').onclick = () => {
   a.play();
 };
 
-$('nextBtn').onclick = async () => {
+$('nextBtn').onclick = () => {
   if (recIdx < GUIDE.length - 1) { recIdx++; showSentence(); return; }
-  // 전부 녹음됨 → 업로드 & 분석
+  // 전부 녹음됨 → 추가 소스 단계
   $('wizRecStep').style.display = 'none';
+  $('wizSourceStep').style.display = 'block';
+  $('wizTitle').textContent = '추가 소스 (선택)';
+};
+
+// ---- 추가 소스: 파일 + 소스별 노이즈 제거 선택 ----
+let srcFiles = []; // {file, denoise}
+$('srcDrop').addEventListener('click', () => $('srcFile').click());
+$('srcFile').addEventListener('change', () => {
+  for (const f of $('srcFile').files) srcFiles.push({ file: f, denoise: true });
+  $('srcFile').value = '';
+  renderSrcList();
+});
+function renderSrcList() {
+  $('srcList').innerHTML = srcFiles.map((s, i) => `
+    <div class="plist-item">
+      <div class="grow">
+        <div>📄 ${s.file.name}</div>
+        <label class="chk" style="margin-top:4px">
+          <input type="checkbox" ${s.denoise ? 'checked' : ''} onchange="toggleSrcDn(${i}, this.checked)">
+          🧹 이 파일에 노이즈 제거 적용</label>
+      </div>
+      <button class="mini" onclick="removeSrc(${i})">삭제</button>
+    </div>`).join('');
+}
+window.toggleSrcDn = (i, v) => { srcFiles[i].denoise = v; };
+window.removeSrc = i => { srcFiles.splice(i, 1); renderSrcList(); };
+
+$('wizBuild').onclick = async () => {
+  $('wizSourceStep').style.display = 'none';
   $('wizBuildStep').style.display = 'block';
   $('wizTitle').textContent = '프로필 만드는 중';
   try {
     const meta = await api('/api/profiles', { method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: $('wizName').value }) });
-    for (let i = 0; i < blobs.length; i++) {
-      setStatus($('buildStatus'), `<span class="spinner"></span>녹음 업로드 중… (${i + 1}/${blobs.length})`);
+    const recs = blobs.filter(Boolean);
+    for (let i = 0; i < recs.length; i++) {
+      setStatus($('buildStatus'), `<span class="spinner"></span>녹음 업로드 중… (${i + 1}/${recs.length})`);
       const fd = new FormData();
-      fd.append('audio', blobs[i], `${i}.webm`); fd.append('idx', i);
+      fd.append('audio', recs[i], `${i}.webm`); fd.append('idx', i);
       await api(`/api/profiles/${meta.id}/recordings`, { method: 'POST', body: fd });
     }
+    for (let i = 0; i < srcFiles.length; i++) {
+      setStatus($('buildStatus'), `<span class="spinner"></span>소스 파일 업로드 중… (${i + 1}/${srcFiles.length})`);
+      const fd = new FormData();
+      fd.append('audio', srcFiles[i].file);
+      fd.append('denoise', srcFiles[i].denoise ? '1' : '0');
+      await api(`/api/profiles/${meta.id}/sources`, { method: 'POST', body: fd });
+    }
     const useDenoise = $('wizDenoise').checked;
-    setStatus($('buildStatus'), `<span class="spinner"></span>목소리 분석 중… (${useDenoise ? '노이즈 제거 → ' : ''}최적 구간 선택 → 받아쓰기 → 억양·호흡·강세 분석, 약 1분)`);
+    setStatus($('buildStatus'), `<span class="spinner"></span>목소리 분석 중… (소스별 전처리 → 병합 → 최적 구간 선택 → 받아쓰기 → 억양·호흡·강세 분석, 약 1~2분)`);
     const built = await api(`/api/profiles/${meta.id}/build`, { method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ denoise: useDenoise ? '1' : '0' }) });

@@ -89,28 +89,63 @@ def add_recording(pid, file_storage, idx):
     return meta
 
 
+def add_source(pid, file_storage, denoise=True):
+    """추가 소스(기존 음성/영상 파일) 등록 — 소스별 노이즈 제거 플래그 저장."""
+    sdir = os.path.join(PROFILES_DIR, pid, "sources")
+    os.makedirs(sdir, exist_ok=True)
+    ext = os.path.splitext(file_storage.filename or "s.wav")[1] or ".wav"
+    fname = f"{uuid.uuid4().hex[:8]}{ext}"
+    file_storage.save(os.path.join(sdir, fname))
+    meta = _load_meta(pid)
+    meta.setdefault("sources", []).append({
+        "file": fname, "name": file_storage.filename,
+        "denoise": bool(denoise)})
+    _save_meta(pid, meta)
+    return meta
+
+
 def build_profile(pid, denoise=True):
-    """녹음 병합 → (기본) 노이즈 제거 → 참조 자산 생성·캐시 → 통계 분석."""
+    """소스 전처리(개별 노이즈 제거) → 병합 → 참조 자산 캐시 → 통계 분석.
+
+    입력 = 가이드 녹음(일괄 denoise 플래그) + 추가 소스(소스별 플래그).
+    각자 플래그대로 전처리한 뒤 병합하므로, 이후 단계는 재차 제거하지 않는다.
+    """
     from core.audio import concat_to_wav
     from core.clone import prepare_reference
+    from core.denoise import preprocess_source
     from core.prosody import (final_f0_slopes, prosody_features,
                               stress_features)
 
     pdir = os.path.join(PROFILES_DIR, pid)
+    meta = _load_meta(pid)
     raw = os.path.join(pdir, "raw")
-    files = sorted(os.path.join(raw, f) for f in os.listdir(raw)
-                   if not f.startswith("."))
-    if not files:
-        raise RuntimeError("녹음이 없습니다")
+    guided = (sorted(os.path.join(raw, f) for f in os.listdir(raw)
+                     if not f.startswith(".")) if os.path.isdir(raw) else [])
+    sources = meta.get("sources", [])
+    if not guided and not sources:
+        raise RuntimeError("녹음이나 소스 파일이 없습니다")
+
+    prep_dir = os.path.join(pdir, "prep")
+    shutil.rmtree(prep_dir, ignore_errors=True)
+    os.makedirs(prep_dir)
+    prepped = []
+    for i, f in enumerate(guided):  # 가이드 녹음: 일괄 플래그
+        prepped.append(preprocess_source(
+            f, os.path.join(prep_dir, f"g{i:02d}.wav"), denoise=denoise))
+    for i, s in enumerate(sources):  # 추가 소스: 소스별 플래그
+        prepped.append(preprocess_source(
+            os.path.join(pdir, "sources", s["file"]),
+            os.path.join(prep_dir, f"s{i:02d}.wav"),
+            denoise=s.get("denoise", True)))
+
     merged = os.path.join(pdir, "merged.wav")
-    concat_to_wav(files, merged)
+    concat_to_wav(prepped, merged)
     ref_wav, ref_text, natural = prepare_reference(merged, pdir,
-                                                   denoise=denoise)
+                                                   denoise=False)
 
     feats = prosody_features(natural)
     stress = stress_features(natural) or {}
     slopes = final_f0_slopes(natural)
-    meta = _load_meta(pid)
     meta.update({
         "ready": True,
         "denoised": bool(denoise),

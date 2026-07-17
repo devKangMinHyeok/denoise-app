@@ -17,6 +17,21 @@ def build_audio_filter(boost=0.0, model_path=RNNOISE_MODEL):
     return af
 
 
+def preprocess_source(input_path, output_path, denoise=True, max_sec=180):
+    """프로필 학습 소스 전처리: (선택) 노이즈 제거 + 모노 wav 변환 + 길이 제한.
+
+    영상 파일도 받는다. 소스마다 노이즈 제거를 개별 선택할 수 있게
+    변환과 제거를 한 단계로 묶은 헬퍼 (앱 계층은 이 함수만 호출).
+    """
+    af = build_audio_filter() if denoise else "aformat=channel_layouts=mono"
+    args = ["-i", input_path]
+    if max_sec:
+        args += ["-t", str(max_sec)]
+    args += ["-af", af, "-ac", "1", "-c:a", "pcm_s16le", output_path]
+    run_ffmpeg(args)
+    return output_path
+
+
 def run_denoise(input_path, output_path, boost=0.0):
     """원본은 건드리지 않고, 소음 제거된 새 파일을 만든다. 영상은 무손실 복사."""
     if os.path.abspath(output_path) == os.path.abspath(input_path):
