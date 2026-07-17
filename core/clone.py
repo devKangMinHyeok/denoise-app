@@ -89,6 +89,43 @@ def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1,
 
 
 PNS_TARGET = 82.0  # 운율 북극성 목표 — 이 점수를 넘는 테이크가 나오면 조기 채택
+BREATH_TARGET = (0.5, 0.7)  # 문장 경계 호흡 삽입 목표 범위(초) — 읽기 발화 실측 분포
+
+
+def ensure_breath_pauses(wav_path, script):
+    """문장 경계 호흡 보장 후처리 (구조적 보정).
+
+    통짜 생성은 억양이 자연스럽지만, 문장 경계 호흡은 테이크 운에 달려 있다
+    (실측: 같은 설정에서 0.0~0.6초). 경계 휴지가 BREATH_MIN 미만이면 자연
+    길이(0.5~0.7초, 문헌: 읽기 발화 문장 경계 중앙값 ~0.4~0.5초)로 무음을
+    채워 넣는다 — 오디오북 도구들의 표준 기법. 억양은 건드리지 않는다.
+    """
+    from .prosody import BREATH_MIN, sentence_boundary_info, split_sentences
+    if len(split_sentences(script)) < 2:
+        return wav_path
+    infos = sentence_boundary_info(wav_path, script)
+    short = [b for b in infos if b["gap"] < BREATH_MIN]
+    if not short:
+        return wav_path
+
+    import numpy as np
+    import soundfile as sf
+    y, sr = sf.read(wav_path, dtype="float32")
+    rng = np.random.default_rng(len(script))  # 대본 고정 시드 → 재현 가능
+    fade = int(sr * 0.01)
+    pieces, cursor = [], 0
+    for b in sorted(short, key=lambda x: x["insert_at"]):
+        lo, hi = BREATH_TARGET
+        need = float(rng.uniform(lo, hi)) - b["gap"]
+        cut = int(b["insert_at"] * sr)
+        head = y[cursor:cut].copy()
+        if len(head) > fade and b["silence"] is None:
+            head[-fade:] *= np.linspace(1, 0, fade)  # 무음이 없던 곳은 페이드로 이음
+        pieces += [head, np.zeros(int(need * sr), dtype="float32")]
+        cursor = cut
+    pieces.append(y[cursor:])
+    sf.write(wav_path, np.concatenate(pieces), sr)
+    return wav_path
 
 
 def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
@@ -101,7 +138,10 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
     """
     from .prosody import prosody_deps_available
     if takes <= 1 or not prosody_deps_available():
-        return synthesize(text, ref_wav, ref_text, output_path, fast=fast), None
+        out = synthesize(text, ref_wav, ref_text, output_path, fast=fast)
+        if prosody_deps_available():
+            ensure_breath_pauses(out, text)
+        return out, None
 
     from .prosody import evaluate_prosody
     best_pns, best_path = -1.0, None
@@ -109,7 +149,8 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
         for i in range(takes):
             take = os.path.join(wd, f"take_{i}.wav")
             synthesize(text, ref_wav, ref_text, take, fast=fast)
-            pns = evaluate_prosody(natural_wav, take)["pns"]
+            ensure_breath_pauses(take, text)  # 문장 경계 호흡 보장 후 채점
+            pns = evaluate_prosody(natural_wav, take, script=text)["pns"]
             if pns > best_pns:
                 best_pns = pns
                 if best_path:

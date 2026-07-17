@@ -13,8 +13,9 @@ from core.denoise import build_audio_filter  # noqa: E402
 from core.audio import audio_codec_args  # noqa: E402
 from core.metrics import (GATES, SIM_HUMAN_BASELINE, check_gates,  # noqa: E402
                           normalize_ko, voice_clone_score)
-from core.prosody import (band_score, prosody_match_scores,  # noqa: E402
-                          prosody_naturalness_score)
+from core.prosody import (BREATH_MIN, band_score,  # noqa: E402
+                          boundary_pause_adequacy, prosody_match_scores,
+                          prosody_naturalness_score, split_sentences)
 
 
 # ---- 노이즈 제거 필터 체인 ----
@@ -100,6 +101,32 @@ def test_gates_include_pns():
     ok, failures = check_gates({"sim": 0.92, "cer": 0.0, "mos": 3.5,
                                 "vcs": 92.0, "pns": 70.0})
     assert not ok and any("PNS" in f for f in failures)
+
+
+# ---- 문장 경계 호흡 (BPA) ----
+
+def test_split_sentences():
+    assert split_sentences("안녕하세요. 반갑습니다! 시작할까요?") == [
+        "안녕하세요.", "반갑습니다!", "시작할까요?"]
+    assert split_sentences("쉼표는, 문장을 나누지 않는다.") == ["쉼표는, 문장을 나누지 않는다."]
+
+
+def test_bpa_single_sentence_is_vacuous():
+    assert boundary_pause_adequacy([]) == 1.0
+
+
+def test_bpa_natural_band_full_credit():
+    assert boundary_pause_adequacy([0.5, 0.7, 1.0]) == pytest.approx(1.0)
+
+
+def test_bpa_glued_sentences_fail():
+    # 사용자가 보고한 결함: 문장을 붙여 읽음 → 0점대
+    assert boundary_pause_adequacy([0.0, 0.0]) == 0.0
+    assert boundary_pause_adequacy([BREATH_MIN * 0.5]) == pytest.approx(0.5)
+
+
+def test_bpa_overlong_pause_penalized():
+    assert boundary_pause_adequacy([1.9]) < 0.2
 
 
 # ---- 게이트 판정 ----

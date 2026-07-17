@@ -137,14 +137,158 @@ def prosody_naturalness_score(utmos_val, match):
                     + 0.2 * match["pause"] + 0.2 * match["rhythm"])
 
 
-def evaluate_prosody(ref_wav, gen_wav):
-    """참조(자연 발화) 대비 생성물의 운율 자연스러움 종합 → dict."""
+def evaluate_prosody(ref_wav, gen_wav, script=None):
+    """참조(자연 발화) 대비 생성물의 운율 자연스러움 종합 → dict.
+
+    script를 주면 문장 경계 호흡(BPA)을 측정해 휴지 항에 반영한다:
+    휴지 항 = 0.5 × 전역 휴지 일치 + 0.5 × BPA. ("문장을 붙여 읽는" 결함은
+    전역 통계로는 안 잡히고 경계 위치 측정으로만 잡힌다 — 실측 검증.)
+    """
     ref_feats = prosody_features(ref_wav)
     gen_feats = prosody_features(gen_wav)
     match = prosody_match_scores(gen_feats, ref_feats)
+    bpa = None
+    if script and len(split_sentences(script)) >= 2:
+        bpa = boundary_pause_adequacy(sentence_boundary_gaps(gen_wav, script))
+        match["pause"] = 0.5 * match["pause"] + 0.5 * bpa
     u = utmos(gen_wav)
-    return {"pns": prosody_naturalness_score(u, match), "utmos": u,
+    return {"pns": prosody_naturalness_score(u, match), "utmos": u, "bpa": bpa,
             "match": match, "gen": gen_feats, "ref": ref_feats}
+
+
+# ---- 문장 경계 호흡 (BPA) ----
+# 근거: 읽기 발화의 문장 경계 휴지 중앙값 ~400ms(IQR 250~500ms),
+# 경계 휴지 임계 ~200ms, 상한 ~1초 (Campione & Véronis 2002 외).
+BREATH_MIN, BREATH_MAX = 0.35, 1.2  # 자연 범위 (초)
+
+
+def split_sentences(text):
+    """대본을 문장으로 분할 (순수 함수)."""
+    import re
+    parts = re.split(r"(?<=[.!?…])\s+", text.strip())
+    return [p for p in parts if p]
+
+
+def _normalize_chars(text):
+    import re
+    return re.sub(r"[^\w]", "", text, flags=re.UNICODE).lower()
+
+
+def sentence_boundary_gaps(wav_path, script):
+    """대본의 문장 경계마다 오디오에서 실제 휴지 길이(초)를 측정. 문장 1개면 []."""
+    return [b["gap"] for b in sentence_boundary_info(wav_path, script)]
+
+
+def sentence_boundary_info(wav_path, script):
+    """문장 경계 상세: [{gap, insert_at, silence:(s,e)|None}, ...].
+
+    Whisper 단어 타임스탬프를 대본과 문자 단위 정렬(difflib)해 경계 위치를
+    잡고, 휴지 길이는 에너지 기반 무음 검출로 잰다 (Whisper의 단어 종료
+    시각은 무음을 삼키는 경향이 있음 — 실측). insert_at은 호흡을 삽입하기에
+    적절한 시각(기존 무음의 중앙, 없으면 다음 단어 시작 직전).
+    """
+    import difflib
+    import mlx_whisper
+    from .clone import WHISPER
+
+    sents = split_sentences(script)
+    if len(sents) < 2:
+        return []
+    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+                               language="ko", word_timestamps=True)
+    words = [w for seg in r["segments"] for w in seg["words"]]
+    if len(words) < 2:
+        return []
+
+    # 전사 단어들의 정규화 문자열과 각 문자의 단어 인덱스 매핑
+    hyp_chars, hyp_word_idx = [], []
+    for i, w in enumerate(words):
+        for ch in _normalize_chars(w["word"]):
+            hyp_chars.append(ch)
+            hyp_word_idx.append(i)
+    hyp_str = "".join(hyp_chars)
+
+    # 대본 정규화 문자열과 문장 경계의 문자 위치
+    ref_str, cut_positions = "", []
+    for s in sents[:-1]:
+        ref_str += _normalize_chars(s)
+        cut_positions.append(len(ref_str) - 1)  # 문장 마지막 문자 위치
+    ref_str += _normalize_chars(sents[-1])
+
+    sm = difflib.SequenceMatcher(None, ref_str, hyp_str, autojunk=False)
+    # ref 문자 위치 → hyp 문자 위치 매핑
+    ref2hyp = {}
+    for a, b, n in sm.get_matching_blocks():
+        for k in range(n):
+            ref2hyp[a + k] = b + k
+
+    silence_runs = _silence_runs(wav_path)
+
+    infos = []
+    for pos in cut_positions:
+        # 경계 근처에서 매칭된 문자 찾기 (±5자 탐색)
+        hyp_pos = None
+        for d in range(6):
+            if pos - d in ref2hyp:
+                hyp_pos = ref2hyp[pos - d]
+                break
+        if hyp_pos is None:
+            continue
+        wi = hyp_word_idx[hyp_pos]
+        if wi + 1 >= len(words):
+            continue
+        lo = float(words[wi]["start"])
+        hi = float(words[wi + 1]["end"])
+        # 경계 구간과 겹치는 무음 중 가장 긴 것 = 그 경계의 호흡
+        best, best_run = 0.0, None
+        for s, e in silence_runs:
+            if s < hi and e > lo and (e - s) > best:
+                best, best_run = e - s, (s, e)
+        insert_at = ((best_run[0] + best_run[1]) / 2 if best_run
+                     else max(float(words[wi + 1]["start"]) - 0.02, lo))
+        infos.append({"gap": best, "insert_at": insert_at,
+                      "silence": best_run})
+    return infos
+
+
+def _silence_runs(wav_path, min_sec=0.12):
+    """에너지 기반 무음 구간 목록 → [(시작초, 끝초), ...]."""
+    import librosa
+    y, sr = librosa.load(wav_path, sr=_SR, mono=True)
+    hop = int(sr * 0.03)
+    nf = len(y) // hop
+    db = 20 * np.log10(np.maximum(
+        np.sqrt((y[: nf * hop].reshape(nf, hop) ** 2).mean(axis=1)), 1e-9))
+    th = np.percentile(db, 90) - PAUSE_DROP_DB
+    silent = db < th
+    runs, start = [], None
+    for i, s in enumerate(np.append(silent, False)):
+        if s and start is None:
+            start = i
+        elif not s and start is not None:
+            if (i - start) * 0.03 >= min_sec:
+                runs.append((start * 0.03, i * 0.03))
+            start = None
+    return runs
+
+
+def boundary_pause_adequacy(gaps):
+    """BPA (0~1): 문장 경계 휴지가 자연 범위[BREATH_MIN, BREATH_MAX]에 드는 정도.
+
+    경계가 없으면(단문) 1.0. 부족하면 gap/MIN 비례 감점, 과다하면 2초에서 0점.
+    순수 함수 — 유닛 테스트 대상.
+    """
+    if not gaps:
+        return 1.0
+    scores = []
+    for g in gaps:
+        if g < BREATH_MIN:
+            scores.append(g / BREATH_MIN)
+        elif g <= BREATH_MAX:
+            scores.append(1.0)
+        else:
+            scores.append(max(0.0, 1.0 - (g - BREATH_MAX) / (2.0 - BREATH_MAX)))
+    return float(np.mean(scores))
 
 
 def prosody_deps_available():

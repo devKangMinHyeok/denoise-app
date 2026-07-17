@@ -132,7 +132,8 @@ def evaluate_clone(ref_wav, script_text, gen_wav, natural_wav=None):
     cer, hyp = char_error_rate(script_text, gen_wav)
     sig, bak, ovrl = dnsmos(gen_wav)
     vcs = voice_clone_score(sim, cer, ovrl)
-    pro = evaluate_prosody(natural_wav or ref_wav, gen_wav)
+    pro = evaluate_prosody(natural_wav or ref_wav, gen_wav, script=script_text)
     return {"sim": sim, "cer": cer, "sig": sig, "mos": ovrl,
             "vcs": vcs, "pns": pro["pns"], "utmos": pro["utmos"],
-            "prosody_match": pro["match"], "transcript": hyp.strip()}
+            "bpa": pro["bpa"], "prosody_match": pro["match"],
+            "transcript": hyp.strip()}
