@@ -271,10 +271,63 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             if sel >= PNS_TARGET:
                 break
         best = scored[pick_best_take(scored)]
-        os.replace(best["path"], output_path)
+        # 문장 단위 베스트 조합: 테이크별로 잘 나온 문장이 다르므로,
+        # 문장마다 최고 테이크 구간을 골라 호흡으로 잇는다 (통짜 생성 유지 —
+        # 조합만 문장 단위. 이음새는 우리가 넣는 무음이라 안전).
+        composed = _compose_best_sentences(scored, text, output_path,
+                                           on_progress=on_progress)
+        if not composed:
+            os.replace(best["path"], output_path)
     normalize_speech_level(output_path)  # 배포 기준 음량으로 (정적 게인)
     _notify(on_progress, stage="done", pns=round(best["pns"], 1))
     return output_path, best["pns"]
+
+
+def _compose_best_sentences(scored, text, output_path, on_progress=None):
+    """풀 테이크들에서 문장별 최고 구간을 골라 조합. 성공 시 True.
+
+    문장이 2개 미만이거나, 어느 테이크든 문장 매핑이 실패하면 False
+    (호출부가 통짜 베스트로 폴백). 문장 사이는 자연 호흡(0.5~0.7s) 삽입.
+    """
+    import numpy as np
+    import soundfile as sf
+    from .prosody import split_sentences, take_sentence_scores
+
+    if len(split_sentences(text)) < 2 or len(scored) < 2:
+        return False
+    per_take = []
+    for t in scored:
+        s = take_sentence_scores(t["path"], text)
+        if s is None:
+            return False
+        per_take.append(s)
+    k = len(per_take[0])
+    if any(len(s) != k for s in per_take):
+        return False
+
+    rng = np.random.default_rng(len(text))
+    pieces, sr_out, chosen = [], None, []
+    for si in range(k):
+        ti = max(range(len(per_take)), key=lambda t: per_take[t][si]["score"])
+        chosen.append(ti + 1)
+        a, b = per_take[ti][si]["span"]
+        y, sr = sf.read(scored[ti]["path"], dtype="float32")
+        if y.ndim > 1:
+            y = y.mean(axis=1)
+        sr_out = sr
+        seg = y[max(0, int((a - 0.05) * sr)): int((b + 0.1) * sr)]
+        fade = int(sr * 0.01)
+        if len(seg) > 2 * fade:
+            seg[:fade] *= np.linspace(0, 1, fade)
+            seg[-fade:] *= np.linspace(1, 0, fade)
+        pieces.append(seg)
+    joined = [pieces[0]]
+    for seg in pieces[1:]:
+        gap = float(np.clip(rng.normal(0.6, 0.06), 0.5, 0.75))
+        joined += [np.zeros(int(sr_out * gap), dtype="float32"), seg]
+    sf.write(output_path, np.concatenate(joined), sr_out)
+    _notify(on_progress, stage="composed", takes=chosen)
+    return True
 
 
 def clone_voice(ref_path, text, output_path, fast=False, takes=DEFAULT_TAKES,

@@ -593,6 +593,99 @@ def sentence_boundary_info(wav_path, script, units=None):
     return infos
 
 
+def take_sentence_scores(wav_path, script):
+    """테이크의 문장별 품질 채점 → [{span:(s,e), score, ...}] (문장 조합용).
+
+    한 번의 Whisper + pyin 패스에서 문장별로: 어미 낙하, 끝음 절벽,
+    먹힌 단어를 계산한다. 문장 수가 대본과 안 맞으면 None (조합 불가 →
+    통짜 선별로 폴백).
+    """
+    import librosa
+    import mlx_whisper
+    from .clone import WHISPER
+
+    sents = split_sentences(script)
+    y, sr = librosa.load(wav_path, sr=_SR, mono=True)
+    f0 = librosa.pyin(y, fmin=_PYIN_FMIN, fmax=_PYIN_FMAX, sr=sr,
+                      frame_length=1024)[0]
+    hop_t = 512 / sr
+    st = np.full(len(f0), np.nan)
+    v = ~np.isnan(f0)
+    if v.sum() > 10:
+        st[v] = 12 * np.log2(f0[v] / np.nanmedian(f0[v]))
+
+    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+                               language="ko", word_timestamps=True)
+    words = [w for seg in r["segments"] for w in seg["words"]]
+    if not words:
+        return None
+
+    # 대본 문장 → 전사 단어 구간 매핑 (문자 정렬)
+    import difflib
+    hyp_chars, hyp_word_idx = [], []
+    for i, w in enumerate(words):
+        for ch in _normalize_chars(w["word"]):
+            hyp_chars.append(ch)
+            hyp_word_idx.append(i)
+    hyp_str = "".join(hyp_chars)
+    ref_str, sent_char_ranges = "", []
+    for s in sents:
+        a = len(ref_str)
+        ref_str += _normalize_chars(s)
+        sent_char_ranges.append((a, len(ref_str) - 1))
+    sm = difflib.SequenceMatcher(None, ref_str, hyp_str, autojunk=False)
+    ref2hyp = {}
+    for a, b, n in sm.get_matching_blocks():
+        for k in range(n):
+            ref2hyp[a + k] = b + k
+
+    def word_at(ref_pos, search=8):
+        for d in range(search):
+            for p in (ref_pos - d, ref_pos + d):
+                if p in ref2hyp:
+                    return hyp_word_idx[ref2hyp[p]]
+        return None
+
+    def peak_db(a, b):
+        seg = y[int(a * sr): int(b * sr)]
+        if len(seg) < sr // 50:
+            return None
+        env = librosa.feature.rms(y=seg, frame_length=400, hop_length=160)[0]
+        return 20 * np.log10(max(float(env.max()), 1e-6))
+
+    out = []
+    for si, (ca, cb) in enumerate(sent_char_ranges):
+        wa, wb = word_at(ca), word_at(cb)
+        if wa is None or wb is None or wb < wa:
+            return None
+        t0 = float(words[wa]["start"])
+        t1 = float(words[wb]["end"])
+        # 어미 낙하 (마지막 단어 내부)
+        i0, i1 = int(words[wb]["start"] / hop_t), int(t1 / hop_t)
+        vals = st[i0:i1]
+        idx = np.where(~np.isnan(vals))[0]
+        drop = 0.0
+        if len(idx) >= 5:
+            vv = vals[idx]
+            third = max(len(vv) // 3, 2)
+            drop = float(np.median(vv[:third]) - np.median(vv[-third:]))
+        # 먹힌 단어 (문장 내 단어 피크의 이웃 대비 최악 편차)
+        peaks = []
+        for wi in range(wa, wb + 1):
+            p = peak_db(words[wi]["start"], words[wi]["end"])
+            if p is not None:
+                peaks.append(p)
+        swallow = 0.0
+        for k in range(len(peaks)):
+            med = float(np.median(peaks[max(0, k - 2): k + 3]))
+            swallow = min(swallow, peaks[k] - med)
+        score = (word_drop_score([drop])
+                 + swallowed_score(swallow)) / 2
+        out.append({"span": (t0, t1), "score": float(score),
+                    "drop": drop, "swallow": swallow})
+    return out
+
+
 def swallowed_word_worst(wav_path):
     """'먹힌 단어' 최악 편차 (dB): 단어별 피크 레벨의 이웃(±2단어) 롤링
     중앙값 대비 최악 음(-) 편차.
