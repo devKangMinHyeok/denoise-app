@@ -11,7 +11,6 @@ import subprocess
 import sys
 import tempfile
 
-from .denoise import build_audio_filter
 from .audio import run_ffmpeg
 
 MODEL_BEST = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
@@ -35,10 +34,14 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
        (운율 의존성 없으면 앞 max_sec 초로 폴백 — 기존 동작).
     """
     full_clean = os.path.join(workdir, "ref_full_clean.wav")
-    af = build_audio_filter() if denoise else "aformat=channel_layouts=mono"
-    run_ffmpeg(["-i", ref_path, "-t", "120",
-                "-af", af,
-                "-c:a", "pcm_s16le", full_clean])
+    if denoise:
+        # 엔진 디스패처 경유 — DFN 설치 시 하이브리드(말끝 보존·발화 중 제거)
+        from .denoise import denoise_to_wav
+        denoise_to_wav(ref_path, full_clean, max_sec=120)
+    else:
+        run_ffmpeg(["-i", ref_path, "-t", "120",
+                    "-af", "aformat=channel_layouts=mono",
+                    "-c:a", "pcm_s16le", full_clean])
 
     clean = os.path.join(workdir, "ref_clean.wav")
     try:

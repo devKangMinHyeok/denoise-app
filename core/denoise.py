@@ -33,17 +33,47 @@ def build_audio_filter(boost=0.0, model_path=RNNOISE_MODEL):
     return af
 
 
+def denoise_to_wav(input_path, output_path, engine="auto", max_sec=None):
+    """어떤 입력(영상 포함)이든 → 노이즈 제거된 모노 wav.
+
+    참조 정리·프로필 전처리 등 '깨끗한 wav'가 필요한 모든 경로의 공용 진입점.
+    engine="auto"면 DFN 하이브리드(설치 시), 아니면 RNNoise.
+    """
+    use_dfn = (engine == "dfn") or (engine == "auto" and dfn_available())
+    if use_dfn:
+        import tempfile
+        with tempfile.TemporaryDirectory() as wd:
+            raw = os.path.join(wd, "raw.wav")
+            args = ["-i", input_path]
+            if max_sec:
+                args += ["-t", str(max_sec)]
+            args += ["-ac", "1", "-c:a", "pcm_s16le", raw]
+            run_ffmpeg(args)
+            _denoise_wav_dfn(raw, output_path)
+        return output_path
+    args = ["-i", input_path]
+    if max_sec:
+        args += ["-t", str(max_sec)]
+    args += ["-af", build_audio_filter(), "-ac", "1", "-c:a", "pcm_s16le",
+             output_path]
+    run_ffmpeg(args)
+    return output_path
+
+
 def preprocess_source(input_path, output_path, denoise=True, max_sec=180):
     """프로필 학습 소스 전처리: (선택) 노이즈 제거 + 모노 wav 변환 + 길이 제한.
 
     영상 파일도 받는다. 소스마다 노이즈 제거를 개별 선택할 수 있게
     변환과 제거를 한 단계로 묶은 헬퍼 (앱 계층은 이 함수만 호출).
+    노이즈 제거는 엔진 디스패처(denoise_to_wav) 경유 — DFN 설치 시 하이브리드.
     """
-    af = build_audio_filter() if denoise else "aformat=channel_layouts=mono"
+    if denoise:
+        return denoise_to_wav(input_path, output_path, max_sec=max_sec)
     args = ["-i", input_path]
     if max_sec:
         args += ["-t", str(max_sec)]
-    args += ["-af", af, "-ac", "1", "-c:a", "pcm_s16le", output_path]
+    args += ["-af", "aformat=channel_layouts=mono", "-ac", "1",
+             "-c:a", "pcm_s16le", output_path]
     run_ffmpeg(args)
     return output_path
 
