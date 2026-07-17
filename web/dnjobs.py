@@ -57,18 +57,23 @@ def start_denoise_job(file_storage, boost=0.0, mode="standard"):
            "size_mb": round(os.path.getsize(src) / 1e6, 1),
            "duration": None, "report": None, "error": None,
            "created": time.strftime("%Y-%m-%d %H:%M"),
-           "started_ts": time.time(), "elapsed_sec": None}
+           "started_ts": time.time(), "elapsed_sec": None, "eta_sec": None}
     with _LOCK:
         DNJOBS[jid] = job
+        _persist(job, jdir)  # 시작 즉시 저장 — 새로고침해도 작업 센터에 보이게
 
     def on_progress(ev):
         with _LOCK:
             job["stage"] = ev.get("stage", job["stage"])
+            _persist(job, jdir)
 
     def run():
+        from web.rates import estimate_dn_eta, update_rate
         t0 = time.time()
         try:
             job["duration"] = media_duration(src)
+            job["eta_sec"] = estimate_dn_eta(job["duration"], mode=mode)
+            _persist(job, jdir)
             run_denoise(src, out, boost=boost, mode=mode,
                         on_progress=on_progress)
             job["stage"] = "preview"
@@ -82,8 +87,13 @@ def start_denoise_job(file_storage, boost=0.0, mode="standard"):
                 job["report"] = {"sim": voice_similarity(src, out)}
             else:
                 job["report"] = denoise_report(src, out)
+            elapsed = time.time() - t0
+            if job["duration"]:
+                update_rate("dn_resynth" if mode == "resynth"
+                            else "dn_standard",
+                            max(elapsed - 10, 1) / job["duration"])
             job.update({"status": "done", "stage": "done",
-                        "elapsed_sec": round(time.time() - t0)})
+                        "elapsed_sec": round(elapsed)})
         except Exception as e:
             job.update({"status": "error", "error": str(e)[-300:]})
         finally:

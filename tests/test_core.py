@@ -615,6 +615,45 @@ def test_dnjob_store_roundtrip(tmp_path, monkeypatch):
     assert D.get_dnjob("dn1") is None
 
 
+def test_rates_eta_estimates(tmp_path, monkeypatch):
+    """ETA 산정: 대본 길이·모드에 비례하고, 실측이 EMA로 반영된다."""
+    import web.rates as R
+    monkeypatch.setattr(R, "RATES_PATH", str(tmp_path / "rates.json"))
+    long_eta = R.estimate_clone_eta("안녕하세요. 반갑습니다. 오늘도 좋은 하루입니다.")
+    assert 10 < long_eta < 600
+    assert R.estimate_clone_eta("안녕하세요.", fast=True) < long_eta
+    assert R.estimate_dn_eta(60, "standard") < R.estimate_dn_eta(60, "resynth")
+    base = R.get_rates()["clone_rtf"]
+    R.update_rate("clone_rtf", base / 2)          # 더 빠른 실측 반영
+    assert R.get_rates()["clone_rtf"] < base
+    R.update_rate("clone_rtf", None)              # 무효값은 무시
+    R.update_rate("clone_rtf", -1)
+
+
+def test_tasks_endpoint_merges_kinds(tmp_path, monkeypatch):
+    """작업 센터 API: 클론·노이즈 작업이 합쳐지고 진행 중이 먼저 온다."""
+    import web.dnjobs as D
+    import web.profiles as P
+    from web.server import app
+    monkeypatch.setattr(P, "HISTORY_DIR", str(tmp_path / "h"))
+    monkeypatch.setattr(P, "PROFILES_DIR", str(tmp_path / "p"))
+    monkeypatch.setattr(D, "DN_DIR", str(tmp_path / "d"))
+    (tmp_path / "h" / "a1").mkdir(parents=True)
+    (tmp_path / "h" / "a1" / "meta.json").write_text(
+        '{"id":"a1","status":"generating","title":"클론","created":"2026-07-17 10:00"}',
+        encoding="utf-8")
+    (tmp_path / "d" / "b1").mkdir(parents=True)
+    (tmp_path / "d" / "b1" / "meta.json").write_text(
+        '{"id":"b1","status":"done","title":"dn","created":"2026-07-17 11:00"}',
+        encoding="utf-8")
+    with app.test_client() as c:
+        items = [i for i in c.get("/api/tasks").get_json()["items"]
+                 if i["id"] in ("a1", "b1")]
+    kinds = {i["id"]: i["kind"] for i in items}
+    assert kinds == {"a1": "clone", "b1": "denoise"}
+    assert items[0]["id"] == "a1"  # 진행 중이 먼저
+
+
 # ---- 웹 서버 (기능 감지 포함) ----
 
 def test_health_endpoint():

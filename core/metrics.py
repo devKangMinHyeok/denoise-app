@@ -65,9 +65,9 @@ def speaker_similarity(ref_wav, gen_wav):
 def char_error_rate(script_text, gen_wav, whisper_repo=None):
     """CER(%): Whisper 받아쓰기를 대본과 대조."""
     import jiwer
-    import mlx_whisper
+    from . import mlx_transcribe
     from .clone import WHISPER
-    hyp = mlx_whisper.transcribe(
+    hyp = mlx_transcribe(
         gen_wav, path_or_hf_repo=whisper_repo or WHISPER, language="ko")["text"]
     return jiwer.cer(normalize_ko(script_text), normalize_ko(hyp)) * 100, hyp
 

@@ -135,10 +135,46 @@
   /* 문단 진행 바 */
   .bar { height: 6px; background: var(--line); border-radius: 4px; margin-top: 12px; overflow: hidden; }
   .bar > div { height: 100%; background: var(--accent); transition: width .5s; }
-  .compose-note { margin-top: 10px; font-size: .8rem; color: var(--sub); }
+  .compose-note { margin-top: 10px; font-size: .8rem; color: var(--sub); white-space: pre-line; }
+  /* 작업 센터 */
+  #taskBtn { position: fixed; top: 14px; right: 14px; z-index: 50;
+    padding: 8px 14px; border-radius: 20px; border: 1px solid var(--line);
+    background: var(--card); color: var(--text); cursor: pointer; font-size: .85rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+  #taskBtn.busy { border-color: var(--accent); color: var(--accent); }
+  #taskPanel { position: fixed; top: 54px; right: 14px; z-index: 50; width: 340px;
+    max-width: calc(100vw - 28px); max-height: 70vh; overflow-y: auto;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  .task-item { padding: 9px 4px; border-bottom: 1px solid var(--line); font-size: .84rem; }
+  .task-item:last-child { border-bottom: 0; }
+  .task-item .muted { font-size: .76rem; }
+  .task-eta { color: var(--accent); }
+  /* 토스트 알림 */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 60; background: var(--card); border: 1px solid var(--accent);
+    color: var(--text); border-radius: 12px; padding: 12px 18px; font-size: .9rem;
+    box-shadow: 0 6px 24px rgba(0,0,0,.35); display: none; }
+  /* 가라오케 가사 뷰 */
+  .lyrics { margin-top: 12px; max-height: 240px; overflow-y: auto;
+    padding: 12px 14px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; line-height: 2; font-size: 1.02rem; }
+  .lyrics .lyline { margin-bottom: 4px; transition: opacity .3s; opacity: .55; }
+  .lyrics .lyline.curline { opacity: 1; }
+  .lyw { color: var(--sub); transition: color .15s; cursor: pointer; }
+  .lyw.done { color: var(--text); }
+  .lyw.cur { color: var(--accent); font-weight: 700; }
 </style>
 </head>
 <body>
+<button id="taskBtn" title="작업 센터">⚙️ 작업</button>
+<div id="taskPanel" style="display:none">
+  <h3 style="font-size:.95rem; margin-bottom:6px">⚙️ 작업 센터</h3>
+  <p class="muted" style="font-size:.76rem; margin-bottom:6px">모든 작업은 백그라운드에서 돌아요 —
+  화면을 옮기거나 닫아도 계속됩니다. 끝나면 알려드려요.</p>
+  <div id="taskList"></div>
+</div>
+<div id="toast"></div>
 <main>
   <h1>🎙️ 노이즈 클리너</h1>
   <p class="sub">모든 처리는 이 컴퓨터 안에서만 이루어집니다. 원본 파일은 수정되지 않습니다.</p>
@@ -221,6 +257,7 @@
       <div class="status" id="clStatus"></div>
       <div class="compose-note" id="composeNote"></div>
       <audio id="clAudio" controls style="display:none"></audio>
+      <div class="lyrics" id="clLyrics" style="display:none"></div>
     </div>
 
     <div class="card" id="historyCard" style="display:none">
@@ -372,6 +409,109 @@ const esc = s => (s ?? '').toString().replace(/[&<>"']/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtSec = s => s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`;
 
+// 예상 완료 시간 문구: eta_sec(시작 시 산정) − 경과. 넘겼으면 "곧 완료"
+function etaText(t) {
+  if (!t.started_ts || !t.eta_sec) return '';
+  const remain = Math.round(t.eta_sec - (Date.now() / 1000 - t.started_ts));
+  return remain > 3 ? `예상 ${fmtSec(remain)} 남음` : '곧 완료돼요';
+}
+
+// ---- 알림 (완료/실패 시 브라우저 알림 + 토스트) ----
+function notify(title, body) {
+  try {
+    if (Notification.permission === 'granted') new Notification(title, { body });
+    else if (Notification.permission === 'default') Notification.requestPermission();
+  } catch {}
+  const t = $('toast');
+  t.textContent = `${title} — ${body}`;
+  t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 5000);
+}
+try { if (Notification.permission === 'default') Notification.requestPermission(); } catch {}
+
+// ---- 작업 센터: 모든 비동기 작업 한눈에 + 상태 전환 감지 ----
+const KIND_ICON = { clone: '🗣️', denoise: '🧹', profile_build: '🎤' };
+const ACTIVE = ['running', 'generating', 'preparing'];
+let taskStatusMap = {}, taskFirstPoll = true;
+
+async function pollTasks() {
+  try {
+    const { items } = await api('/api/tasks');
+    const running = items.filter(t => ACTIVE.includes(t.status));
+    const btn = $('taskBtn');
+    btn.textContent = running.length ? `⚙️ 작업 ${running.length}개 진행 중` : '⚙️ 작업';
+    btn.classList.toggle('busy', running.length > 0);
+    for (const t of items) {  // 진행 → 완료/실패 전환 감지 → 알림
+      const prev = taskStatusMap[t.id];
+      if (!taskFirstPoll && prev && ACTIVE.includes(prev) && t.status === 'done')
+        notify('✅ 작업 완성', `${t.title || t.kind}${t.pns ? ` · 운율 ${t.pns}` : ''}`);
+      if (!taskFirstPoll && prev && ACTIVE.includes(prev) && t.status === 'error')
+        notify('❌ 작업 실패', `${t.title || t.kind}: ${t.error || ''}`);
+      taskStatusMap[t.id] = t.status;
+    }
+    taskFirstPoll = false;
+    if ($('taskPanel').style.display !== 'none') renderTasks(items);
+  } catch {}
+}
+function renderTasks(items) {
+  $('taskList').innerHTML = items.length ? items.map(t => {
+    const running = ACTIVE.includes(t.status);
+    const state = running ? `<span class="spinner"></span>${esc(t.stage || '진행 중')} <span class="task-eta">${etaText(t)}</span>`
+      : t.status === 'done' ? `✅ 완료${t.elapsed_sec ? ` (${fmtSec(t.elapsed_sec)})` : ''}${t.pns ? ` · 운율 ${t.pns}` : ''}`
+      : `❌ ${esc(t.error || '실패')}`;
+    return `<div class="task-item">
+      <div>${KIND_ICON[t.kind] || '⚙️'} ${esc(t.title || t.id)}${t.mode === 'resynth' ? ' <span class="ver">재합성</span>' : ''}</div>
+      <div class="muted">${t.created || ''} · ${state}</div>
+    </div>`;
+  }).join('') : '<p class="muted">아직 작업이 없어요.</p>';
+}
+$('taskBtn').onclick = async () => {
+  const p = $('taskPanel');
+  const show = p.style.display === 'none';
+  p.style.display = show ? 'block' : 'none';
+  if (show) { const { items } = await api('/api/tasks').catch(() => ({ items: [] })); renderTasks(items); }
+};
+setInterval(pollTasks, 4000);
+pollTasks();
+
+// ---- 가라오케 가사 뷰 (Apple Music식 — 재생 위치 따라 단어 색칠) ----
+function bindLyrics(audio, words, el) {
+  if (!words?.length) { el.style.display = 'none'; return; }
+  const lines = [];
+  let cur = [];
+  words.forEach((w, i) => {
+    cur.push({ ...w, i });
+    if (/[.!?…]$/.test(w.w) || cur.length >= 14) { lines.push(cur); cur = []; }
+  });
+  if (cur.length) lines.push(cur);
+  el.innerHTML = lines.map(line =>
+    `<div class="lyline">${line.map(w =>
+      `<span class="lyw" id="${el.id}-w${w.i}" data-s="${w.s}">${esc(w.w)}</span>`
+    ).join(' ')}</div>`).join('');
+  el.style.display = 'block';
+  el.querySelectorAll('.lyw').forEach(sp => sp.onclick = () => {  // 단어 클릭 → 그 지점부터 재생
+    audio.currentTime = parseFloat(sp.dataset.s); audio.play();
+  });
+  const spans = words.map((w, i) => $(`${el.id}-w${i}`));
+  audio.ontimeupdate = () => {
+    const t = audio.currentTime;
+    let curIdx = -1;
+    words.forEach((w, i) => {
+      const sp = spans[i]; if (!sp) return;
+      sp.classList.toggle('done', t >= w.e);
+      const isCur = t >= w.s && t < w.e;
+      sp.classList.toggle('cur', isCur);
+      if (isCur) curIdx = i;
+    });
+    el.querySelectorAll('.lyline').forEach(l => l.classList.remove('curline'));
+    if (curIdx >= 0) {
+      const line = spans[curIdx].closest('.lyline');
+      line.classList.add('curline');
+      line.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  };
+}
+
 // ---- 노이즈 제거 (비동기 잡 + A/B 비교 + 품질 리포트 + 라이브러리) ----
 let dnPicked = null, dnPollTimer = null;
 wireDrop('dnDrop', 'dnFile', 'dnLabel', '파일을 끌어다 놓거나 클릭해서 선택',
@@ -473,8 +613,9 @@ function dnPoll(jid) {
   dnPollTimer = setInterval(async () => {
     try {
       const job = await api('/api/dnjobs/' + jid);
+      const eta = etaText(job);
       const elapsed = job.started_ts
-        ? ` (경과 ${fmtSec(Math.max(0, Math.round(Date.now() / 1000 - job.started_ts)))}${job.duration ? ' / 파일 ' + fmtSec(Math.round(job.duration)) : ''})` : '';
+        ? ` (경과 ${fmtSec(Math.max(0, Math.round(Date.now() / 1000 - job.started_ts)))}${job.duration ? ' / 파일 ' + fmtSec(Math.round(job.duration)) : ''}${eta ? ' · ' + eta : ''})` : '';
       if (job.status === 'running') {
         setDnStages(DN_STAGE_IDX[job.stage] ?? 0);
         setStatus($('dnStatus'), `<span class="spinner"></span>${DN_STAGE_MSG[job.stage] || '처리 중…'}${elapsed}`);
@@ -640,8 +781,10 @@ function poll(jobId) {
     try {
       const job = await api('/api/jobs/' + jobId);
       if (job.takes?.length) renderTakes(job.takes);
-      const elapsed = job.started_ts
-        ? ` · 경과 ${fmtSec(Math.max(0, Math.round(Date.now() / 1000 - job.started_ts)))}` : '';
+      const eta = etaText(job);
+      const elapsed = (job.started_ts
+        ? ` · 경과 ${fmtSec(Math.max(0, Math.round(Date.now() / 1000 - job.started_ts)))}` : '')
+        + (eta ? ` · ${eta}` : '');
       if (job.paragraph && job.status === 'generating') {  // 문단 진행 바
         $('paraBar').style.display = 'block';
         $('paraFill').style.width = Math.round((job.paragraph.i - 1) / job.paragraph.n * 100) + '%';
@@ -676,6 +819,7 @@ function poll(jobId) {
         const audio = $('clAudio');
         audio.src = '/api/jobs/' + jobId + '/audio';
         audio.style.display = 'block';
+        bindLyrics(audio, job.words, $('clLyrics'));
         $('clGo').disabled = false; clReady();
         loadHistory();
       } else if (job.status === 'error') {
@@ -719,7 +863,9 @@ function jobCard(j) {
       ${j.profile_id ? `<button class="mini" onclick="rerunJob('${j.id}')">🎲 같은 설정으로 다시</button>` : ''}
       <a class="mini" href="/api/jobs/${j.id}/audio" download="${esc(j.title || '클론낭독')}.wav">⬇ 저장</a>
       ${paras.length ? `<button class="mini" onclick="toggleParas('${j.id}')">📑 문단 ${paras.length}개</button>` : ''}
+      ${j.words?.length ? `<button class="mini" onclick="toggleCardLyrics('${j.id}')">🎤 가사</button>` : ''}
     </div>
+    <div class="lyrics" id="lyr-${j.id}" style="display:none"></div>
     ${paras.length ? `<div class="paras" id="paras-${j.id}" style="display:${openParas.has(j.id) ? 'block' : 'none'}">
       ${paras.map((p, i) => `<div class="para-item">
         <div>${i + 1}. ${esc((p.text || '').slice(0, 64))}${(p.text || '').length > 64 ? '…' : ''}</div>
@@ -735,13 +881,20 @@ function jobCard(j) {
 
 async function loadHistory() {
   try {
-    const { items } = await api('/api/history');
+    let { items } = await api('/api/history');
+    items = items.filter(j => j.kind !== 'profile_build');  // 빌드 잡은 작업 센터에서만
     if (!items.length) { $('historyCard').style.display = 'none'; return; }
     LIB = {}; items.forEach(j => LIB[j.id] = j);
     $('historyCard').style.display = 'block';
     $('historyList').innerHTML = items.map(jobCard).join('');
   } catch {}
 }
+window.toggleCardLyrics = id => {
+  const el = $('lyr-' + id);
+  if (el.style.display === 'none') {
+    bindLyrics($('aud-' + id), LIB[id]?.words, el);
+  } else el.style.display = 'none';
+};
 window.toggleParas = id => {
   const el = $('paras-' + id);
   const show = el.style.display === 'none';
@@ -886,6 +1039,22 @@ window.deleteJob = async id => {
 };
 
 // ---- 내 목소리: 프로필 목록 + 녹음 위저드 ----
+async function waitBuild(pid, denoise, statusEl) {
+  // 비동기 빌드 시작 → 작업 센터에도 잡히고, 여기선 완료까지 지켜본다
+  const { job_id } = await api(`/api/profiles/${pid}/build_async`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ denoise: denoise ? '1' : '0' }) });
+  for (;;) {
+    await new Promise(r => setTimeout(r, 2000));
+    const job = await api('/api/jobs/' + job_id);
+    if (job.status === 'done') break;
+    if (job.status === 'error') throw new Error(job.error || '분석 실패');
+    const eta = etaText(job);
+    setStatus(statusEl, `<span class="spinner"></span>목소리 분석 중… (${esc(job.stage || '')})${eta ? ' · ' + eta : ''}`);
+  }
+  const { profiles: ps } = await api('/api/profiles');
+  return ps.find(p => p.id === pid);
+}
 let PROFILES = {}, openVers = new Set();
 async function loadProfileList() {
   try {
@@ -979,10 +1148,8 @@ $('enhBuild').onclick = async () => {
       fd.append('denoise', enhFiles[i].denoise ? '1' : '0');
       await api(`/api/profiles/${enhPid}/sources`, { method: 'POST', body: fd });
     }
-    setStatus($('enhStatus'), '<span class="spinner"></span>전체 재분석 중… (소스별 전처리 → 병합 → 최적 구간 선택 → 받아쓰기 → 통계, 약 1~2분)');
-    const built = await api(`/api/profiles/${enhPid}/build`, { method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ denoise: (p.denoised ?? true) ? '1' : '0' }) });
+    setStatus($('enhStatus'), '<span class="spinner"></span>전체 재분석을 시작했어요 — 백그라운드 진행, 작업 센터(⚙️)에서도 보여요');
+    const built = await waitBuild(enhPid, p.denoised ?? true, $('enhStatus'));
     setStatus($('enhStatus'), '✅ 강화 완료! 통계가 이렇게 달라졌어요', 'ok');
     const after = built.stats;
     $('enhCompare').innerHTML = '<div class="stats" style="grid-template-columns:repeat(2,1fr)">' +
@@ -1153,10 +1320,8 @@ $('wizBuild').onclick = async () => {
       await api(`/api/profiles/${meta.id}/sources`, { method: 'POST', body: fd });
     }
     const useDenoise = $('wizDenoise').checked;
-    setStatus($('buildStatus'), `<span class="spinner"></span>목소리 분석 중… (소스별 전처리 → 병합 → 최적 구간 선택 → 받아쓰기 → 억양·호흡·강세 분석, 약 1~2분)`);
-    const built = await api(`/api/profiles/${meta.id}/build`, { method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ denoise: useDenoise ? '1' : '0' }) });
+    setStatus($('buildStatus'), `<span class="spinner"></span>목소리 분석을 시작했어요 — 백그라운드에서 진행되고 작업 센터(⚙️)에서도 볼 수 있어요`);
+    const built = await waitBuild(meta.id, useDenoise, $('buildStatus'));
     const s = built.stats;
     $('wizStats').innerHTML = `
       <div class="stat"><b>${s.f0_std}st</b><span>억양 역동성</span></div>

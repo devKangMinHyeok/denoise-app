@@ -14,3 +14,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(ROOT, "models")
 RNNOISE_MODEL = os.path.join(MODELS_DIR, "rnnoise-sh.rnnn")
 DNSMOS_MODEL = os.path.join(MODELS_DIR, "dnsmos_sig_bak_ovr.onnx")
+
+import threading
+
+MLX_LOCK = threading.Lock()
+
+
+def mlx_transcribe(wav_path, **kwargs):
+    """mlx_whisper.transcribe 직렬화 래퍼.
+
+    MLX는 한 프로세스에서 여러 스레드가 동시에 쓰면 안전하지 않다
+    (실측: 클론 채점과 프로필 분석이 동시에 돌면
+    "There is no Stream(cpu, 0) in current thread" 크래시).
+    모든 Whisper 호출은 이 래퍼를 거쳐 전역 락으로 직렬화한다.
+    """
+    import mlx_whisper
+    with MLX_LOCK:
+        return mlx_whisper.transcribe(wav_path, **kwargs)

@@ -429,7 +429,7 @@ def ending_word_drops(wav_path, script):
     자연스러운 어미는 수평(±1st 내), AI 결함 어미는 -2.7~-3.8st 낙하
     (의문형 '~죠?'가 떨어지는 게 최악의 사례).
     """
-    import mlx_whisper
+    from . import mlx_transcribe
     from .clone import WHISPER
     import librosa
     sents = split_sentences(script)
@@ -444,7 +444,7 @@ def ending_word_drops(wav_path, script):
     v = ~np.isnan(f0)
     if v.sum() > 10:
         st[v] = 12 * np.log2(f0[v] / np.nanmedian(f0[v]))
-    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+    r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER,
                                language="ko", word_timestamps=True)
     drops = []
     for seg in r["segments"]:
@@ -537,7 +537,7 @@ def sentence_boundary_info(wav_path, script, units=None):
     없으면 문장 경계만.
     """
     import difflib
-    import mlx_whisper
+    from . import mlx_transcribe
     from .clone import WHISPER
 
     if units is None:
@@ -546,7 +546,7 @@ def sentence_boundary_info(wav_path, script, units=None):
     kinds = [u[1] for u in units]
     if len(sents) < 2:
         return []
-    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+    r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER,
                                language="ko", word_timestamps=True)
     words = [w for seg in r["segments"] for w in seg["words"]]
     if len(words) < 2:
@@ -616,7 +616,7 @@ def take_sentence_scores(wav_path, script):
     통짜 선별로 폴백).
     """
     import librosa
-    import mlx_whisper
+    from . import mlx_transcribe
 
     sents = split_sentences(script)
     y, sr = librosa.load(wav_path, sr=_SR, mono=True)
@@ -628,7 +628,7 @@ def take_sentence_scores(wav_path, script):
     if v.sum() > 10:
         st[v] = 12 * np.log2(f0[v] / np.nanmedian(f0[v]))
 
-    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER_SCORING,
+    r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER_SCORING,
                                language="ko", word_timestamps=True)
     words = [w for seg in r["segments"] for w in seg["words"]]
     if not words:
@@ -720,10 +720,10 @@ def swallowed_word_worst(wav_path):
     죽어도 통과시킨다. 실측: 사람 최악 -7.2dB vs 클론 -10~-11.5dB.
     """
     import librosa
-    import mlx_whisper
+    from . import mlx_transcribe
     from .clone import WHISPER
     y, sr = librosa.load(wav_path, sr=_SR, mono=True)
-    r = mlx_whisper.transcribe(wav_path, path_or_hf_repo=WHISPER,
+    r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER,
                                language="ko", word_timestamps=True)
     peaks = []
     for seg in r["segments"]:
@@ -877,3 +877,22 @@ def select_reference_window(full_wav, min_sec=6.0, max_sec=14.0):
     if best is None:  # 녹음이 너무 짧거나 무음뿐이면 앞부분 사용
         return 0.0, min(max_sec, len(y) / sr)
     return best
+
+
+def word_timeline(wav_path):
+    """단어별 (텍스트, 시작, 끝) 타임라인 — 가라오케식 가사 뷰의 데이터.
+
+    채점용 경량 Whisper(base)로 충분 (필요한 건 정렬이지 정확한 받아쓰기가
+    아니다 — 실측: 문장 채점 정렬에서 base가 turbo와 동등).
+    """
+    from . import mlx_transcribe
+    r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER_SCORING,
+                               language="ko", word_timestamps=True)
+    out = []
+    for seg in r.get("segments", []):
+        for w in seg.get("words", []):
+            word = (w.get("word") or "").strip()
+            if word:
+                out.append({"w": word, "s": round(float(w["start"]), 2),
+                            "e": round(float(w["end"]), 2)})
+    return out

@@ -56,8 +56,8 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
         run_ffmpeg(["-t", str(max_sec), "-i", full_clean,
                     "-c:a", "pcm_s16le", clean])
 
-    import mlx_whisper
-    text = mlx_whisper.transcribe(
+    from . import mlx_transcribe
+    text = mlx_transcribe(
         clean, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
     if not text:
         raise RuntimeError("참조 파일에서 말소리를 찾지 못했습니다. "
@@ -329,8 +329,8 @@ def prepare_performance(rec_path, workdir, denoise=True):
                     "-c:a", "pcm_s16le", perf])
     from .audio import normalize_speech_level
     normalize_speech_level(perf)
-    import mlx_whisper
-    text = mlx_whisper.transcribe(
+    from . import mlx_transcribe
+    text = mlx_transcribe(
         perf, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
     if not text:
         raise RuntimeError("연기 녹음에서 말소리를 찾지 못했습니다. "

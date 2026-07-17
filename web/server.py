@@ -220,12 +220,24 @@ def profiles_source_api(pid):
 
 @app.post("/api/profiles/<pid>/build")
 def profiles_build_api(pid):
+    """동기 빌드 (구버전 호환 — CLI/스크립트용)."""
     body = request.get_json(silent=True) or {}
     denoise = str(body.get("denoise", request.form.get("denoise", "1"))) != "0"
     try:
         return jsonify(profiles.build_profile(pid, denoise=denoise))
     except (RuntimeError, FileNotFoundError) as e:
         return jsonify(error=str(e)), 400
+
+
+@app.post("/api/profiles/<pid>/build_async")
+def profiles_build_async_api(pid):
+    """비동기 빌드 — 작업 센터에서 추적 (웹 UI 기본 경로)."""
+    body = request.get_json(silent=True) or {}
+    denoise = str(body.get("denoise", "1")) != "0"
+    try:
+        return jsonify(job_id=profiles.start_build_job(pid, denoise=denoise))
+    except FileNotFoundError:
+        return jsonify(error="프로필이 없습니다"), 404
 
 
 @app.post("/api/profiles/<pid>/rollback")
@@ -348,6 +360,26 @@ def jobs_audio_api(job_id):
 @app.get("/api/history")
 def history_api():
     return jsonify(items=profiles.list_history())
+
+
+@app.get("/api/tasks")
+def tasks_api():
+    """작업 센터: 모든 비동기 작업(클로닝·노이즈 제거·프로필 분석) 한눈에."""
+    fields = ("id", "kind", "title", "status", "stage", "created",
+              "started_ts", "eta_sec", "elapsed_sec", "error", "pns", "mode")
+    items = []
+    for j in profiles.list_history(limit=25):
+        t = {k: j.get(k) for k in fields}
+        t["kind"] = j.get("kind") or "clone"
+        items.append(t)
+    for j in dnjobs.list_dnjobs(limit=15):
+        t = {k: j.get(k) for k in fields}
+        t["kind"] = "denoise"
+        items.append(t)
+    active = ("running", "generating", "preparing")
+    items.sort(key=lambda x: x.get("created") or "", reverse=True)
+    items.sort(key=lambda x: x["status"] not in active)  # 진행 중 먼저 (안정 정렬)
+    return jsonify(items=items[:30])
 
 
 @app.patch("/api/history/<job_id>")

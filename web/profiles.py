@@ -167,14 +167,21 @@ def rollback_profile(pid, version):
     return meta
 
 
-def build_profile(pid, denoise=True):
+def build_profile(pid, denoise=True, on_progress=None):
     """소스 전처리(개별 노이즈 제거) → 병합 → 참조 자산 캐시 → 통계 분석.
 
     입력 = 가이드 녹음(일괄 denoise 플래그) + 추가 소스(소스별 플래그).
     각자 플래그대로 전처리한 뒤 병합하므로, 이후 단계는 재차 제거하지 않는다.
     재실행 가능(프로필 강화): 소스를 더 넣고 다시 부르면 전체를 재분석하고,
     이전 통계는 stats_history에 남아 전/후 비교에 쓰인다.
+    on_progress: 단계 콜백 {"stage": prep|reference|stats, ...}
     """
+    def _notify(**ev):
+        if on_progress:
+            try:
+                on_progress(ev)
+            except Exception:
+                pass
     from core.audio import concat_to_wav
     from core.clone import prepare_reference
     from core.denoise import preprocess_source
@@ -201,10 +208,13 @@ def build_profile(pid, denoise=True):
     shutil.rmtree(prep_dir, ignore_errors=True)
     os.makedirs(prep_dir)
     prepped = []
+    total = len(guided) + len(sources)
     for i, f in enumerate(guided):  # 가이드 녹음: 일괄 플래그
+        _notify(stage="prep", i=i + 1, n=total)
         prepped.append(preprocess_source(
             f, os.path.join(prep_dir, f"g{i:02d}.wav"), denoise=denoise))
     for i, s in enumerate(sources):  # 추가 소스: 소스별 플래그
+        _notify(stage="prep", i=len(guided) + i + 1, n=total)
         prepped.append(preprocess_source(
             os.path.join(pdir, "sources", s["file"]),
             os.path.join(prep_dir, f"s{i:02d}.wav"),
@@ -212,9 +222,11 @@ def build_profile(pid, denoise=True):
 
     merged = os.path.join(pdir, "merged.wav")
     concat_to_wav(prepped, merged)
+    _notify(stage="reference")
     ref_wav, ref_text, natural = prepare_reference(merged, pdir,
                                                    denoise=False)
 
+    _notify(stage="stats")
     feats = prosody_features(natural)
     stress = stress_features(natural) or {}
     slopes = final_f0_slopes(natural)
@@ -280,7 +292,11 @@ def _new_job(job_id, text, profile_name, profile_id, settings,
 
 
 def _make_progress(job):
-    """코어 진행 이벤트 → 작업 레코드 반영 (파이프라인 가시성의 데이터원)."""
+    """코어 진행 이벤트 → 작업 레코드 반영 + 즉시 저장.
+
+    진행 중에도 디스크에 남겨야 새로고침·재접속 후에도 작업 센터가
+    "⏳ 진행 중"으로 추적할 수 있다 (완료 시점에만 쓰면 그때까지 안 보임).
+    """
     def on_progress(ev):
         with _LOCK:
             s = ev.get("stage")
@@ -301,6 +317,7 @@ def _make_progress(job):
                     job["final_pns"] = ev["pns"]
                 if ev.get("paragraphs"):
                     job["paragraphs"] = ev["paragraphs"]
+            _persist_job(job)
     return on_progress
 
 
@@ -313,13 +330,25 @@ def _finish_job(job, out, t_start):
         rtf = round(elapsed / max(sf.info(out).duration, 0.1), 1)
     except Exception:
         pass
+    try:  # 가라오케 가사 뷰용 단어 타임라인 (실패해도 작업은 성공)
+        from core.prosody import prosody_deps_available, word_timeline
+        if prosody_deps_available():
+            job["words"] = word_timeline(out)
+    except Exception:
+        pass
+    if rtf and not job.get("parent"):  # 부분 재생성은 RTF 통계에서 제외
+        from web.rates import update_rate
+        update_rate("clone_fast_rtf" if job.get("settings", {}).get("fast")
+                    else "clone_rtf", rtf)
     job.update({"status": "done", "stage": "done",
                 "pns": job.pop("final_pns", None)
                 or (picked.get("pns") if picked else None),
                 "elapsed_sec": round(elapsed), "rtf": rtf})
 
 
-def _persist_job(job, jdir):
+def _persist_job(job, jdir=None):
+    jdir = jdir or os.path.join(HISTORY_DIR, job["id"])
+    os.makedirs(jdir, exist_ok=True)
     with open(os.path.join(jdir, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(job, f, ensure_ascii=False, indent=2)
 
@@ -334,8 +363,17 @@ def start_clone_job(text, fast, ref_path=None, profile_id=None,
     n_takes = takes or (1 if fast else DEFAULT_TAKES)
     job = _new_job(job_id, text, profile_name, profile_id,
                    {"fast": bool(fast), "takes": n_takes}, title=title)
+    from web.rates import estimate_clone_eta
+    rate = None
+    if profile_id:
+        try:
+            rate = (_load_meta(profile_id).get("stats") or {}).get("rate")
+        except (OSError, json.JSONDecodeError):
+            pass
+    job["eta_sec"] = estimate_clone_eta(text, fast=fast, speech_rate=rate)
     with _LOCK:
         JOBS[job_id] = job
+        _persist_job(job)  # 시작 즉시 저장 — 새로고침해도 작업 센터에 보이게
     on_progress = _make_progress(job)
 
     def run():
@@ -398,8 +436,12 @@ def start_regen_job(parent_id, index):
                            "index": index},
                    version=int(parent.get("version", 1)) + 1)
     job.update({"status": "generating", "stage": "takes"})
+    from web.rates import estimate_clone_eta
+    job["eta_sec"] = estimate_clone_eta(paras[index]["text"],
+                                        fast=settings.get("fast", False))
     with _LOCK:
         JOBS[job_id] = job
+        _persist_job(job)
     on_progress = _make_progress(job)
 
     def run():
@@ -417,6 +459,64 @@ def start_regen_job(parent_id, index):
             job.update({"status": "error", "error": str(e)[-300:]})
         finally:
             _persist_job(job, jdir)
+
+    threading.Thread(target=run, daemon=True).start()
+    return job_id
+
+
+def start_build_job(pid, denoise=True):
+    """프로필 분석(빌드/강화)을 백그라운드 작업으로 → job_id.
+
+    분석은 1~2분 걸리므로 동기 요청은 UX 사각지대였다 (브라우저를 닫으면
+    진행을 다시 못 봄). 작업 센터에서 추적 + ETA는 학습 음성 총 길이 실측.
+    """
+    from core.audio import media_duration
+    from web.rates import estimate_build_eta
+
+    meta = _load_meta(pid)  # 없으면 FileNotFoundError → 호출부 404
+    _ensure_dirs()
+    pdir = os.path.join(PROFILES_DIR, pid)
+    total = 0.0
+    raw = os.path.join(pdir, "raw")
+    files = ([os.path.join(raw, f) for f in os.listdir(raw)
+              if not f.startswith(".")] if os.path.isdir(raw) else [])
+    files += [os.path.join(pdir, "sources", s["file"])
+              for s in meta.get("sources", [])]
+    for f in files:
+        d = media_duration(f)
+        total += min(d or 30, 180)  # 소스는 앞 3분만 쓰므로 상한
+
+    job_id = uuid.uuid4().hex[:10]
+    job = {"id": job_id, "kind": "profile_build", "status": "running",
+           "stage": "prep", "title": f"프로필 분석: {meta.get('name', '')}",
+           "profile_id": pid, "error": None,
+           "created": time.strftime("%Y-%m-%d %H:%M"),
+           "started_ts": time.time(),
+           "eta_sec": estimate_build_eta(total)}
+    with _LOCK:
+        JOBS[job_id] = job
+        _persist_job(job)
+
+    def on_progress(ev):
+        with _LOCK:
+            s = ev.get("stage")
+            job["stage"] = (f"prep {ev['i']}/{ev['n']}" if s == "prep" else s)
+            _persist_job(job)
+
+    def run():
+        t0 = time.time()
+        try:
+            build_profile(pid, denoise=denoise, on_progress=on_progress)
+            elapsed = time.time() - t0
+            if total > 5:
+                from web.rates import update_rate
+                update_rate("build_factor", (elapsed - 20) / total)
+            job.update({"status": "done", "stage": "done",
+                        "elapsed_sec": round(elapsed)})
+        except Exception as e:
+            job.update({"status": "error", "error": str(e)[-300:]})
+        finally:
+            _persist_job(job)
 
     threading.Thread(target=run, daemon=True).start()
     return job_id
@@ -451,8 +551,12 @@ def start_performance_job(parent_id, index, rec_path, denoise=True):
                            "index": index},
                    version=int(parent.get("version", 1)) + 1)
     job.update({"status": "generating", "stage": "performance"})
+    from web.rates import estimate_clone_eta
+    job["eta_sec"] = estimate_clone_eta(paras[index]["text"],
+                                        fast=settings.get("fast", False)) + 25
     with _LOCK:
         JOBS[job_id] = job
+        _persist_job(job)
     on_progress = _make_progress(job)
 
     def run():
