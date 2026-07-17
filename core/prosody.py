@@ -320,13 +320,49 @@ def stress_style_score(gen_feats, ref_feats):
     """강약 스타일 일치도 (0~1). 순수 함수.
 
     피크범위는 부족을(강세 구조 없음), 피크-밸리는 과다를(과분절) 벌점.
+    만점 문턱 0.92 — 0.85로 두면 사람 수준(비율 1.0)에 못 미친 채로 선별
+    압력이 멈춘다 (실측: 피크범위가 15.2dB에서 정체).
     """
     if not gen_feats or not ref_feats:
         return 1.0
-    s_range = dynamics_score(gen_feats["peak_range"], ref_feats["peak_range"])
+    s_range = dynamics_score(gen_feats["peak_range"], ref_feats["peak_range"],
+                             full_credit_at=0.92)
     s_valley = dynamics_score(ref_feats["peak_valley"],
-                              gen_feats["peak_valley"])  # 방향 반전: 과다 벌점
+                              gen_feats["peak_valley"],
+                              full_credit_at=0.92)  # 방향 반전: 과다 벌점
     return float(0.5 * (s_range + s_valley))
+
+
+def reshape_energy_contour(in_wav, out_wav, beta=1.3, gamma=0.7,
+                           max_gain_db=6.0):
+    """에너지 윤곽 재조형: 강세 구조는 확장(^β), 과분절 골짜기는 완화(^γ).
+
+    에너지 포락선을 느린 스케일(400ms — 단어·구 강세 구조)과 빠른 스케일
+    (음절 분절)로 분해해 각각 다르게 조정한다. 실측: 클론의 결함이 정확히
+    이 두 스케일에 반대 방향으로 있음 (강세 구조 부족 + 과분절).
+    β1.55/γ0.55에서 사람과 일치하지만 UTMOS -0.16 → 중간 강도를 기본값으로
+    하고 나머지는 테이크 선별이 채운다.
+    """
+    import librosa
+    import soundfile as sf
+    from scipy.ndimage import uniform_filter1d
+    y, sr = librosa.load(in_wav, sr=24_000, mono=True)
+    hop = 240  # 10ms
+    env = np.maximum(
+        librosa.feature.rms(y=y, frame_length=720, hop_length=hop)[0], 1e-6)
+    slow = np.maximum(uniform_filter1d(env, size=40), 1e-6)  # 400ms 스케일
+    fast = env / slow
+    med = np.median(slow[slow > np.percentile(slow, 20)])
+    gain = (med * (slow / med) ** beta * fast ** gamma) / env
+    gain = uniform_filter1d(gain, size=5)
+    gain = np.clip(gain, 10 ** (-max_gain_db / 20), 10 ** (max_gain_db / 20))
+    g_full = np.interp(np.arange(len(y)) / hop, np.arange(len(gain)), gain)
+    out = y * g_full
+    peak = np.abs(out).max()
+    if peak > 0.98:
+        out = out / peak * 0.98
+    sf.write(out_wav, out.astype(np.float32), sr)
+    return out_wav
 
 
 def ending_style_score(gen_slopes, ref_slopes, tolerance=2.0, floor=8.0):

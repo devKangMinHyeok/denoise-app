@@ -176,12 +176,15 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
     if takes <= 1 or not prosody_deps_available():
         out = synthesize(text, ref_wav, ref_text, output_path, fast=fast)
         if prosody_deps_available():
+            from .prosody import reshape_energy_contour
             ensure_breath_pauses(out, text)
+            reshape_energy_contour(out, out)
             normalize_speech_level(out)
         return out, None
 
     from .prosody import (ending_style_score, evaluate_prosody,
-                          final_f0_slopes, prosody_features, stress_features,
+                          final_f0_slopes, prosody_features,
+                          reshape_energy_contour, stress_features,
                           stress_style_score)
     natural_rate = prosody_features(natural_wav)["artic_rate"]
     natural_slopes = final_f0_slopes(natural_wav)
@@ -191,7 +194,8 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
         for i in range(takes):
             take = os.path.join(wd, f"take_{i}.wav")
             synthesize(text, ref_wav, ref_text, take, fast=fast)
-            ensure_breath_pauses(take, text)  # 문장 경계 호흡 보장 후 채점
+            ensure_breath_pauses(take, text)  # 문장 경계 호흡 보장
+            reshape_energy_contour(take, take)  # 강세 구조 재조형 후 채점
             r = evaluate_prosody(natural_wav, take, script=text)
             ending = ending_style_score(final_f0_slopes(take), natural_slopes)
             stress = stress_style_score(stress_features(take), natural_stress)
