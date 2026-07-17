@@ -104,7 +104,7 @@ def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1,
 # 목표를 게이트와 같게 두면 출력이 항상 "합격선 언저리"에 머문다 (청취 피드백으로 실측:
 # 조기종료 82 시절 웹 출력 PNS 82.5 vs 베스트 테이크 87.0).
 PNS_TARGET = 87.0  # 이 점수를 넘는 테이크가 나오면 조기 채택
-DEFAULT_TAKES = 4  # 일반 모드 테이크 수
+DEFAULT_TAKES = 6  # 일반 모드 테이크 수 (품질 우선 — 사용자 확인: 시간보다 품질)
 BREATH_TARGET = (0.5, 0.7)  # 문장 경계 호흡 삽입 목표 범위(초) — 읽기 발화 실측 분포
 
 
@@ -146,6 +146,7 @@ def ensure_breath_pauses(wav_path, script):
 
 RATE_TOLERANCE = 0.15   # 조음속도 허용 편차 (±15%) — 벗어나면 선별 감점
 RATE_PENALTY = 15.0     # 편차 1.0당 PNS 감점량
+ENDING_PENALTY = 8.0    # 끝음 스타일 불일치(0~1) 최대 감점 — "끝음이 AI 같다" 대응
 # 주의: 긴 대본의 청크 분할 생성은 실측으로 기각됨 — 2문장/4~5문장 청크 모두
 # 통짜 생성보다 나빴다 (PNS 77~81 vs 85, 페이스 6.7~7.9 vs 9.2음절/s).
 # 이 모델은 긴 글을 통째로 읽을 때 페이스·리듬이 가장 자연스럽다.
@@ -178,8 +179,10 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             normalize_speech_level(out)
         return out, None
 
-    from .prosody import evaluate_prosody, prosody_features
+    from .prosody import (ending_style_score, evaluate_prosody,
+                          final_f0_slopes, prosody_features)
     natural_rate = prosody_features(natural_wav)["artic_rate"]
+    natural_slopes = final_f0_slopes(natural_wav)
     best_sel, best_pns, best_path = -1e9, None, None
     with tempfile.TemporaryDirectory() as wd:
         for i in range(takes):
@@ -187,8 +190,10 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             synthesize(text, ref_wav, ref_text, take, fast=fast)
             ensure_breath_pauses(take, text)  # 문장 경계 호흡 보장 후 채점
             r = evaluate_prosody(natural_wav, take, script=text)
-            sel = _selection_score(r["pns"], r["gen"]["artic_rate"],
-                                   natural_rate)
+            ending = ending_style_score(final_f0_slopes(take), natural_slopes)
+            sel = (_selection_score(r["pns"], r["gen"]["artic_rate"],
+                                    natural_rate)
+                   - ENDING_PENALTY * (1.0 - ending))
             if sel > best_sel:
                 best_sel, best_pns = sel, r["pns"]
                 if best_path:

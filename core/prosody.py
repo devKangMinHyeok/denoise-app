@@ -249,6 +249,55 @@ def split_sentences(text):
 #  이 모델은 긴 글을 통째로 읽을 때 페이스·리듬이 가장 자연스럽다.)
 
 
+def final_f0_slopes(wav_path):
+    """발화 조각(≥0.25s 무음으로 구분)마다 끝 0.4초의 F0 기울기(st/s) 목록.
+
+    끝음 처리의 정량화: 평서문은 F0 하강이 전형이지만(문헌), 화자마다
+    스타일이 다르다 — 실측: 사용자(에너지 있는 유튜버 톤)는 중앙값 +2.0st/s
+    (상승/유지형), 클론은 -3.5~-4.3(낭독체 하강) → "끝음이 AI 같다"의 실체.
+    """
+    import librosa
+    y, sr = librosa.load(wav_path, sr=_SR, mono=True)
+    y, _ = librosa.effects.trim(y, top_db=35)
+    f0 = librosa.pyin(y, fmin=_PYIN_FMIN, fmax=_PYIN_FMAX, sr=sr,
+                      frame_length=1024)[0]
+    hop_t = 512 / sr
+    voiced = ~np.isnan(f0)
+    st = np.full(len(f0), np.nan)
+    if voiced.sum() > 10:
+        st[voiced] = 12 * np.log2(f0[voiced] / np.nanmedian(f0[voiced]))
+    hop = int(sr * 0.03)
+    nf = len(y) // hop
+    db = 20 * np.log10(np.maximum(
+        np.sqrt((y[: nf * hop].reshape(nf, hop) ** 2).mean(axis=1)), 1e-9))
+    silent = db < np.percentile(db, 90) - PAUSE_DROP_DB
+    ends, run = [], 0
+    min_run = int(0.25 / 0.03)
+    for i, s in enumerate(np.append(silent, True)):
+        run = run + 1 if s else 0
+        if run == min_run and i * 0.03 > 1.0:
+            ends.append((i - run + 1) * 0.03)
+    slopes = []
+    for t_end in ends:
+        i1 = int(t_end / hop_t)
+        i0 = max(0, i1 - int(0.4 / hop_t))
+        seg = st[i0:i1]
+        idx = np.where(~np.isnan(seg))[0]
+        if len(idx) >= 5:
+            slopes.append(float(np.polyfit(idx * hop_t, seg[idx], 1)[0]))
+    return slopes
+
+
+def ending_style_score(gen_slopes, ref_slopes, tolerance=2.0, floor=8.0):
+    """끝음 스타일 일치도 (0~1): 끝음 기울기 중앙값의 화자 대비 차이.
+
+    tolerance(st/s) 이내면 만점, floor 초과 이탈이면 0점. 순수 함수."""
+    if not gen_slopes or not ref_slopes:
+        return 1.0
+    diff = abs(float(np.median(gen_slopes)) - float(np.median(ref_slopes)))
+    return float(np.clip(1.0 - max(0.0, diff - tolerance) / floor, 0.0, 1.0))
+
+
 def _normalize_chars(text):
     import re
     return re.sub(r"[^\w]", "", text, flags=re.UNICODE).lower()

@@ -101,7 +101,7 @@ def clone_api():
     try:
         # 빠른 모드는 단일 테이크, 기본은 best-of-N (운율 점수 87 목표 선별)
         clone_voice(ref_path, text, out_path, fast=fast,
-                    takes=1 if fast else 4)
+                    takes=1 if fast else 6)
     except RuntimeError as e:
         return jsonify(error=str(e)), 500
     finally:

@@ -178,6 +178,25 @@ def test_selection_score_penalizes_fast_takes():
     assert _selection_score(85.0, 11.4, 9.1) < 84.0
 
 
+# ---- 끝음 스타일 ----
+
+def test_ending_style_match_full_credit():
+    from core.prosody import ending_style_score
+    # 화자(상승형 +2.0st/s)와 같은 스타일 → 만점
+    assert ending_style_score([2.5, 1.5], [2.0, 2.2]) == pytest.approx(1.0)
+
+
+def test_ending_style_reading_tone_penalized():
+    from core.prosody import ending_style_score
+    # 실측 사례: 화자 +2.0 vs 클론 -4.3 (낭독체 하강) → 감점
+    assert ending_style_score([-4.3, -3.5], [2.0, 1.8]) < 0.6
+
+
+def test_ending_style_vacuous_when_no_data():
+    from core.prosody import ending_style_score
+    assert ending_style_score([], [1.0]) == 1.0
+
+
 # ---- 게이트 판정 ----
 
 def test_gates_pass():
