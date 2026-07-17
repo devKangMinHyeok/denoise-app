@@ -544,6 +544,42 @@ def test_archive_stats_keeps_history():
     assert "stats_history" not in meta2
 
 
+def test_profile_version_snapshot_and_rollback(tmp_path, monkeypatch):
+    """빌드마다 자산이 versions/vN에 보존되고, 롤백하면 그 버전을 가리킨다."""
+    import web.profiles as P
+    monkeypatch.setattr(P, "PROFILES_DIR", str(tmp_path / "profiles"))
+    monkeypatch.setattr(P, "HISTORY_DIR", str(tmp_path / "history"))
+    pdir = tmp_path / "profiles" / "p1"
+    pdir.mkdir(parents=True)
+    (pdir / "ref_clean.wav").write_bytes(b"v1ref")
+    (pdir / "ref_full_clean.wav").write_bytes(b"v1nat")
+    meta = {"id": "p1", "ready": True, "ref_wav": "ref_clean.wav",
+            "natural_wav": "ref_full_clean.wav", "ref_text": "하나",
+            "stats": {"duration": 30.0}, "built": "d1", "builds": 1,
+            "built_with": {"recordings": 0, "sources": 1}, "denoised": True}
+    P._snapshot_version(str(pdir), meta, 1)
+    assert meta["version"] == 1
+    assert meta["ref_wav"].startswith("versions") and meta["ref_wav"].endswith("ref_clean.wav")
+
+    (pdir / "ref_clean.wav").write_bytes(b"v2ref")  # 다음 빌드가 루트를 덮어씀
+    meta.update({"ref_wav": "ref_clean.wav", "natural_wav": "ref_full_clean.wav",
+                 "ref_text": "둘", "stats": {"duration": 70.0},
+                 "built": "d2", "builds": 2})
+    P._snapshot_version(str(pdir), meta, 2)
+    P._save_meta("p1", meta)
+    assert [e["version"] for e in meta["version_log"]] == [1, 2]
+
+    m = P.rollback_profile("p1", 1)
+    assert m["version"] == 1 and m["stats"]["duration"] == 30.0
+    assert m["ref_text"] == "하나"
+    with open(P.profile_paths("p1")[0], "rb") as f:
+        assert f.read() == b"v1ref"          # v1 자산이 실제로 활성
+    m2 = P.rollback_profile("p1", 2)         # 롤포워드도 같은 방식
+    assert m2["version"] == 2 and m2["ref_text"] == "둘"
+    with pytest.raises(ValueError):
+        P.rollback_profile("p1", 9)
+
+
 def test_dnjob_store_roundtrip(tmp_path, monkeypatch):
     import web.dnjobs as D
     monkeypatch.setattr(D, "DN_DIR", str(tmp_path / "denoise"))

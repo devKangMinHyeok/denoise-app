@@ -787,22 +787,49 @@ window.deleteJob = async id => {
 };
 
 // ---- 내 목소리: 프로필 목록 + 녹음 위저드 ----
-let PROFILES = {};
+let PROFILES = {}, openVers = new Set();
 async function loadProfileList() {
   try {
     const { profiles } = await api('/api/profiles');
     PROFILES = {}; profiles.forEach(p => PROFILES[p.id] = p);
-    $('profileList').innerHTML = profiles.length ? profiles.map(p => `
-      <div class="plist-item">
+    $('profileList').innerHTML = profiles.length ? profiles.map(p => {
+      const log = p.version_log || [];
+      return `
+      <div class="plist-item" style="flex-wrap:wrap">
         <div class="grow">
-          <div>🎤 ${esc(p.name)} ${p.ready ? '' : '<span class="muted">(분석 전)</span>'}${(p.builds || 1) > 1 ? ` <span class="ver">강화 ${p.builds - 1}회</span>` : ''}</div>
+          <div>🎤 ${esc(p.name)} ${p.ready ? '' : '<span class="muted">(분석 전)</span>'}${p.version ? ` <span class="ver">v${p.version}</span>` : ''}${(p.builds || 1) > 1 ? ` <span class="ver">강화 ${p.builds - 1}회</span>` : ''}</div>
           <div class="muted">${p.created} · 녹음 ${p.recordings}개 · 소스 ${(p.sources || []).length}개${p.stats ? ` · 학습 음성 ${p.stats.duration}s · 억양 ${p.stats.f0_std}st · ${p.stats.rate}음절/s` : ''}</div>
         </div>
         ${p.ready ? `<button class="mini" onclick="openEnhance('${p.id}')">➕ 강화</button>` : ''}
+        ${log.length > 1 ? `<button class="mini" onclick="toggleVers('${p.id}')">🕘 버전 ${log.length}개</button>` : ''}
         <button class="mini" onclick="delProfile('${p.id}')">삭제</button>
-      </div>`).join('') : '<p class="muted" style="margin-top:8px">아직 프로필이 없어요.</p>';
+        ${log.length > 1 ? `<div class="paras" id="vers-${p.id}" style="flex-basis:100%; display:${openVers.has(p.id) ? 'block' : 'none'}">
+          ${[...log].reverse().map(v => `<div class="para-item">
+            <div>v${v.version} ${v.version === p.version ? '<b style="color:var(--ok)">← 현재 사용 중</b>' : ''}</div>
+            <div class="muted">${v.built || ''}${v.stats ? ` · 학습 ${v.stats.duration}s · 억양 ${v.stats.f0_std}st · ${v.stats.rate}음절/s · 강세 ${v.stats.peak_range}dB` : ''}${v.built_with ? ` · 녹음 ${v.built_with.recordings} + 소스 ${v.built_with.sources}` : ''}</div>
+            ${v.version !== p.version ? `<div class="job-actions"><button class="mini" onclick="rollbackProfile('${p.id}', ${v.version})">↩︎ 이 버전으로 되돌리기</button></div>` : ''}
+          </div>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }).join('') : '<p class="muted" style="margin-top:8px">아직 프로필이 없어요.</p>';
   } catch {}
 }
+window.toggleVers = id => {
+  const el = $('vers-' + id);
+  const show = el.style.display === 'none';
+  el.style.display = show ? 'block' : 'none';
+  show ? openVers.add(id) : openVers.delete(id);
+};
+window.rollbackProfile = async (id, v) => {
+  if (!confirm(`v${v}(으)로 되돌릴까요? 이후 만드는 클로닝부터 그 버전의 목소리 자산을 사용해요. (파일은 지워지지 않으니 다시 최신으로 돌아올 수도 있어요)`)) return;
+  try {
+    await api(`/api/profiles/${id}/rollback`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: v }) });
+    openVers.add(id);
+    loadProfileList();
+  } catch (e) { alert('롤백 실패: ' + e.message); }
+};
 
 // ---- 프로필 강화: 소스를 더 넣고 재분석 + 전/후 통계 비교 ----
 let enhPid = null, enhFiles = [];

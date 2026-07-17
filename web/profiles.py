@@ -114,6 +114,59 @@ def _archive_stats(meta):
     return meta
 
 
+def _snapshot_version(pdir, meta, vnum):
+    """현재 참조 자산을 versions/vN/ 스냅샷으로 보존하고 meta가 그걸 가리키게.
+
+    빌드 산출물은 pdir 루트에 생성되는데, 다음 빌드가 같은 이름으로 덮어쓴다.
+    스냅샷 사본을 활성 자산으로 쓰면 이후 빌드가 실패하거나 결과가 나빠도
+    이전 버전이 온전히 남는다 (롤백의 재료).
+    """
+    vdir = os.path.join(pdir, "versions", f"v{vnum}")
+    os.makedirs(vdir, exist_ok=True)
+    for key in ("ref_wav", "natural_wav"):
+        base = os.path.basename(meta[key])
+        src = os.path.join(pdir, meta[key])
+        dst = os.path.join(vdir, base)
+        if os.path.abspath(src) != os.path.abspath(dst):
+            shutil.copy(src, dst)
+        meta[key] = os.path.join("versions", f"v{vnum}", base)
+    entry = {"version": vnum, "built": meta.get("built") or meta.get("created"),
+             "stats": meta.get("stats"), "ref_text": meta.get("ref_text"),
+             "denoised": meta.get("denoised", True),
+             "built_with": meta.get("built_with"),
+             "ref_wav": meta["ref_wav"], "natural_wav": meta["natural_wav"]}
+    with open(os.path.join(vdir, "version.json"), "w", encoding="utf-8") as f:
+        json.dump(entry, f, ensure_ascii=False, indent=2)
+    meta["version"] = vnum
+    log = meta.setdefault("version_log", [])
+    if not any(e.get("version") == vnum for e in log):
+        log.append({"version": vnum, "built": entry["built"],
+                    "stats": entry["stats"],
+                    "built_with": entry["built_with"]})
+    return meta
+
+
+def rollback_profile(pid, version):
+    """활성 버전을 과거 스냅샷으로 되돌린다 (강화가 마음에 안 들 때).
+
+    스냅샷 파일은 그대로 두고 meta 포인터만 바꾸므로 즉시·무손실이며,
+    다시 최신 버전으로 '롤포워드'도 같은 방법으로 가능하다.
+    """
+    pdir = os.path.join(PROFILES_DIR, pid)
+    vfile = os.path.join(pdir, "versions", f"v{int(version)}", "version.json")
+    if not os.path.exists(vfile):
+        raise ValueError(f"버전 v{version}이(가) 없습니다")
+    with open(vfile, encoding="utf-8") as f:
+        v = json.load(f)
+    meta = _load_meta(pid)
+    meta.update({"ref_wav": v["ref_wav"], "natural_wav": v["natural_wav"],
+                 "ref_text": v["ref_text"], "stats": v["stats"],
+                 "denoised": v.get("denoised", True),
+                 "version": v["version"], "ready": True})
+    _save_meta(pid, meta)
+    return meta
+
+
 def build_profile(pid, denoise=True):
     """소스 전처리(개별 노이즈 제거) → 병합 → 참조 자산 캐시 → 통계 분석.
 
@@ -130,6 +183,13 @@ def build_profile(pid, denoise=True):
 
     pdir = os.path.join(PROFILES_DIR, pid)
     meta = _archive_stats(_load_meta(pid))
+    # 버전 개념 이전의 프로필: 빌드가 루트 자산을 덮어쓰기 전에 현재 상태를
+    # v1 스냅샷으로 소급 보존 (빌드 실패·저품질 강화로부터 보호)
+    if meta.get("ready") and meta.get("ref_wav") \
+            and not str(meta["ref_wav"]).startswith("versions"):
+        meta.setdefault("builds", 1)
+        _snapshot_version(pdir, meta, int(meta["builds"]))
+        _save_meta(pid, meta)
     raw = os.path.join(pdir, "raw")
     guided = (sorted(os.path.join(raw, f) for f in os.listdir(raw)
                      if not f.startswith(".")) if os.path.isdir(raw) else [])
@@ -175,6 +235,7 @@ def build_profile(pid, denoise=True):
             "peak_range": round(stress.get("peak_range", 0), 1),  # 강세 구조
             "ending": round(float(sum(slopes) / len(slopes)), 1) if slopes else 0,
         }})
+    _snapshot_version(pdir, meta, int(meta["builds"]))
     _save_meta(pid, meta)
     return meta
 

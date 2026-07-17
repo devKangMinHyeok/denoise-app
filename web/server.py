@@ -228,6 +228,17 @@ def profiles_build_api(pid):
         return jsonify(error=str(e)), 400
 
 
+@app.post("/api/profiles/<pid>/rollback")
+def profiles_rollback_api(pid):
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(profiles.rollback_profile(pid, int(body.get("version"))))
+    except (TypeError, ValueError) as e:
+        return jsonify(error=str(e) or "버전 번호가 필요합니다"), 400
+    except FileNotFoundError:
+        return jsonify(error="프로필이 없습니다"), 404
+
+
 @app.delete("/api/profiles/<pid>")
 def profiles_delete_api(pid):
     profiles.delete_profile(pid)
