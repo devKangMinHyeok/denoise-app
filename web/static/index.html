@@ -244,6 +244,22 @@
       <button class="go" id="wizStart">🎤 새 프로필 만들기</button>
     </div>
 
+    <div class="card" id="enhPanel" style="display:none">
+      <h3 id="enhTitle">➕ 프로필 강화</h3>
+      <p class="muted">영상·음성 파일을 더 넣고 다시 분석하면 목소리 통계가 더 튼튼해져요.
+      목소리가 또렷한 파일일수록 좋고, 파일마다 앞 3분만 사용됩니다.</p>
+      <div class="drop" id="enhDrop" style="margin-top:12px; padding:18px;">
+        <strong>+ 파일 추가 (여러 개 가능)</strong>
+        <span>mov · mp4 · wav · m4a · mp3</span>
+        <input type="file" id="enhFile" multiple accept=".mov,.mp4,.m4v,.mkv,.wav,.m4a,.mp3,.aac">
+      </div>
+      <div id="enhList"></div>
+      <button class="go" id="enhBuild" disabled>소스 추가하고 다시 분석 →</button>
+      <button class="go secondary" id="enhCancel">닫기</button>
+      <div class="status" id="enhStatus"></div>
+      <div id="enhCompare"></div>
+    </div>
+
     <div id="wizard" style="display:none">
       <div class="card">
         <h3 id="wizTitle">프로필 이름</h3>
@@ -771,19 +787,93 @@ window.deleteJob = async id => {
 };
 
 // ---- 내 목소리: 프로필 목록 + 녹음 위저드 ----
+let PROFILES = {};
 async function loadProfileList() {
   try {
     const { profiles } = await api('/api/profiles');
+    PROFILES = {}; profiles.forEach(p => PROFILES[p.id] = p);
     $('profileList').innerHTML = profiles.length ? profiles.map(p => `
       <div class="plist-item">
         <div class="grow">
-          <div>🎤 ${p.name} ${p.ready ? '' : '<span class="muted">(분석 전)</span>'}</div>
-          <div class="muted">${p.created} · 녹음 ${p.recordings}개${p.stats ? ` · ${p.stats.duration}s · 억양 ${p.stats.f0_std}st · ${p.stats.rate}음절/s` : ''}</div>
+          <div>🎤 ${esc(p.name)} ${p.ready ? '' : '<span class="muted">(분석 전)</span>'}${(p.builds || 1) > 1 ? ` <span class="ver">강화 ${p.builds - 1}회</span>` : ''}</div>
+          <div class="muted">${p.created} · 녹음 ${p.recordings}개 · 소스 ${(p.sources || []).length}개${p.stats ? ` · 학습 음성 ${p.stats.duration}s · 억양 ${p.stats.f0_std}st · ${p.stats.rate}음절/s` : ''}</div>
         </div>
+        ${p.ready ? `<button class="mini" onclick="openEnhance('${p.id}')">➕ 강화</button>` : ''}
         <button class="mini" onclick="delProfile('${p.id}')">삭제</button>
       </div>`).join('') : '<p class="muted" style="margin-top:8px">아직 프로필이 없어요.</p>';
   } catch {}
 }
+
+// ---- 프로필 강화: 소스를 더 넣고 재분석 + 전/후 통계 비교 ----
+let enhPid = null, enhFiles = [];
+const ENH_STAT_LABELS = [["duration", "학습 음성", "s"], ["f0_std", "억양 역동성", "st"],
+  ["rate", "말 속도", "/s"], ["pause_rate", "호흡 빈도", "/s"],
+  ["peak_range", "강세 구조", "dB"], ["ending", "끝음 기울기", ""]];
+
+window.openEnhance = id => {
+  enhPid = id; enhFiles = [];
+  $('enhPanel').style.display = 'block';
+  $('enhTitle').textContent = `➕ "${PROFILES[id]?.name || ''}" 강화`;
+  $('enhCompare').innerHTML = ''; setStatus($('enhStatus'), '');
+  renderEnhList();
+  $('enhPanel').scrollIntoView({ behavior: 'smooth' });
+};
+$('enhCancel').onclick = () => { $('enhPanel').style.display = 'none'; enhPid = null; };
+$('enhDrop').addEventListener('click', () => $('enhFile').click());
+$('enhFile').addEventListener('change', () => {
+  for (const f of $('enhFile').files) enhFiles.push({ file: f, denoise: true });
+  $('enhFile').value = '';
+  renderEnhList();
+});
+function renderEnhList() {
+  $('enhList').innerHTML = enhFiles.map((s, i) => `
+    <div class="plist-item">
+      <div class="grow">
+        <div>📄 ${esc(s.file.name)} <span class="muted">(${(s.file.size / 1e6).toFixed(1)}MB)</span></div>
+        <label class="chk" style="margin-top:4px">
+          <input type="checkbox" ${s.denoise ? 'checked' : ''} onchange="toggleEnhDn(${i}, this.checked)">
+          🧹 이 파일에 노이즈 제거 적용</label>
+      </div>
+      <button class="mini" onclick="removeEnhFile(${i})">삭제</button>
+    </div>`).join('');
+  $('enhBuild').disabled = !enhFiles.length;
+}
+window.toggleEnhDn = (i, v) => { enhFiles[i].denoise = v; };
+window.removeEnhFile = i => { enhFiles.splice(i, 1); renderEnhList(); };
+
+$('enhBuild').onclick = async () => {
+  const p = PROFILES[enhPid]; if (!p) return;
+  $('enhBuild').disabled = true; $('enhCompare').innerHTML = '';
+  const before = p.stats;
+  try {
+    for (let i = 0; i < enhFiles.length; i++) {
+      setStatus($('enhStatus'), `<span class="spinner"></span>소스 업로드 중… (${i + 1}/${enhFiles.length})`);
+      const fd = new FormData();
+      fd.append('audio', enhFiles[i].file);
+      fd.append('denoise', enhFiles[i].denoise ? '1' : '0');
+      await api(`/api/profiles/${enhPid}/sources`, { method: 'POST', body: fd });
+    }
+    setStatus($('enhStatus'), '<span class="spinner"></span>전체 재분석 중… (소스별 전처리 → 병합 → 최적 구간 선택 → 받아쓰기 → 통계, 약 1~2분)');
+    const built = await api(`/api/profiles/${enhPid}/build`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ denoise: (p.denoised ?? true) ? '1' : '0' }) });
+    setStatus($('enhStatus'), '✅ 강화 완료! 통계가 이렇게 달라졌어요', 'ok');
+    const after = built.stats;
+    $('enhCompare').innerHTML = '<div class="stats" style="grid-template-columns:repeat(2,1fr)">' +
+      ENH_STAT_LABELS.map(([k, label, unit]) => {
+        const a = before?.[k], b = after?.[k];
+        const changed = a != null && b != null && a !== b;
+        return `<div class="stat"><b>${a ?? '-'}${unit} → ${b ?? '-'}${unit}</b>
+          <span>${label}${changed ? '' : ' (유지)'}</span></div>`;
+      }).join('') + '</div>';
+    enhFiles = []; renderEnhList();
+    loadProfileList();
+  } catch (e) {
+    setStatus($('enhStatus'), '❌ ' + e.message, 'err');
+  } finally {
+    $('enhBuild').disabled = !enhFiles.length;
+  }
+};
 window.delProfile = async id => {
   if (!confirm('이 프로필을 삭제할까요?')) return;
   await api('/api/profiles/' + id, { method: 'DELETE' });

@@ -104,11 +104,23 @@ def add_source(pid, file_storage, denoise=True):
     return meta
 
 
+def _archive_stats(meta):
+    """재분석 전 이전 통계를 이력으로 보존 (강화 전/후 비교용). 순수 함수."""
+    if meta.get("stats"):
+        meta.setdefault("stats_history", []).append({
+            "date": meta.get("built") or meta.get("created"),
+            "stats": meta["stats"],
+            **(meta.get("built_with") or {})})
+    return meta
+
+
 def build_profile(pid, denoise=True):
     """소스 전처리(개별 노이즈 제거) → 병합 → 참조 자산 캐시 → 통계 분석.
 
     입력 = 가이드 녹음(일괄 denoise 플래그) + 추가 소스(소스별 플래그).
     각자 플래그대로 전처리한 뒤 병합하므로, 이후 단계는 재차 제거하지 않는다.
+    재실행 가능(프로필 강화): 소스를 더 넣고 다시 부르면 전체를 재분석하고,
+    이전 통계는 stats_history에 남아 전/후 비교에 쓰인다.
     """
     from core.audio import concat_to_wav
     from core.clone import prepare_reference
@@ -117,7 +129,7 @@ def build_profile(pid, denoise=True):
                               stress_features)
 
     pdir = os.path.join(PROFILES_DIR, pid)
-    meta = _load_meta(pid)
+    meta = _archive_stats(_load_meta(pid))
     raw = os.path.join(pdir, "raw")
     guided = (sorted(os.path.join(raw, f) for f in os.listdir(raw)
                      if not f.startswith(".")) if os.path.isdir(raw) else [])
@@ -148,6 +160,9 @@ def build_profile(pid, denoise=True):
     slopes = final_f0_slopes(natural)
     meta.update({
         "ready": True,
+        "built": time.strftime("%Y-%m-%d %H:%M"),
+        "builds": int(meta.get("builds", 0)) + 1,
+        "built_with": {"recordings": len(guided), "sources": len(sources)},
         "denoised": bool(denoise),
         "ref_wav": os.path.basename(ref_wav),
         "ref_text": ref_text,

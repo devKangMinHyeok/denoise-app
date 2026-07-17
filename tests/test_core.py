@@ -530,6 +530,20 @@ def test_run_denoise_resynth_requires_engine(tmp_path, monkeypatch):
                       mode="resynth")
 
 
+def test_archive_stats_keeps_history():
+    """프로필 재분석(강화) 시 이전 통계가 이력으로 남는다 (전/후 비교 재료)."""
+    from web.profiles import _archive_stats
+    meta = {"stats": {"duration": 30.0}, "built": "2026-07-17 10:00",
+            "built_with": {"recordings": 10, "sources": 1}}
+    _archive_stats(meta)
+    h = meta["stats_history"][0]
+    assert h["stats"]["duration"] == 30.0
+    assert h["sources"] == 1 and h["date"] == "2026-07-17 10:00"
+    meta2 = {"stats": None}  # 첫 빌드(이전 통계 없음)는 이력을 만들지 않음
+    _archive_stats(meta2)
+    assert "stats_history" not in meta2
+
+
 def test_dnjob_store_roundtrip(tmp_path, monkeypatch):
     import web.dnjobs as D
     monkeypatch.setattr(D, "DN_DIR", str(tmp_path / "denoise"))
