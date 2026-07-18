@@ -11,8 +11,8 @@ import subprocess
 import sys
 import tempfile
 
-from core import ROOT
-from core.media.audio import run_ffmpeg
+from voxa import ROOT
+from voxa.media.audio import run_ffmpeg
 
 MODEL_BEST = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
 MODEL_FAST = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit"
@@ -37,7 +37,7 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
     full_clean = os.path.join(workdir, "ref_full_clean.wav")
     if denoise:
         # 엔진 디스패처 경유 — DFN 설치 시 하이브리드(말끝 보존·발화 중 제거)
-        from core.denoise import denoise_to_wav
+        from voxa.denoise import denoise_to_wav
         denoise_to_wav(ref_path, full_clean, max_sec=120)
     else:
         run_ffmpeg(["-i", ref_path, "-t", "120",
@@ -46,7 +46,7 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
 
     clean = os.path.join(workdir, "ref_clean.wav")
     try:
-        from core.analysis.prosody import prosody_deps_available, select_reference_window
+        from voxa.analysis.prosody import prosody_deps_available, select_reference_window
         if not prosody_deps_available():
             raise ImportError
         a, b = select_reference_window(full_clean)
@@ -56,7 +56,7 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
         run_ffmpeg(["-t", str(max_sec), "-i", full_clean,
                     "-c:a", "pcm_s16le", clean])
 
-    from core import mlx_transcribe
+    from voxa import mlx_transcribe
     text = mlx_transcribe(
         clean, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
     if not text:
@@ -66,7 +66,7 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
     # 참조 억양 증폭 (적응적): 차분한 화자만 필요한 만큼 높낮이를 키운다.
     # 이미 활기찬 화자는 α≈1 → 생략. 받아쓰기는 증폭 전 오디오로 이미 확보.
     try:
-        from core.analysis.prosody import (exaggerate_pitch, prosody_features,
+        from voxa.analysis.prosody import (exaggerate_pitch, prosody_features,
                               reference_exaggeration_alpha)
         alpha = reference_exaggeration_alpha(prosody_features(full_clean))
         if alpha >= 1.05:
@@ -96,7 +96,7 @@ def _worker_generate(model, text, ref_wav, ref_text, out_dir, prefix,
         p = _worker["proc"]
         if p is None or p.poll() is not None:
             p = subprocess.Popen(
-                [sys.executable, os.path.join(ROOT, "core", "clone", "tts_worker.py")],
+                [sys.executable, os.path.join(ROOT, "clone", "tts_worker.py")],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL, text=True)
             _worker["proc"] = p
@@ -178,7 +178,7 @@ def ensure_breath_pauses(wav_path, script):
     경계에 자연 길이 무음을 채워 넣는다 — 문장 0.5~0.7초, 쉼표 0.18~0.28초
     (문헌: 경계 강도가 높을수록 휴지가 길다). 억양은 건드리지 않는다.
     """
-    from core.analysis.prosody import (BREATH_MIN, sentence_boundary_info,
+    from voxa.analysis.prosody import (BREATH_MIN, sentence_boundary_info,
                           split_breath_units)
     units = split_breath_units(script)
     if len(units) < 2:
@@ -274,7 +274,7 @@ def split_paragraphs(text, max_sents=PARAGRAPH_SENTS):
     문단(≤6문장, ≈15~40초)이 파이프라인의 재사용 단위 — 실측으로 검증된
     최적 생성 크기(짧으면 전달력 붕괴, 35초+ 통짜는 선별 약화)다.
     """
-    from core.analysis.prosody import split_sentences
+    from voxa.analysis.prosody import split_sentences
     blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
     if not blocks:
         blocks = [text.strip()]
@@ -288,7 +288,7 @@ def split_paragraphs(text, max_sents=PARAGRAPH_SENTS):
 
 def build_prosody_ctx(natural_wav):
     """화자의 자연 운율 컨텍스트 — 문단들이 공유하고, 부분 재생성도 재사용."""
-    from core.analysis.prosody import ending_metrics, prosody_features, stress_features
+    from voxa.analysis.prosody import ending_metrics, prosody_features, stress_features
     feats = prosody_features(natural_wav)
     slopes, cliff = ending_metrics(natural_wav)
     return {"feats": feats, "rate": feats["artic_rate"], "slopes": slopes,
@@ -321,15 +321,15 @@ def prepare_performance(rec_path, workdir, denoise=True):
     """
     perf = os.path.join(workdir, "performance.wav")
     if denoise:
-        from core.denoise import denoise_to_wav
+        from voxa.denoise import denoise_to_wav
         denoise_to_wav(rec_path, perf, max_sec=300)
     else:
         run_ffmpeg(["-i", rec_path, "-t", "300",
                     "-af", "aformat=channel_layouts=mono",
                     "-c:a", "pcm_s16le", perf])
-    from core.media.audio import normalize_speech_level
+    from voxa.media.audio import normalize_speech_level
     normalize_speech_level(perf)
-    from core import mlx_transcribe
+    from voxa import mlx_transcribe
     text = mlx_transcribe(
         perf, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
     if not text:
@@ -348,7 +348,7 @@ def regenerate_paragraph(parent_wav, paragraphs, index, ref_wav, ref_text,
     """
     import numpy as np
     import soundfile as sf
-    from core.media.audio import normalize_speech_level
+    from voxa.media.audio import normalize_speech_level
 
     para = paragraphs[index]
     ctx = build_prosody_ctx(natural_wav)
@@ -387,13 +387,13 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
     사람 성우가 여러 테이크를 녹음해 고르듯, 북극성 지표로 자동 선별한다.
     운율 의존성이 없으면 단일 테이크 폴백.
     """
-    from core.media.audio import normalize_speech_level
-    from core.analysis.prosody import prosody_deps_available
+    from voxa.media.audio import normalize_speech_level
+    from voxa.analysis.prosody import prosody_deps_available
     if takes <= 1 or not prosody_deps_available():
         _notify(on_progress, stage="take", i=1, n=1)
         out = synthesize(text, ref_wav, ref_text, output_path, fast=fast)
         if prosody_deps_available():
-            from core.analysis.prosody import reshape_energy_contour
+            from voxa.analysis.prosody import reshape_energy_contour
             ensure_breath_pauses(out, text)
             reshape_energy_contour(out, out)
             normalize_speech_level(out)
@@ -463,7 +463,7 @@ def _generate_unit(text, ref_wav, ref_text, ctx, output_path,
     채점 자체도 중복 제거: 문장 채점 1패스에서 어미낙하·먹힌단어를 파생.
     """
     from concurrent.futures import ThreadPoolExecutor
-    from core.analysis.prosody import (cliff_score, ending_metrics, ending_style_score,
+    from voxa.analysis.prosody import (cliff_score, ending_metrics, ending_style_score,
                           evaluate_prosody, reshape_energy_contour,
                           stress_features, stress_style_score,
                           swallowed_score, take_sentence_scores,
@@ -476,7 +476,7 @@ def _generate_unit(text, ref_wav, ref_text, ctx, output_path,
             swallow = swallowed_score(min(s["swallow"] for s in sent_scores))
             gaps = [s["boundary_gap"] for s in sent_scores
                     if "boundary_gap" in s]
-            from core.analysis.prosody import boundary_pause_adequacy
+            from voxa.analysis.prosody import boundary_pause_adequacy
             bpa = boundary_pause_adequacy(gaps) if gaps else None
         else:
             wdrop = swallow = 1.0
@@ -554,7 +554,7 @@ def _compose_best_sentences(scored, text, output_path, on_progress=None):
     """
     import numpy as np
     import soundfile as sf
-    from core.analysis.prosody import split_sentences, take_sentence_scores
+    from voxa.analysis.prosody import split_sentences, take_sentence_scores
 
     if len(split_sentences(text)) < 2 or len(scored) < 2:
         return False

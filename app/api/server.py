@@ -19,9 +19,9 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-from core.media.audio import default_output_ext, ensure_ffmpeg  # noqa: E402
-from core.clone import clone_available, clone_voice  # noqa: E402
-from core.denoise import run_denoise  # noqa: E402
+from voxa.media.audio import default_output_ext, ensure_ffmpeg  # noqa: E402
+from voxa.clone import clone_available, clone_voice  # noqa: E402
+from voxa.denoise import run_denoise  # noqa: E402
 from api import dnjobs, profiles  # noqa: E402
 
 WORK = os.path.join(tempfile.gettempdir(), "vocast-work")
@@ -41,7 +41,7 @@ def index():
 @app.get("/api/health")
 def health():
     import platform
-    from core.denoise import dfn_available, resynth_available
+    from voxa.denoise import dfn_available, resynth_available
     is_apple = platform.system() == "Darwin" and platform.machine() == "arm64"
     return jsonify(ok=True, denoise=True, clone=clone_available(),
                    denoise_engine="dfn-hybrid" if dfn_available() else "rnnoise",
@@ -135,7 +135,7 @@ def dnjobs_create_api():
     if mode not in ("standard", "resynth"):
         return jsonify(error="mode는 standard 또는 resynth"), 400
     if mode == "resynth":
-        from core.denoise import resynth_available
+        from voxa.denoise import resynth_available
         if not resynth_available():
             return jsonify(error="재합성 엔진 미설치 — bash packaging/scripts/install_resynth.sh"), 501
     return jsonify(job_id=dnjobs.start_denoise_job(f, boost=boost, mode=mode))

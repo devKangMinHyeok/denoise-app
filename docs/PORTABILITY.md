@@ -115,7 +115,7 @@ dist/Vocast/
 │  ├─ py312/ py311/          # 동봉 파이썬 (python-build-standalone)
 │  ├─ .venv/ .venv-dfn/ .venv-re/  # relocatable venv (심링크 상대화)
 │  └─ bin/uv                 # uv 바이너리 (엔진 업데이트·재빌드용)
-├─ core/ web/ voice/ models/ docs/  # 앱
+├─ app/ (api web·cli·voice) + packages/voxa (엔진·모델)  # 앱+엔진
 └─ Vocast 실행.command   # 더블클릭 런처
 ```
 

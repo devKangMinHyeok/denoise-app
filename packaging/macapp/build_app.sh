@@ -23,7 +23,8 @@ done
 if [ ! -x "$ENGINE/.venv/bin/python3" ]; then
   echo "가상환경 생성 중 ($PYBIN)..."
   "$PYBIN" -m venv "$ENGINE/.venv"
-  "$ENGINE/.venv/bin/pip" install -q -r "$ENGINE/requirements.txt"
+  # 앱 계층(flask·mcp) + voxa 엔진(모노레포 packages/voxa, 평가 포함)
+  "$ENGINE/.venv/bin/pip" install -q flask "mcp>=1.2" -e "$REPO/packages/voxa[eval]"
 fi
 if [ "$WITH_VOICE" = "--with-voice" ]; then
   echo "보이스 클로닝 의존성 설치 중..."

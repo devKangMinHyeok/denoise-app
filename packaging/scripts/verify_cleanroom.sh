@@ -14,7 +14,7 @@ CLIP="${1:-}"
 echo "════════ 0. Fresh 체크아웃 (git archive → venv/캐시 없음) ════════"
 rm -rf "$CLEAN"; mkdir -p "$CLEAN"
 git -C "$SRC" archive HEAD | tar -x -C "$CLEAN"
-cp "$SRC/app/models/rnnoise-sh.rnnn" "$CLEAN/app/models/" 2>/dev/null || true
+cp "$SRC/packages/voxa/voxa/models/rnnoise-sh.rnnn" "$CLEAN/packages/voxa/voxa/models/" 2>/dev/null || true
 echo "venv 존재?: $(ls -d "$CLEAN/app"/.venv* 2>/dev/null || echo '없음 ✓')"
 
 # ── 격리 환경: Homebrew 제거, uv만 + 기본 시스템 유틸 ──
@@ -41,7 +41,7 @@ fi
 echo; echo "════════ 3. 사용되는 인터프리터·ffmpeg 경로 검증 ════════"
 uv run --frozen python - <<'PY'
 import sys
-from core.ffbin import ffmpeg_exe
+from voxa.media.ffbin import ffmpeg_exe
 py, ff = sys.executable, ffmpeg_exe()
 print("  메인 파이썬:", py); print("  ffmpeg     :", ff)
 assert "/opt/homebrew" not in py and "/usr/bin" not in py, "❌ 시스템 파이썬!"
@@ -51,20 +51,20 @@ PY
 
 echo; echo "════════ 4. 표준 노이즈 제거 (RNNoise) ════════"
 uv run --frozen python -c "
-from core.denoise import run_denoise; run_denoise('$CLIP','/tmp/cr_rnn.wav',engine='rnnoise')
+from voxa.denoise import run_denoise; run_denoise('$CLIP','/tmp/cr_rnn.wav',engine='rnnoise')
 import os; print('  RNNoise ✓', os.path.getsize('/tmp/cr_rnn.wav'),'bytes')"
 
 echo; echo "════════ 5. DFN 엔진 설치(uv) + 하이브리드 ════════"
 bash ../packaging/scripts/install_dfn.sh 2>&1 | tail -1
 uv run --frozen python -c "
-from core.denoise import dfn_available, run_denoise
+from voxa.denoise import dfn_available, run_denoise
 assert dfn_available(); run_denoise('$CLIP','/tmp/cr_dfn.wav',engine='dfn')
 import os; print('  DFN ✓', os.path.getsize('/tmp/cr_dfn.wav'),'bytes')" || echo "  (DFN 건너뜀)"
 
 echo; echo "════════ 6. 재합성 엔진 설치(uv) + 실추론 ════════"
 bash ../packaging/scripts/install_resynth.sh 2>&1 | tail -1
 uv run --frozen python -c "
-from core.denoise import resynth_available, run_denoise
+from voxa.denoise import resynth_available, run_denoise
 assert resynth_available(); run_denoise('$CLIP','/tmp/cr_re.wav',mode='resynth')
 import os; print('  재합성 ✓', os.path.getsize('/tmp/cr_re.wav'),'bytes')" || echo "  (재합성 건너뜀)"
 

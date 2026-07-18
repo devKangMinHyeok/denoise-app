@@ -429,8 +429,8 @@ def ending_word_drops(wav_path, script):
     자연스러운 어미는 수평(±1st 내), AI 결함 어미는 -2.7~-3.8st 낙하
     (의문형 '~죠?'가 떨어지는 게 최악의 사례).
     """
-    from core import mlx_transcribe
-    from core.clone import WHISPER
+    from voxa import mlx_transcribe
+    from voxa.clone import WHISPER
     import librosa
     sents = split_sentences(script)
     finals = {_normalize_chars(s.split()[-1]) for s in sents if s.split()}
@@ -537,8 +537,8 @@ def sentence_boundary_info(wav_path, script, units=None):
     없으면 문장 경계만.
     """
     import difflib
-    from core import mlx_transcribe
-    from core.clone import WHISPER
+    from voxa import mlx_transcribe
+    from voxa.clone import WHISPER
 
     if units is None:
         units = [(s, "sentence") for s in split_sentences(script)]
@@ -616,7 +616,7 @@ def take_sentence_scores(wav_path, script):
     통짜 선별로 폴백).
     """
     import librosa
-    from core import mlx_transcribe
+    from voxa import mlx_transcribe
 
     sents = split_sentences(script)
     y, sr = librosa.load(wav_path, sr=_SR, mono=True)
@@ -720,8 +720,8 @@ def swallowed_word_worst(wav_path):
     죽어도 통과시킨다. 실측: 사람 최악 -7.2dB vs 클론 -10~-11.5dB.
     """
     import librosa
-    from core import mlx_transcribe
-    from core.clone import WHISPER
+    from voxa import mlx_transcribe
+    from voxa.clone import WHISPER
     y, sr = librosa.load(wav_path, sr=_SR, mono=True)
     r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER,
                                language="ko", word_timestamps=True)
@@ -885,7 +885,7 @@ def word_timeline(wav_path):
     채점용 경량 Whisper(base)로 충분 (필요한 건 정렬이지 정확한 받아쓰기가
     아니다 — 실측: 문장 채점 정렬에서 base가 turbo와 동등).
     """
-    from core import mlx_transcribe
+    from voxa import mlx_transcribe
     r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER_SCORING,
                                language="ko", word_timestamps=True)
     out = []

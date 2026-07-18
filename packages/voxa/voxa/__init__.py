@@ -5,13 +5,13 @@
 - core.clone    : 보이스 클로닝 파이프라인(Qwen3-TTS) + TTS 워커
 - core.analysis : 품질 지표(metrics: SIM/CER/DNSMOS/북극성) · 운율(prosody)
 
-공개 API는 각 하위 패키지에서 재노출한다 (예: `from core.denoise import run_denoise`).
+공개 API는 각 하위 패키지에서 재노출한다 (예: `from voxa.denoise import run_denoise`).
 CLI(cli/denoise.py, voice/clone_say.py), API 서버(api/server.py), CI(quality/)가
 전부 이 패키지 하나만 바라본다. ROOT·모델 경로·mlx 직렬화 락은 여기(루트)에 둔다.
 """
 import os
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.abspath(__file__))   # voxa 패키지 루트 (모델·워커 기준)
 MODELS_DIR = os.path.join(ROOT, "models")
 RNNOISE_MODEL = os.path.join(MODELS_DIR, "rnnoise-sh.rnnn")
 DNSMOS_MODEL = os.path.join(MODELS_DIR, "dnsmos_sig_bak_ovr.onnx")

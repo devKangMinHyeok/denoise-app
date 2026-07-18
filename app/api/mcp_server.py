@@ -28,8 +28,8 @@ def health() -> dict:
     """
     import platform
 
-    from core.clone import clone_available
-    from core.denoise import dfn_available, resynth_available
+    from voxa.clone import clone_available
+    from voxa.denoise import dfn_available, resynth_available
     return {
         "denoise": True,
         "denoise_engine": "dfn-hybrid" if dfn_available() else "rnnoise",
@@ -55,8 +55,8 @@ def denoise(input_path: str, output_path: str = "", mode: str = "standard",
     Returns:
         output_path와 품질 리포트(발화 손실%·무음 억제dB, 재합성은 목소리 유사도).
     """
-    from core.media.audio import default_output_ext
-    from core.denoise import (denoise_report, resynth_available, run_denoise,
+    from voxa.media.audio import default_output_ext
+    from voxa.denoise import (denoise_report, resynth_available, run_denoise,
                               voice_similarity)
     if not os.path.exists(input_path):
         raise ValueError(f"파일이 없습니다: {input_path}")
@@ -98,7 +98,7 @@ def clone_voice(text: str, profile_id: str = "", ref_path: str = "",
     Returns:
         output_path와 최종 운율 점수(pns).
     """
-    from core.clone import (DEFAULT_TAKES, clone_voice as _clone,
+    from voxa.clone import (DEFAULT_TAKES, clone_voice as _clone,
                             clone_available, synthesize_best)
     if not clone_available():
         raise ValueError("보이스 클로닝은 Apple Silicon Mac에서만 지원됩니다.")

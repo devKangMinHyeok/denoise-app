@@ -1,8 +1,9 @@
-# 파이썬 엔진 venv (모노레포: app/ 아래)
+# 파이썬 venv (app 앱 + voxa 엔진)
 .venv/
 app/.venv/
 app/.venv-dfn/
 app/.venv-re/
+packages/voxa/.venv/
 # 옛 위치(호환)
 .venv-dfn/
 .venv-re/
@@ -13,8 +14,8 @@ __pycache__/
 *.log
 .DS_Store
 
-# 다운로드 모델 (평가용) — 이미 추적 중이지만 재다운로드 산출물은 무시
-app/models/dnsmos_sig_bak_ovr.onnx
+# 다운로드 모델 (평가용) — voxa 엔진에 동봉. 재다운로드 산출물은 무시
+packages/voxa/voxa/models/dnsmos_sig_bak_ovr.onnx
 
 # 네이티브 UI (Xcode) 산출물
 app/ui/build/

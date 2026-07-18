@@ -26,8 +26,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
-from core.clone import prepare_reference, synthesize_best  # noqa: E402
-from core.analysis.metrics import (GATES, PNS_ITEM_MIN, check_gates,  # noqa: E402
+from voxa.clone import prepare_reference, synthesize_best  # noqa: E402
+from voxa.analysis.metrics import (GATES, PNS_ITEM_MIN, check_gates,  # noqa: E402
                           evaluate_clone, voice_clone_score)
 
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "ref_fixture.wav")

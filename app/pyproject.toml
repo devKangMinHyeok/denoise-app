@@ -1,45 +1,32 @@
 [project]
 name = "vocast"
 version = "0.1.0"
-description = "크리에이터를 위한 로컬 음성 스튜디오 — 노이즈 제거 + 보이스 클로닝 (Apple Silicon)"
+description = "크리에이터를 위한 로컬 음성 스튜디오 — 보이스 클로닝 + 노이즈 제거 (Apple Silicon)"
 requires-python = ">=3.12,<3.13"
 
-# 메인 환경(웹 앱 + 클로닝 + 노이즈 제거 오케스트레이션)에 필요한 전부.
+# 앱 계층의 의존성만 선언한다. 무거운 음성/ML 스택은 voxa 엔진이 스스로 들고
+# 오므로(전이 의존) 여기서는 flask·mcp 만 있으면 된다.
+# voxa[eval] 로 품질 평가(DNSMOS onnx·CER)까지 포함해 기존 기능을 전부 유지.
 # DFN·재합성 엔진은 의존성 충돌(구버전 torch/deepspeed) 때문에 전용 venv로
-# 분리 설치한다 (scripts/install_dfn.sh, scripts/install_resynth.sh).
-#
-# mlx-*는 Apple Silicon 전용(Metal). Windows·Intel·Linux에서는 설치되지 않으며
-# 그 경우 보이스 클로닝 기능이 비활성(clone_available()==False)되고 노이즈
-# 제거·재합성만 동작한다. 플랫폼 마커로 조건부 설치 → 타 OS에서 uv sync 성공.
+# 분리 설치한다 (packaging/scripts/install_dfn.sh, install_resynth.sh).
 dependencies = [
     "flask>=3.1",
-    "mlx-audio>=0.4.5; sys_platform == 'darwin' and platform_machine == 'arm64'",
-    "mlx-whisper>=0.4.3; sys_platform == 'darwin' and platform_machine == 'arm64'",
-    "librosa>=0.11",
-    "soundfile>=0.14",
-    "torch>=2.13",
-    "torchaudio>=2.11",
-    "pyworld>=0.3.5",
-    "resemblyzer>=0.1.4",
-    "numpy>=2.4",
-    "scipy>=1.18",
-    "huggingface-hub>=1.23",
-    "imageio-ffmpeg>=0.6",       # ffmpeg 바이너리 동봉 (시스템 설치 불필요)
-    "setuptools<81",             # resemblyzer/pyworld의 webrtcvad가 pkg_resources 사용
     "mcp>=1.2",                  # 로컬 MCP 서버 (Claude·Codex가 앱 기능 조작)
+    "voxa[eval]",                # 음성 엔진 (모노레포 packages/voxa) — 클로닝·노이즈·지표
 ]
-
-[project.optional-dependencies]
-# 품질 평가(evaluate.py, DNSMOS)까지 쓸 때만
-eval = ["onnxruntime>=1.20", "jiwer>=3.0"]
 
 [dependency-groups]
 # 개발용 (테스트 러너)
 dev = ["pytest>=8.0"]
+
+# voxa 는 같은 모노레포의 로컬 패키지에서 가져온다 (editable — 고치면 즉시 반영).
+# 나중에 버전 박아 PyPI/사내 인덱스로 배포하면 이 source 만 바꾸면 된다.
+[tool.uv.sources]
+voxa = { path = "../packages/voxa", editable = true }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["core", "api", "voice"]
+packages = ["api", "voice"]

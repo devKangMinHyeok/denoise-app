@@ -69,7 +69,7 @@ PNS = 100 × ( 0.4 × (UTMOS−1)/4     ← 인간 검증된 학습형 자연스
   삼키는 경향 — 실측으로 확인해 조합 설계).
 - 반영: 대본이 여러 문장이면 PNS 휴지 항 = 0.5×전역 일치 + 0.5×BPA.
 
-**개선 장치 — 호흡 보장 후처리** (`core/clone.ensure_breath_pauses`):
+**개선 장치 — 호흡 보장 후처리** (`voxa/clone/clone.ensure_breath_pauses`):
 통짜 생성(억양 보존) 후 경계 휴지가 0.35초 미만이면 자연 길이(0.5~0.7초,
 경계마다 다른 길이)로 무음을 채운다. 오디오북 도구들(tts-audiobook-tool 등)의
 표준 기법. 실측: 같은 설정에서도 경계 휴지가 0~0.6초로 출렁이던 것이
@@ -88,7 +88,7 @@ PNS = 100 × ( 0.4 × (UTMOS−1)/4     ← 인간 검증된 학습형 자연스
   (`LIVELY_CAPS`: 이미 활기찬 화자는 자기 수준 유지 — 픽스처 실측으로 필요성
   확인: 활기찬 목소리에 ×1.25를 또 얹으면 연극적 목표가 됨).
   채점은 비대칭(부족 벌점 > 초과 허용 1.6배까지).
-- **개선 장치 — 참조 억양 증폭** (`core/prosody.exaggerate_pitch` + 적응 α):
+- **개선 장치 — 참조 억양 증폭** (`voxa/analysis/prosody.exaggerate_pitch` + 적응 α):
   WORLD 보코더로 참조 음성의 F0 편차만 α배 증폭. α는 필요한 만큼만
   (`reference_exaggeration_alpha`, 전달률 ~60% 실측 보정; 차분한 화자 ~1.3,
   활기찬 화자 ~1.0 → 생략).
@@ -188,10 +188,10 @@ PNS = 100 × ( 0.4 × (UTMOS−1)/4     ← 인간 검증된 학습형 자연스
 
 ### 지표를 "항상 넘게" 하는 시스템 장치
 
-- **참조 창 자동 선택** (`core/prosody.select_reference_window`): 무음 경계에
+- **참조 창 자동 선택** (`voxa/analysis/prosody.select_reference_window`): 무음 경계에
   스냅(문장 잘림 → 참조 꼬리 누출 CER 17.9% 사고 방지)하면서 억양이 가장
   살아있는 6~14초 창을 고른다 — 클론은 참조의 운율을 물려받는다.
-- **best-of-N 테이크 선별** (`core/clone.synthesize_best`): 생성은 확률적이라
+- **best-of-N 테이크 선별** (`voxa/clone/clone.synthesize_best`): 생성은 확률적이라
   같은 설정에서도 PNS 50~84가 나온다(실측). 성우가 여러 테이크를 고르듯
   기본 3회(최대 5회) 생성해 PNS 최고 테이크를 채택, 목표(82) 도달 시 조기 종료.
 - **게이트 통합**: `GATES["pns"]=82` + 항목 최저 78 — run_eval과 CI 골든 채점에
@@ -214,7 +214,7 @@ SNR15 ≥ +3dB · 무음 잔여 ≤ -55dBFS**
 | RNNoise (기존) | **-2.4** (말끝 클리핑) | +3.1 / **-1.8**(악화) | -48~-55 | ❌ |
 | **DFN 하이브리드** | **-0.4 / -0.1** | **+6.5 / +3.9** | **-68 / -72** | ✅ |
 
-**DFN 하이브리드 엔진** (`core/denoise.py`, 설치: `scripts/install_dfn.sh`):
+**DFN 하이브리드 엔진** (`voxa/denoise/denoise.py`, 설치: `packaging/scripts/install_dfn.sh`):
 DeepFilterNet3+PF 2패스 — ① 감쇠 상한 12dB 패스(발화·말끝 보호, 문헌:
 over-attenuation 방지), ② 무제한 패스(무음용). 블렌딩은 Otsu 문턱 VAD +
 말끝 hangover 0.3s + 무음 게이트 -25dB. 설계 과정의 실측 발견들:
@@ -294,7 +294,7 @@ Descript Regenerate(구간 선택 → 미리듣기/재시도/복원).
 프로파일링 기준선 (테이크당): 생성 18.7s(모델 재로드 ~10s 낭비) + 채점
 21.8s(Whisper 4회·pyin 5회 중복) → RTF 29.2. 최적화 4종:
 
-1. **상주 TTS 워커** (`core/tts_worker.py`): 모델 1회 로드, JSON 라인
+1. **상주 TTS 워커** (`voxa/clone/tts_worker.py`): 모델 1회 로드, JSON 라인
    프로토콜. 웜 생성 5~8s (실측). 함정 기록: mlx_audio가 stdout에 로그를
    찍어 프로토콜이 오염 → fd 분리로 해결. 실패 시 CLI 폴백.
 2. **채점 중복 제거**: 문장 채점 1패스에서 어미낙하·먹힌단어·BPA 파생,
@@ -306,7 +306,7 @@ Descript Regenerate(구간 선택 → 미리듣기/재시도/복원).
 실측: 장문(2문단) **RTF 13.4 ✅** (품질 PNS 유지), 짧은 대본 20.9
 (고정 오버헤드 지배 — 스케일이 클수록 효율↑, 장문 제작 목적에 부합).
 
-## 결과물 평가지표 3종 (`core/metrics.py`)
+## 결과물 평가지표 3종 (`voxa/analysis/metrics.py`)
 
 | 지표 | 뜻 | 측정 방법 | 게이트 |
 |------|-----|----------|--------|
@@ -316,7 +316,7 @@ Descript Regenerate(구간 선택 → 미리듣기/재시도/복원).
 | VCS | 북극성 종합 | 위 3개 합성 | ≥ 85 |
 
 게이트는 CI가 빠른 0.6B 모델 + 합성 픽스처로 돌기 때문에 실사용(1.7B) 실측보다
-보수적으로 잡았다. 게이트 값은 `core/metrics.py`의 `GATES` 한 곳에서만 관리한다.
+보수적으로 잡았다. 게이트 값은 `voxa/analysis/metrics.py`의 `GATES` 한 곳에서만 관리한다.
 
 ## CI 2단 구조 (`.github/workflows/`)
 
@@ -358,6 +358,6 @@ pytest tests -q                               # 유닛 테스트만
 ## 품질을 올리고 싶을 때의 절차
 
 1. `quality/testset.txt`에 문제 문장을 추가한다 (재현 케이스 = 회귀 테스트).
-2. 파이프라인/설정 후보를 만든다 (`core/clone.py`).
+2. 파이프라인/설정 후보를 만든다 (`voxa/clone/clone.py`).
 3. `run_eval.py`로 전후 비교 — **VCS가 오르고 게이트를 통과하면 채택**.
 4. README의 실측표와 `GATES`(필요시)를 갱신하고 PR에 리포트를 첨부한다.

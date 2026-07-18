@@ -30,7 +30,7 @@ Copy-Item -Recurse "$py312\*" (Join-Path $RT "py312")
 
 Write-Host "▸ 메인 환경 (.venv) — 잠긴 의존성 (Windows에선 mlx 자동 제외)"
 uv venv --relocatable --python (Join-Path $RT "py312\python.exe") (Join-Path $RT ".venv")
-uv export --frozen --no-dev --no-emit-project --project $App -o (Join-Path $Dist ".reqs.txt")
+uv export --frozen --no-dev --no-emit-project --no-emit-package voxa --project $App -o (Join-Path $Dist ".reqs.txt")
 $env:VIRTUAL_ENV = Join-Path $RT ".venv"
 uv pip install -q -r (Join-Path $Dist ".reqs.txt")
 Remove-Item (Join-Path $Dist ".reqs.txt")
@@ -44,7 +44,8 @@ uv pip install -q torch torchaudio "numpy<2" librosa soundfile rich tqdm resampy
 # deepspeed 스텁: _deepspeed_stub 의 Windows 대응 필요 (site-packages 경로)
 
 Write-Host "▸ 앱 코드·모델 복사"
-foreach ($d in "core","api","voice","models","cli") { Copy-Item -Recurse (Join-Path $App $d) (Join-Path $Dist $d) }
+Copy-Item -Recurse (Join-Path $Repo "packages\voxa\voxa") (Join-Path $Dist "voxa")
+foreach ($d in "api","voice","cli") { Copy-Item -Recurse (Join-Path $App $d) (Join-Path $Dist $d) }
 foreach ($f in "pyproject.toml","uv.lock") {
     Copy-Item (Join-Path $App $f) $Dist
 }

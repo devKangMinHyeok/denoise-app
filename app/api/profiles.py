@@ -181,10 +181,10 @@ def build_profile(pid, denoise=True, on_progress=None):
                 on_progress(ev)
             except Exception:
                 pass
-    from core.media.audio import concat_to_wav
-    from core.clone import prepare_reference
-    from core.denoise import preprocess_source
-    from core.analysis.prosody import (final_f0_slopes, prosody_features,
+    from voxa.media.audio import concat_to_wav
+    from voxa.clone import prepare_reference
+    from voxa.denoise import preprocess_source
+    from voxa.analysis.prosody import (final_f0_slopes, prosody_features,
                               stress_features)
 
     pdir = _profile_dir(pid)
@@ -328,7 +328,7 @@ def _finish_job(job, out, t_start):
     except Exception:
         pass
     try:  # 가라오케 가사 뷰용 단어 타임라인 (실패해도 작업은 성공)
-        from core.analysis.prosody import prosody_deps_available, word_timeline
+        from voxa.analysis.prosody import prosody_deps_available, word_timeline
         if prosody_deps_available():
             job["words"] = word_timeline(out)
     except Exception:
@@ -350,7 +350,7 @@ def _persist_job(job, jdir=None):
 def start_clone_job(text, fast, ref_path=None, profile_id=None,
                     profile_name=None, takes=None, title=None):
     """백그라운드 생성 작업 시작 → job_id. 진행은 JOBS[job_id]에 기록."""
-    from core.clone import DEFAULT_TAKES, clone_voice, synthesize_best
+    from voxa.clone import DEFAULT_TAKES, clone_voice, synthesize_best
 
     _ensure_dirs()
     job_id = uuid.uuid4().hex[:10]
@@ -405,7 +405,7 @@ def start_regen_job(parent_id, index):
     ElevenLabs Studio식 부분 재생성 — 전체를 다시 만들지 않고 마음에 안 드는
     문단만 교체. 프로필 기반 작업만 지원(업로드 참조는 작업 후 삭제되므로).
     """
-    from core.clone import DEFAULT_TAKES, regenerate_paragraph
+    from voxa.clone import DEFAULT_TAKES, regenerate_paragraph
 
     parent = get_job(parent_id)
     if not parent or parent.get("status") != "done":
@@ -464,7 +464,7 @@ def start_build_job(pid, denoise=True):
     분석은 1~2분 걸리므로 동기 요청은 UX 사각지대였다 (브라우저를 닫으면
     진행을 다시 못 봄). 작업 센터에서 추적 + ETA는 학습 음성 총 길이 실측.
     """
-    from core.media.audio import media_duration
+    from voxa.media.audio import media_duration
     from api.rates import estimate_build_eta
 
     meta = _load_meta(pid)  # 없으면 FileNotFoundError → 호출부 404
@@ -522,7 +522,7 @@ def start_performance_job(parent_id, index, rec_path, denoise=True):
     참조를 연기 녹음으로 교체하므로 감정·리듬·강조가 결과에 전이되고,
     테이크 채점 기준도 자동으로 '연기를 얼마나 잘 따라했나'가 된다.
     """
-    from core.clone import (DEFAULT_TAKES, prepare_performance,
+    from voxa.clone import (DEFAULT_TAKES, prepare_performance,
                             regenerate_paragraph)
 
     parent = get_job(parent_id)

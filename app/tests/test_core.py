@@ -9,11 +9,11 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.denoise import build_audio_filter  # noqa: E402
-from core.media.audio import audio_codec_args  # noqa: E402
-from core.analysis.metrics import (GATES, SIM_HUMAN_BASELINE, check_gates,  # noqa: E402
+from voxa.denoise import build_audio_filter  # noqa: E402
+from voxa.media.audio import audio_codec_args  # noqa: E402
+from voxa.analysis.metrics import (GATES, SIM_HUMAN_BASELINE, check_gates,  # noqa: E402
                           normalize_ko, voice_clone_score)
-from core.analysis.prosody import (BREATH_MIN, LIVELINESS, band_score,  # noqa: E402
+from voxa.analysis.prosody import (BREATH_MIN, LIVELINESS, band_score,  # noqa: E402
                           boundary_pause_adequacy, dynamics_score,
                           prosody_match_scores, prosody_naturalness_score,
                           split_sentences)
@@ -41,7 +41,7 @@ def test_codec_args():
 
 def test_blend_hybrid_protects_speech_and_gates_pauses():
     np = pytest.importorskip("numpy")
-    from core.denoise import blend_hybrid
+    from voxa.denoise import blend_hybrid
     sr = 48_000
     # 합성 신호: 1초 발화(사인파) + 1초 무음 잔여물(작은 잡음)
     t = np.arange(sr) / sr
@@ -61,13 +61,13 @@ def test_blend_hybrid_protects_speech_and_gates_pauses():
 # ---- 음량 정규화 (정적 게인) ----
 
 def test_normalize_gain_reaches_target():
-    from core.media.audio import normalize_gain_db
+    from voxa.media.audio import normalize_gain_db
     # 발화 -36dB, 피크 -16dB → 목표 -19dB까지 +17dB, 피크 여유(14.5dB)로 제한
     assert normalize_gain_db(-36.0, -16.0) == pytest.approx(14.5)
 
 
 def test_normalize_gain_respects_peak_ceiling():
-    from core.media.audio import normalize_gain_db
+    from voxa.media.audio import normalize_gain_db
     # 이미 피크가 상한이면 게인 0 이하
     assert normalize_gain_db(-30.0, -1.5) == pytest.approx(0.0)
 
@@ -167,63 +167,63 @@ def test_liveliness_target_raises_bar():
 # ---- 끝음 절벽 (확 내려꽂음) ----
 
 def test_cliff_score_gentle_fall_full_credit():
-    from core.analysis.prosody import cliff_score
+    from voxa.analysis.prosody import cliff_score
     # 자연 수준(-8)이나 그보다 완만하면 만점
     assert cliff_score(-8.0, -7.8) == pytest.approx(1.0)
     assert cliff_score(-5.0, -7.8) == pytest.approx(1.0)
 
 
 def test_cliff_score_steep_fall_penalized():
-    from core.analysis.prosody import cliff_score
+    from voxa.analysis.prosody import cliff_score
     # 실측 사례: 클론 -17 vs 사람 -7.8 → 감점
     assert cliff_score(-17.0, -7.8) < 0.9
 
 
 def test_cliff_score_reading_tone_reference_capped():
-    from core.analysis.prosody import cliff_score
+    from voxa.analysis.prosody import cliff_score
     # 참조가 낭독투로 이미 가파르면(-15) 자연 상한(-9)이 기준이 됨
     assert cliff_score(-17.0, -15.0) < cliff_score(-13.0, -15.0) == pytest.approx(1.0, abs=0.01) or True
     assert cliff_score(-20.0, -15.0) < 1.0
 
 
 def test_cliff_score_vacuous_without_data():
-    from core.analysis.prosody import cliff_score
+    from voxa.analysis.prosody import cliff_score
     assert cliff_score(None, -8.0) == 1.0
 
 
 # ---- 어미 단어 내부 낙하 ----
 
 def test_word_drop_level_endings_full_credit():
-    from core.analysis.prosody import word_drop_score
+    from voxa.analysis.prosody import word_drop_score
     # 수평/상승 어미 (실측 자연 어미: ±1st 내)
     assert word_drop_score([0.2, -0.5, 1.1]) == pytest.approx(1.0)
 
 
 def test_word_drop_worst_case_caught():
-    from core.analysis.prosody import word_drop_score
+    from voxa.analysis.prosody import word_drop_score
     # 실측 결함: 대부분 수평인데 '줬어요' -2.7, '나왔죠?' -3.8 낙하 → 감점
     assert word_drop_score([0.2, 0.3, 2.7, 3.8, 0.7]) < 0.6
 
 
 def test_word_drop_vacuous_without_data():
-    from core.analysis.prosody import word_drop_score
+    from voxa.analysis.prosody import word_drop_score
     assert word_drop_score([]) == 1.0
 
 
 # ---- 먹힌 단어 (국소 강약) + 호흡 단위 ----
 
 def test_swallowed_score_human_level_full_credit():
-    from core.analysis.prosody import swallowed_score
+    from voxa.analysis.prosody import swallowed_score
     assert swallowed_score(-7.2) == pytest.approx(1.0)  # 사람 실측 최악
 
 
 def test_swallowed_score_dead_word_penalized():
-    from core.analysis.prosody import swallowed_score
+    from voxa.analysis.prosody import swallowed_score
     assert swallowed_score(-11.5) < 0.5  # 클론 실측 결함
 
 
 def test_split_breath_units_sentence_and_clause():
-    from core.analysis.prosody import split_breath_units
+    from voxa.analysis.prosody import split_breath_units
     u = split_breath_units("노이즈를 제거하고, 목소리를 학습합니다. 시작해 볼게요.")
     assert [k for _, k in u] == ["clause", "sentence", "sentence"]
     assert u[0][0] == "노이즈를 제거하고"
@@ -258,7 +258,7 @@ def test_bpa_overlong_pause_penalized():
 # ---- 테이크 선별 (속도 가드 + 긴 대본 청크) ----
 
 def test_selection_score_penalizes_fast_takes():
-    from core.clone.clone import _selection_score  # private 헬퍼는 모듈에서 직접
+    from voxa.clone.clone import _selection_score  # private 헬퍼는 모듈에서 직접
     # 자연 속도(±15%) 안이면 감점 없음, 빠른 테이크(+25%)는 감점
     assert _selection_score(85.0, 9.1, 9.1) == pytest.approx(85.0)
     assert _selection_score(85.0, 11.4, 9.1) < 84.0
@@ -267,26 +267,26 @@ def test_selection_score_penalizes_fast_takes():
 # ---- 끝음 스타일 ----
 
 def test_ending_style_match_full_credit():
-    from core.analysis.prosody import ending_style_score
+    from voxa.analysis.prosody import ending_style_score
     # 화자(상승형 +2.0st/s)와 같은 스타일 → 만점
     assert ending_style_score([2.5, 1.5], [2.0, 2.2, 1.9]) == pytest.approx(1.0)
 
 
 def test_ending_style_reading_tone_penalized():
-    from core.analysis.prosody import ending_style_score
+    from voxa.analysis.prosody import ending_style_score
     # 실측 사례: 화자 +2.0 vs 클론 -4.3 (낭독체 하강) → 감점
     assert ending_style_score([-4.3, -3.5], [2.0, 1.8, 2.3]) < 0.6
 
 
 def test_ending_style_vacuous_when_ref_unreliable():
-    from core.analysis.prosody import ending_style_score
+    from voxa.analysis.prosody import ending_style_score
     # 참조 표본 3개 미만이면 가드 무효화 — 빈약한 통계로 선별을 왜곡하지 않기
     assert ending_style_score([], [1.0]) == 1.0
     assert ending_style_score([-9.0], [2.0, 1.8]) == 1.0
 
 
 def test_pick_best_take_dominance_rule():
-    from core.clone import pick_best_take
+    from voxa.clone import pick_best_take
     # 실사용 사고 재현: 최저 PNS(73.4) 테이크가 스타일 감점 덕에 sel 최고
     takes = [{"pns": 81.1, "sel": 62.0}, {"pns": 84.4, "sel": 63.0},
              {"pns": 73.4, "sel": 65.0}]  # ← sel 최고지만 품질 열세
@@ -294,7 +294,7 @@ def test_pick_best_take_dominance_rule():
 
 
 def test_pick_best_take_normal_case():
-    from core.clone import pick_best_take
+    from voxa.clone import pick_best_take
     takes = [{"pns": 85.0, "sel": 80.0}, {"pns": 86.0, "sel": 84.0}]
     assert pick_best_take(takes) == 1
 
@@ -302,14 +302,14 @@ def test_pick_best_take_normal_case():
 # ---- 음절 강약 스타일 ----
 
 def test_stress_style_match_full_credit():
-    from core.analysis.prosody import stress_style_score
+    from voxa.analysis.prosody import stress_style_score
     ref = {"peak_range": 17.5, "peak_valley": 17.0}
     assert stress_style_score({"peak_range": 17.0, "peak_valley": 16.5},
                               ref) == pytest.approx(1.0)
 
 
 def test_stress_style_flat_and_choppy_penalized():
-    from core.analysis.prosody import stress_style_score
+    from voxa.analysis.prosody import stress_style_score
     ref = {"peak_range": 17.5, "peak_valley": 17.0}
     # 실측 사례: 균일 강세(범위 13.5) + 과분절(대비 22.9) → 감점
     assert stress_style_score({"peak_range": 13.5, "peak_valley": 22.9},
@@ -317,7 +317,7 @@ def test_stress_style_flat_and_choppy_penalized():
 
 
 def test_stress_style_vacuous_when_no_data():
-    from core.analysis.prosody import stress_style_score
+    from voxa.analysis.prosody import stress_style_score
     assert stress_style_score(None, {"peak_range": 17.0,
                                      "peak_valley": 17.0}) == 1.0
 
@@ -325,13 +325,13 @@ def test_stress_style_vacuous_when_no_data():
 # ---- 문단 분할 (장문 파이프라인 단위) ----
 
 def test_split_paragraphs_respects_blank_lines():
-    from core.clone import split_paragraphs
+    from voxa.clone import split_paragraphs
     text = "첫 문단입니다. 둘째 문장.\n\n둘째 문단입니다."
     assert split_paragraphs(text) == ["첫 문단입니다. 둘째 문장.", "둘째 문단입니다."]
 
 
 def test_split_paragraphs_caps_sentence_count():
-    from core.clone import split_paragraphs
+    from voxa.clone import split_paragraphs
     text = " ".join(f"문장 {i}번입니다." for i in range(1, 15))
     paras = split_paragraphs(text, max_sents=6)
     assert len(paras) == 3  # 6 + 6 + 2
@@ -339,7 +339,7 @@ def test_split_paragraphs_caps_sentence_count():
 
 
 def test_split_paragraphs_short_text_single_unit():
-    from core.clone import split_paragraphs
+    from voxa.clone import split_paragraphs
     assert len(split_paragraphs("한 문장입니다. 두 문장입니다.")) == 1
 
 
@@ -416,7 +416,7 @@ def test_profile_store_roundtrip(tmp_path, monkeypatch):
 
 def test_splice_paragraphs_meta_shifts_following():
     """문단 교체 시 뒤 문단 경계가 길이 변화만큼 밀린다 (부분 재생성의 산수)."""
-    from core.clone import splice_paragraphs_meta
+    from voxa.clone import splice_paragraphs_meta
     paras = [{"text": "a", "start": 0.0, "end": 10.0, "pns": 80},
              {"text": "b", "start": 11.0, "end": 20.0, "pns": 81},
              {"text": "c", "start": 21.0, "end": 30.0, "pns": 82}]
@@ -428,7 +428,7 @@ def test_splice_paragraphs_meta_shifts_following():
 
 
 def test_splice_paragraphs_meta_shorter_replacement():
-    from core.clone import splice_paragraphs_meta
+    from voxa.clone import splice_paragraphs_meta
     paras = [{"text": "a", "start": 0.0, "end": 10.0},
              {"text": "b", "start": 11.0, "end": 20.0}]
     out = splice_paragraphs_meta(paras, 0, 6.0)    # 10초 → 6초 (-4)
@@ -496,7 +496,7 @@ def test_new_job_defaults_title_from_text():
 def test_vad_threshold_bimodal_lands_between_modes():
     """무음(-70대)과 발화(-25대)가 나뉜 분포 → 문턱은 두 무리 사이."""
     import numpy as np
-    from core.denoise import vad_threshold
+    from voxa.denoise import vad_threshold
     rng = np.random.default_rng(0)
     db = np.concatenate([rng.normal(-70, 3, 400), rng.normal(-25, 3, 600)])
     th = vad_threshold(db)
@@ -509,7 +509,7 @@ def test_vad_threshold_dense_speech_skips_gate():
     실사용 사고: 무음 없는 화면 녹화에서 중간점 문턱이 발화 프레임 64%를
     무음으로 오판해 말끝을 죽이고 분당 20회 끊김을 만들었다."""
     import numpy as np
-    from core.denoise import vad_threshold
+    from voxa.denoise import vad_threshold
     rng = np.random.default_rng(1)
     assert vad_threshold(rng.normal(-38, 2.5, 1000)) is None
 
@@ -517,21 +517,21 @@ def test_vad_threshold_dense_speech_skips_gate():
 def test_vad_threshold_tiny_minority_skips_gate():
     """무음이 3%뿐이면 게이트 근거 부족 → None."""
     import numpy as np
-    from core.denoise import vad_threshold
+    from voxa.denoise import vad_threshold
     rng = np.random.default_rng(2)
     db = np.concatenate([rng.normal(-70, 2, 25), rng.normal(-25, 3, 975)])
     assert vad_threshold(db) is None
 
 
 def test_vad_threshold_too_few_frames():
-    from core.denoise import vad_threshold
+    from voxa.denoise import vad_threshold
     assert vad_threshold([-30.0] * 5) is None
 
 
 def test_report_from_frames_clean_result():
     """발화 보존 + 무음만 억제된 결과 → 손실 0%, 억제량 양수."""
     import numpy as np
-    from core.denoise import report_from_frames
+    from voxa.denoise import report_from_frames
     rng = np.random.default_rng(0)
     orig = np.concatenate([rng.normal(-25, 2, 500),    # 발화
                            rng.normal(-50, 2, 500)])   # 무음(팬 소음)
@@ -545,7 +545,7 @@ def test_report_from_frames_clean_result():
 def test_report_from_frames_detects_speech_loss():
     """발화 일부가 죽은 결과(과거 결함) → 손실 비율이 잡힌다."""
     import numpy as np
-    from core.denoise import report_from_frames
+    from voxa.denoise import report_from_frames
     rng = np.random.default_rng(1)
     orig = np.concatenate([rng.normal(-25, 2, 500), rng.normal(-50, 2, 500)])
     out = orig.copy()
@@ -557,7 +557,7 @@ def test_report_from_frames_detects_speech_loss():
 def test_report_boost_invariant():
     """볼륨 업(+10dB)이 손실/억제 지표를 왜곡하지 않는다."""
     import numpy as np
-    from core.denoise import report_from_frames
+    from voxa.denoise import report_from_frames
     rng = np.random.default_rng(2)
     orig = np.concatenate([rng.normal(-25, 2, 500), rng.normal(-50, 2, 500)])
     out = orig.copy(); out[500:] -= 30
@@ -568,7 +568,7 @@ def test_report_boost_invariant():
 
 
 def test_run_denoise_rejects_unknown_mode(tmp_path):
-    from core.denoise import run_denoise
+    from voxa.denoise import run_denoise
     with pytest.raises(ValueError):
         run_denoise(str(tmp_path / "a.wav"), str(tmp_path / "b.wav"),
                     mode="magic")
@@ -576,7 +576,7 @@ def test_run_denoise_rejects_unknown_mode(tmp_path):
 
 def test_run_denoise_resynth_requires_engine(tmp_path, monkeypatch):
     """재합성 모드는 .venv-re가 있어야 시작된다 (설치 안내 에러)."""
-    import core.denoise as D
+    import voxa.denoise as D
     monkeypatch.setattr(D, "RE_VENV_PY", str(tmp_path / "없는경로"))
     with pytest.raises(RuntimeError, match="install_resynth"):
         D.run_denoise(str(tmp_path / "a.wav"), str(tmp_path / "b.wav"),
@@ -706,7 +706,7 @@ def test_health_endpoint():
 
 def test_clone_api_rejects_empty_text():
     from api.server import app
-    from core.clone import clone_available
+    from voxa.clone import clone_available
     if not clone_available():
         pytest.skip("mlx 미설치 환경 (501 경로는 별도 테스트)")
     with app.test_client() as c:

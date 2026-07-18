@@ -10,8 +10,8 @@ import argparse
 import os
 import sys
 
-from core.media.audio import ensure_ffmpeg
-from core.denoise import run_denoise
+from voxa.media.audio import ensure_ffmpeg
+from voxa.denoise import run_denoise
 
 
 def main():

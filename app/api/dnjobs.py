@@ -30,8 +30,8 @@ def start_denoise_job(file_storage, boost=0.0, mode="standard"):
     mode="standard"(필터형 하이브리드) | "resynth"(생성형 재합성 —
     발화 중 노이즈까지 제거하되 목소리 유사도(SIM)를 함께 실측해 리포트).
     """
-    from core.media.audio import default_output_ext, make_audio_preview, media_duration
-    from core.denoise import (denoise_report, dfn_available, run_denoise,
+    from voxa.media.audio import default_output_ext, make_audio_preview, media_duration
+    from voxa.denoise import (denoise_report, dfn_available, run_denoise,
                               voice_similarity)
 
     jid = uuid.uuid4().hex[:10]

@@ -43,7 +43,8 @@ mk_reloc_venv() {  # $1=venv경로  $2=번들파이썬bin
 
 echo "▸ 메인 환경 (.venv, py3.12) — 잠긴 의존성"
 mk_reloc_venv "$RT/.venv" "$RT/py312/bin/python3.12"
-uv export --frozen --no-dev --no-emit-project --project "$APP" -o "$DIST/.reqs.txt" 2>/dev/null
+# voxa 는 아래에서 소스째 평평 복사하므로 export 대상에서 제외 (path 의존성 emit 방지)
+uv export --frozen --no-dev --no-emit-project --no-emit-package voxa --project "$APP" -o "$DIST/.reqs.txt" 2>/dev/null
 VIRTUAL_ENV="$RT/.venv" uv pip install -q -r "$DIST/.reqs.txt"
 rm -f "$DIST/.reqs.txt"
 
@@ -61,9 +62,11 @@ VIRTUAL_ENV="$RT/.venv-re" uv pip install -q torch torchaudio "numpy<2" \
   huggingface_hub
 bash "$REPO/packaging/scripts/_deepspeed_stub.sh" "$RT/.venv-re"
 
-echo "▸ 앱 코드·모델 복사 (번들은 평평한 레이아웃 — 런타임 ROOT=번들 루트)"
-# mcp_server.py 는 api/ 안에 있으므로 api 복사에 포함된다.
-for d in core api voice models cli; do cp -R "$APP/$d" "$DIST/$d"; done
+echo "▸ 앱 코드·엔진 복사 (번들은 평평한 레이아웃 — 런타임 ROOT=번들 루트)"
+# voxa 엔진은 소스째 복사 (모델은 voxa/models 에 동봉되어 함께 온다).
+cp -R "$REPO/packages/voxa/voxa" "$DIST/voxa"
+# api(mcp_server 포함)·voice·cli 는 앱 계층.
+for d in api voice cli; do cp -R "$APP/$d" "$DIST/$d"; done
 cp "$APP/pyproject.toml" "$APP/uv.lock" "$REPO/README.md" \
    "$REPO/docs/PORTABILITY.md" "$DIST/"
 find "$DIST" -name "__pycache__" -type d -prune -exec rm -rf {} + 2>/dev/null || true

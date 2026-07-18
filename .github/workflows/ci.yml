@@ -5,7 +5,7 @@ on:
     branches: [main]
   pull_request:
 
-# 파이썬 엔진(core·api·voice)은 모노레포의 app/ 아래 산다.
+# 앱(api·voice·cli)은 app/ 아래, 음성 엔진은 packages/voxa 에 독립적으로 산다.
 defaults:
   run:
     working-directory: app
@@ -21,13 +21,16 @@ jobs:
         with:
           python-version: "3.12"
       # 전체 의존성(mlx·torch)은 Apple Silicon 전용이라 ubuntu에서 설치 불가.
-      # 유닛 테스트는 heavy 모듈을 importorskip으로 건너뛰므로 경량 셋만 설치.
-      # 전용 venv에 설치하고 --no-project로 실행 (프로젝트 sync가 mlx를 끌지 않게).
-      # setup-uv가 python-version 지정 시 .venv를 이미 생성함 → 거기에 설치.
-      - name: Install light test deps
-        run: uv pip install flask pytest numpy
-      - name: Unit tests
+      # 엔진은 --no-deps 로 소스만 깔고(heavy 의존성 제외), 유닛 테스트는 heavy
+      # 모듈을 importorskip 으로 건너뛴다. 엔진 모듈의 최상위 서드파티는 numpy뿐.
+      - name: Install engine (source only) + light test deps
+        run: |
+          uv pip install -e ../packages/voxa --no-deps
+          uv pip install flask pytest numpy
+      - name: App unit tests
         run: uv run --no-project pytest tests -q
+      - name: Engine unit tests (voxa)
+        run: uv run --no-project pytest ../packages/voxa/tests -q
 
   # 크로스플랫폼 검증: Windows에서 잠긴 의존성이 실제로 풀리는지
   # (mlx는 플랫폼 마커로 조건부 → Windows에선 자동 제외되어야 함).
@@ -45,6 +48,6 @@ jobs:
         run: uv sync --frozen
       - name: App imports & degrades gracefully (no mlx)
         run: |
-          uv run --frozen python -c "from core.clone import clone_available; from api.server import app; assert clone_available() is False, 'mlx must be absent on Windows'; print('Windows clone disabled, app OK')"
+          uv run --frozen python -c "from voxa.clone import clone_available; from api.server import app; assert clone_available() is False, 'mlx must be absent on Windows'; print('Windows clone disabled, app OK')"
       - name: Unit tests
         run: uv run --frozen pytest tests -q

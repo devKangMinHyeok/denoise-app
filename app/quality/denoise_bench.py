@@ -121,7 +121,7 @@ def main():
     import numpy as np
     import soundfile as sf
     from scipy.signal import lfilter
-    from core.denoise import dfn_available, run_denoise
+    from voxa.denoise import dfn_available, run_denoise
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--engine", default="auto",

@@ -32,10 +32,10 @@ jobs:
             ~/.cache/huggingface
             ~/.cache/torch
           key: hf-models-${{ runner.os }}-v2
-      - name: Install deps
+      - name: Install deps (voxa 엔진 + eval + 클로닝 CLI 의존성)
         run: |
-          pip install -r requirements.txt -r voice/requirements-voice.txt
-          pip install resemblyzer jiwer onnxruntime librosa "setuptools<81" pytest
+          pip install -e ../packages/voxa[eval] -r voice/requirements-voice.txt
+          pip install pytest
       - name: Unit tests
         run: pytest tests -q
       - name: Quality eval (score golden samples → gate)

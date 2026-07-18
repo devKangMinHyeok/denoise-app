@@ -1627,10 +1627,33 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "flask" },
+    { name = "mcp" },
+    { name = "voxa", extra = ["eval"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=3.1" },
+    { name = "mcp", specifier = ">=1.2" },
+    { name = "voxa", extras = ["eval"], editable = "../packages/voxa" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.0" }]
+
+[[package]]
+name = "voxa"
+version = "0.1.0"
+source = { editable = "../packages/voxa" }
+dependencies = [
     { name = "huggingface-hub" },
     { name = "imageio-ffmpeg" },
     { name = "librosa" },
-    { name = "mcp" },
     { name = "mlx-audio", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
     { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
     { name = "numpy" },
@@ -1649,19 +1672,12 @@ eval = [
     { name = "onnxruntime" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "flask", specifier = ">=3.1" },
     { name = "huggingface-hub", specifier = ">=1.23" },
     { name = "imageio-ffmpeg", specifier = ">=0.6" },
     { name = "jiwer", marker = "extra == 'eval'", specifier = ">=3.0" },
     { name = "librosa", specifier = ">=0.11" },
-    { name = "mcp", specifier = ">=1.2" },
     { name = "mlx-audio", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.5" },
     { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.3" },
     { name = "numpy", specifier = ">=2.4" },
