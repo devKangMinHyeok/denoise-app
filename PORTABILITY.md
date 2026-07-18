@@ -91,8 +91,46 @@ bash scripts/verify_cleanroom.sh   # 언제든 재실행 가능
   동봉본을 `ffmpeg` 심링크(`~/.noisecleaner/bin`)로 만들어 PATH에 얹어 해결.
   제3자 라이브러리의 bare 호출까지 커버.
 
-## 남은 시스템 의존 (판매 데스크톱 앱에서 마저 봉인할 것)
+## 완전 봉인 번들 (판매용 — uv도 필요 없음)
 
-- **uv 자체** — 지금은 사용자가 uv를 깔아야 함. 봉인 앱에서는 uv나 세 venv를
-  앱 번들에 포함(또는 PyInstaller류로 동결)하면 "설치=압축 풀기"가 된다.
+`scripts/build_bundle.sh`가 **uv·파이썬·ffmpeg가 전혀 없는 Mac에서도 그대로
+도는** self-contained 배포본 `dist/NoiseCleaner/`를 만든다.
+
+```bash
+bash scripts/build_bundle.sh        # → dist/NoiseCleaner/ (약 3.7GB)
+# 사용자: '노이즈클리너 실행.command' 더블클릭
+```
+
+**원리 (실증됨):** python-build-standalone는 설계상 재배치 가능. venv를
+`uv venv --relocatable`로 만들고 `bin/python` 심링크를 상대경로로 고치면,
+번들을 어디로 옮기든 깨끗한 PATH에서 무거운 네이티브 확장(mlx·torch)까지
+로드된다. `pyvenv.cfg`의 절대 `home`은 무시된다 — 파이썬은 인터프리터
+자기 위치에서 base를 찾기 때문.
+
+**번들 구성:**
+
+```
+dist/NoiseCleaner/
+├─ runtime/
+│  ├─ py312/ py311/          # 동봉 파이썬 (python-build-standalone)
+│  ├─ .venv/ .venv-dfn/ .venv-re/  # relocatable venv (심링크 상대화)
+│  └─ bin/uv                 # uv 바이너리 (엔진 업데이트·재빌드용)
+├─ core/ web/ voice/ models/ docs/  # 앱
+└─ 노이즈클리너 실행.command   # 더블클릭 런처
+```
+
+**검증 완료 (실측):** 번들을 새 경로로 옮기고 `uv·python3.11/12·ffmpeg·brew`가
+전부 `unreachable`인 환경(`env -i PATH=/usr/bin:/bin`)에서:
+
+| 항목 | 결과 |
+|---|---|
+| 서버 부팅 + `/api/health` | clone·dfn-hybrid·resynth 전부 활성 ✓ |
+| 표준 노이즈 제거 / DFN 하이브리드 | 동작 ✓ |
+| 보이스 클로닝(mlx/whisper/TTS) | 동작 ✓ |
+| 사용된 파이썬 / ffmpeg | 번들 내부 (시스템 아님) ✓ |
+
+런타임에 다운로드되는 것은 음성 모델뿐(최초 1회, 온라인). 완전 오프라인
+배포는 모델까지 번들에 넣는 옵션(`--with-models`)이 다음 단계.
+
 - **Apple Silicon 전용** — mlx가 Metal을 쓰므로 Intel Mac·타 OS 미지원(제품 사양).
+- **서명·공증** — 배포 시 codesign + notarize가 남은 단계(더블클릭 Gatekeeper 통과용).
