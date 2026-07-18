@@ -1,9 +1,27 @@
+# 파이썬 엔진 venv (모노레포: app/ 아래)
 .venv/
+app/.venv/
+app/.venv-dfn/
+app/.venv-re/
+# 옛 위치(호환)
+.venv-dfn/
+.venv-re/
+
 dist/
 __pycache__/
 *.pyc
 *.log
 .DS_Store
-models/dnsmos_sig_bak_ovr.onnx
-.venv-dfn/
-.venv-re/
+
+# 다운로드 모델 (평가용) — 이미 추적 중이지만 재다운로드 산출물은 무시
+app/models/dnsmos_sig_bak_ovr.onnx
+
+# 네이티브 UI (Xcode) 산출물
+app/ui/build/
+app/ui/DerivedData/
+*.xcuserstate
+
+# 랜딩 (Next.js 전환 대비)
+landing/node_modules/
+landing/.next/
+landing/out/

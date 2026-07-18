@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# 파이썬 엔진(core·api·voice)은 모노레포의 app/ 아래 산다.
+defaults:
+  run:
+    working-directory: app
+
 jobs:
   unit:
     runs-on: ubuntu-latest
@@ -40,6 +45,6 @@ jobs:
         run: uv sync --frozen
       - name: App imports & degrades gracefully (no mlx)
         run: |
-          uv run --frozen python -c "from core.clone import clone_available; from web.server import app; assert clone_available() is False, 'mlx must be absent on Windows'; print('Windows clone disabled, app OK')"
+          uv run --frozen python -c "from core.clone import clone_available; from api.server import app; assert clone_available() is False, 'mlx must be absent on Windows'; print('Windows clone disabled, app OK')"
       - name: Unit tests
         run: uv run --frozen pytest tests -q

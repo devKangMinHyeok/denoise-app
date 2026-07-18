@@ -1,0 +1,35 @@
+name: Deploy Landing (Pages)
+
+# 랜딩은 모노레포의 landing/ 에 산다. Pages 브랜치 소스는 /docs·/ 만 허용하므로
+# Actions로 landing/ 을 배포한다. (Next.js/Vercel 전환 전까지의 임시 정식 배포)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "landing/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: landing
+      - id: deployment
+        uses: actions/deploy-pages@v4

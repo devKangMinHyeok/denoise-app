@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: "0 20 * * 0"  # 매주 월요일 오전 5시 (KST)
 
+# 파이썬 엔진·품질 게이트는 모노레포의 app/ 아래 산다.
+defaults:
+  run:
+    working-directory: app
+
 jobs:
   quality:
     # GitHub 호스티드 맥 러너는 Metal 커널 컴파일이 안 돼 TTS 생성이 불가능하다
@@ -40,4 +45,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quality-report
-          path: quality-report.json
+          path: app/quality-report.json

@@ -1,0 +1,17 @@
+@echo off
+REM Vocast 실행 (Windows) — 더블클릭 런처. ⚠️ Windows 실기 검증 필요.
+setlocal
+set "BUNDLE=%~dp0"
+set "RT=%BUNDLE%runtime"
+
+REM Windows에서는 mlx 미설치 → 보이스 클로닝 자동 비활성, 노이즈 제거·재합성만.
+set "RESYNTH_PYTHON=%RT%\.venv-re\Scripts\python.exe"
+if not defined NOISECLEANER_HOME set "NOISECLEANER_HOME=%USERPROFILE%\.vocast"
+
+if exist "%BUNDLE%models\hf"    set "HF_HOME=%BUNDLE%models\hf"
+if exist "%BUNDLE%models\torch" set "TORCH_HOME=%BUNDLE%models\torch"
+
+echo Vocast를 시작합니다...
+cd /d "%BUNDLE%"
+start "" http://127.0.0.1:8756
+"%RT%\.venv\Scripts\python.exe" api\server.py --port 8756
