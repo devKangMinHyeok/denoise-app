@@ -61,14 +61,35 @@ export NOISECLEANER_FFMPEG=/path/to/ffmpeg
 
 리졸버 우선순위: `NOISECLEANER_FFMPEG` → 동봉(imageio-ffmpeg) → 시스템 PATH.
 
-## 재현 검증 (클린룸)
+## 재현 검증 (클린룸) — 실측 완료
 
-임시 경로에 락만으로 환경을 재구성해 시스템 무관 재현을 확인:
+`scripts/verify_cleanroom.sh`가 **fresh 체크아웃 + Homebrew 경로 제거 + uv만
+있는 PATH**에서 부트스트랩부터 세 엔진·클로닝까지 실제 실행하고, 사용된
+바이너리 경로를 검증한다. 실측 결과 (시스템 ffmpeg/ffprobe/python3.11/12/brew
+전부 `unreachable`):
+
+| 단계 | 결과 |
+|---|---|
+| 메인 파이썬 | uv 관리 `.venv/bin/python3` (시스템 아님) ✓ |
+| ffmpeg | 동봉 `imageio_ffmpeg/.../ffmpeg-macos-aarch64-v7.1` ✓ |
+| 표준 노이즈 제거(RNNoise) | 동작 ✓ |
+| 하이브리드(DFN) — 워커 uv 설치 | 동작 ✓ |
+| 재합성 — 워커 uv 설치 | 동작 ✓ |
+| 보이스 클로닝(mlx/whisper/TTS) | 동작 ✓ |
+| 유닛 테스트 78개 | 통과 ✓ |
 
 ```bash
-UV_PROJECT_ENVIRONMENT=/tmp/repro uv sync --frozen
-UV_PROJECT_ENVIRONMENT=/tmp/repro uv run --frozen python -m pytest tests -q
+bash scripts/verify_cleanroom.sh   # 언제든 재실행 가능
 ```
+
+### 검증이 잡아낸 실제 결함 (기록)
+
+클린룸이 아니었으면 놓쳤을, 판매 앱을 다른 Mac에서 깨뜨렸을 결함:
+
+- **mlx-whisper가 bare `ffmpeg`를 PATH에서 호출** — 오디오 로드 시. 동봉
+  바이너리는 이름이 `ffmpeg-macos-...`라 안 잡혔다. → `ensure_ffmpeg_on_path()`가
+  동봉본을 `ffmpeg` 심링크(`~/.noisecleaner/bin`)로 만들어 PATH에 얹어 해결.
+  제3자 라이브러리의 bare 호출까지 커버.
 
 ## 남은 시스템 의존 (판매 데스크톱 앱에서 마저 봉인할 것)
 
