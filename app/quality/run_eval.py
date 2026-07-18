@@ -3,7 +3,7 @@
 
 픽스처 목소리(tests/fixtures/ref_fixture.wav — AI 생성, 권리 문제 없음)로
 테스트 대본 세트(quality/testset.txt)를 낭독 생성하고, 지표로 채점한 뒤
-게이트(core.metrics.GATES) 미달이면 종료 코드 1 → CI 실패.
+게이트(core.analysis.metrics.GATES) 미달이면 종료 코드 1 → CI 실패.
 
 사용:
   python3 quality/run_eval.py                # 기본 모델 (1.7B)
@@ -27,7 +27,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
 from core.clone import prepare_reference, synthesize_best  # noqa: E402
-from core.metrics import (GATES, PNS_ITEM_MIN, check_gates,  # noqa: E402
+from core.analysis.metrics import (GATES, PNS_ITEM_MIN, check_gates,  # noqa: E402
                           evaluate_clone, voice_clone_score)
 
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "ref_fixture.wav")

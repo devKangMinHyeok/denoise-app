@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.metrics import evaluate_clone  # noqa: E402
+from core.analysis.metrics import evaluate_clone  # noqa: E402
 
 
 def main():

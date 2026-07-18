@@ -20,7 +20,7 @@ import os
 import re
 import urllib.request
 
-from . import DNSMOS_MODEL
+from core import DNSMOS_MODEL
 
 SIM_HUMAN_BASELINE = 0.909
 
@@ -65,8 +65,8 @@ def speaker_similarity(ref_wav, gen_wav):
 def char_error_rate(script_text, gen_wav, whisper_repo=None):
     """CER(%): Whisper 받아쓰기를 대본과 대조."""
     import jiwer
-    from . import mlx_transcribe
-    from .clone import WHISPER
+    from core import mlx_transcribe
+    from core.clone import WHISPER
     hyp = mlx_transcribe(
         gen_wav, path_or_hf_repo=whisper_repo or WHISPER, language="ko")["text"]
     return jiwer.cer(normalize_ko(script_text), normalize_ko(hyp)) * 100, hyp

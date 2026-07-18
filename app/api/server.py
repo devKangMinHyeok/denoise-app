@@ -19,7 +19,7 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-from core.audio import default_output_ext, ensure_ffmpeg  # noqa: E402
+from core.media.audio import default_output_ext, ensure_ffmpeg  # noqa: E402
 from core.clone import clone_available, clone_voice  # noqa: E402
 from core.denoise import run_denoise  # noqa: E402
 from api import dnjobs, profiles  # noqa: E402

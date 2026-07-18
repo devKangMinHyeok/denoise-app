@@ -181,10 +181,10 @@ def build_profile(pid, denoise=True, on_progress=None):
                 on_progress(ev)
             except Exception:
                 pass
-    from core.audio import concat_to_wav
+    from core.media.audio import concat_to_wav
     from core.clone import prepare_reference
     from core.denoise import preprocess_source
-    from core.prosody import (final_f0_slopes, prosody_features,
+    from core.analysis.prosody import (final_f0_slopes, prosody_features,
                               stress_features)
 
     pdir = _profile_dir(pid)
@@ -328,7 +328,7 @@ def _finish_job(job, out, t_start):
     except Exception:
         pass
     try:  # 가라오케 가사 뷰용 단어 타임라인 (실패해도 작업은 성공)
-        from core.prosody import prosody_deps_available, word_timeline
+        from core.analysis.prosody import prosody_deps_available, word_timeline
         if prosody_deps_available():
             job["words"] = word_timeline(out)
     except Exception:
@@ -464,7 +464,7 @@ def start_build_job(pid, denoise=True):
     분석은 1~2분 걸리므로 동기 요청은 UX 사각지대였다 (브라우저를 닫으면
     진행을 다시 못 봄). 작업 센터에서 추적 + ETA는 학습 음성 총 길이 실측.
     """
-    from core.audio import media_duration
+    from core.media.audio import media_duration
     from api.rates import estimate_build_eta
 
     meta = _load_meta(pid)  # 없으면 FileNotFoundError → 호출부 404

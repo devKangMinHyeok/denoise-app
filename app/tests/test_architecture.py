@@ -13,9 +13,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 APP_LAYER = ["cli/denoise.py", "voice/clone_say.py", "api/server.py",
              "api/profiles.py", "api/dnjobs.py"]
-CORE_LAYER = ["core/audio.py", "core/denoise.py", "core/clone.py",
-              "core/metrics.py", "core/prosody.py", "core/__init__.py",
-              "core/ffbin.py"]
+CORE_LAYER = ["core/media/audio.py", "core/denoise/denoise.py",
+              "core/clone/clone.py", "core/analysis/metrics.py",
+              "core/analysis/prosody.py", "core/__init__.py",
+              "core/media/ffbin.py"]
 
 
 def read(rel):

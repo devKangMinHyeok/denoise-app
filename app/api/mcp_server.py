@@ -55,7 +55,7 @@ def denoise(input_path: str, output_path: str = "", mode: str = "standard",
     Returns:
         output_path와 품질 리포트(발화 손실%·무음 억제dB, 재합성은 목소리 유사도).
     """
-    from core.audio import default_output_ext
+    from core.media.audio import default_output_ext
     from core.denoise import (denoise_report, resynth_available, run_denoise,
                               voice_similarity)
     if not os.path.exists(input_path):

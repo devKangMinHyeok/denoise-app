@@ -1,12 +1,13 @@
-"""Vocast 핵심 로직 패키지.
+"""Vocast 핵심 로직 패키지 — 관심사별 하위 패키지로 나뉜다.
 
-- core.audio   : ffmpeg 래퍼 (스트림 검사, 오디오 추출)
-- core.denoise : 배경 소음 제거 파이프라인 (RNNoise)
-- core.clone   : 보이스 클로닝 파이프라인 (Qwen3-TTS)
-- core.metrics : 품질 평가 지표 (SIM / CER / DNSMOS / 북극성 점수)
+- core.media    : ffmpeg 래퍼(audio) · 바이너리 리졸버(ffbin)
+- core.denoise  : 배경 소음 제거 파이프라인 + 엔진 워커(dfn·resynth)
+- core.clone    : 보이스 클로닝 파이프라인(Qwen3-TTS) + TTS 워커
+- core.analysis : 품질 지표(metrics: SIM/CER/DNSMOS/북극성) · 운율(prosody)
 
-CLI(denoise.py, voice/clone_say.py), 웹 서버(api/server.py), CI(quality/)가
-전부 이 패키지 하나만 바라본다.
+공개 API는 각 하위 패키지에서 재노출한다 (예: `from core.denoise import run_denoise`).
+CLI(cli/denoise.py, voice/clone_say.py), API 서버(api/server.py), CI(quality/)가
+전부 이 패키지 하나만 바라본다. ROOT·모델 경로·mlx 직렬화 락은 여기(루트)에 둔다.
 """
 import os
 
@@ -29,7 +30,7 @@ def mlx_transcribe(wav_path, **kwargs):
     모든 Whisper 호출은 이 래퍼를 거쳐 전역 락으로 직렬화한다.
     """
     import mlx_whisper
-    from .ffbin import ensure_ffmpeg_on_path
+    from .media.ffbin import ensure_ffmpeg_on_path
     ensure_ffmpeg_on_path()  # whisper는 오디오 로드에 bare `ffmpeg`를 PATH에서 찾음
     with MLX_LOCK:
         return mlx_whisper.transcribe(wav_path, **kwargs)

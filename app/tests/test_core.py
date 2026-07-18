@@ -10,10 +10,10 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.denoise import build_audio_filter  # noqa: E402
-from core.audio import audio_codec_args  # noqa: E402
-from core.metrics import (GATES, SIM_HUMAN_BASELINE, check_gates,  # noqa: E402
+from core.media.audio import audio_codec_args  # noqa: E402
+from core.analysis.metrics import (GATES, SIM_HUMAN_BASELINE, check_gates,  # noqa: E402
                           normalize_ko, voice_clone_score)
-from core.prosody import (BREATH_MIN, LIVELINESS, band_score,  # noqa: E402
+from core.analysis.prosody import (BREATH_MIN, LIVELINESS, band_score,  # noqa: E402
                           boundary_pause_adequacy, dynamics_score,
                           prosody_match_scores, prosody_naturalness_score,
                           split_sentences)
@@ -61,13 +61,13 @@ def test_blend_hybrid_protects_speech_and_gates_pauses():
 # ---- 음량 정규화 (정적 게인) ----
 
 def test_normalize_gain_reaches_target():
-    from core.audio import normalize_gain_db
+    from core.media.audio import normalize_gain_db
     # 발화 -36dB, 피크 -16dB → 목표 -19dB까지 +17dB, 피크 여유(14.5dB)로 제한
     assert normalize_gain_db(-36.0, -16.0) == pytest.approx(14.5)
 
 
 def test_normalize_gain_respects_peak_ceiling():
-    from core.audio import normalize_gain_db
+    from core.media.audio import normalize_gain_db
     # 이미 피크가 상한이면 게인 0 이하
     assert normalize_gain_db(-30.0, -1.5) == pytest.approx(0.0)
 
@@ -167,63 +167,63 @@ def test_liveliness_target_raises_bar():
 # ---- 끝음 절벽 (확 내려꽂음) ----
 
 def test_cliff_score_gentle_fall_full_credit():
-    from core.prosody import cliff_score
+    from core.analysis.prosody import cliff_score
     # 자연 수준(-8)이나 그보다 완만하면 만점
     assert cliff_score(-8.0, -7.8) == pytest.approx(1.0)
     assert cliff_score(-5.0, -7.8) == pytest.approx(1.0)
 
 
 def test_cliff_score_steep_fall_penalized():
-    from core.prosody import cliff_score
+    from core.analysis.prosody import cliff_score
     # 실측 사례: 클론 -17 vs 사람 -7.8 → 감점
     assert cliff_score(-17.0, -7.8) < 0.9
 
 
 def test_cliff_score_reading_tone_reference_capped():
-    from core.prosody import cliff_score
+    from core.analysis.prosody import cliff_score
     # 참조가 낭독투로 이미 가파르면(-15) 자연 상한(-9)이 기준이 됨
     assert cliff_score(-17.0, -15.0) < cliff_score(-13.0, -15.0) == pytest.approx(1.0, abs=0.01) or True
     assert cliff_score(-20.0, -15.0) < 1.0
 
 
 def test_cliff_score_vacuous_without_data():
-    from core.prosody import cliff_score
+    from core.analysis.prosody import cliff_score
     assert cliff_score(None, -8.0) == 1.0
 
 
 # ---- 어미 단어 내부 낙하 ----
 
 def test_word_drop_level_endings_full_credit():
-    from core.prosody import word_drop_score
+    from core.analysis.prosody import word_drop_score
     # 수평/상승 어미 (실측 자연 어미: ±1st 내)
     assert word_drop_score([0.2, -0.5, 1.1]) == pytest.approx(1.0)
 
 
 def test_word_drop_worst_case_caught():
-    from core.prosody import word_drop_score
+    from core.analysis.prosody import word_drop_score
     # 실측 결함: 대부분 수평인데 '줬어요' -2.7, '나왔죠?' -3.8 낙하 → 감점
     assert word_drop_score([0.2, 0.3, 2.7, 3.8, 0.7]) < 0.6
 
 
 def test_word_drop_vacuous_without_data():
-    from core.prosody import word_drop_score
+    from core.analysis.prosody import word_drop_score
     assert word_drop_score([]) == 1.0
 
 
 # ---- 먹힌 단어 (국소 강약) + 호흡 단위 ----
 
 def test_swallowed_score_human_level_full_credit():
-    from core.prosody import swallowed_score
+    from core.analysis.prosody import swallowed_score
     assert swallowed_score(-7.2) == pytest.approx(1.0)  # 사람 실측 최악
 
 
 def test_swallowed_score_dead_word_penalized():
-    from core.prosody import swallowed_score
+    from core.analysis.prosody import swallowed_score
     assert swallowed_score(-11.5) < 0.5  # 클론 실측 결함
 
 
 def test_split_breath_units_sentence_and_clause():
-    from core.prosody import split_breath_units
+    from core.analysis.prosody import split_breath_units
     u = split_breath_units("노이즈를 제거하고, 목소리를 학습합니다. 시작해 볼게요.")
     assert [k for _, k in u] == ["clause", "sentence", "sentence"]
     assert u[0][0] == "노이즈를 제거하고"
@@ -258,7 +258,7 @@ def test_bpa_overlong_pause_penalized():
 # ---- 테이크 선별 (속도 가드 + 긴 대본 청크) ----
 
 def test_selection_score_penalizes_fast_takes():
-    from core.clone import _selection_score
+    from core.clone.clone import _selection_score  # private 헬퍼는 모듈에서 직접
     # 자연 속도(±15%) 안이면 감점 없음, 빠른 테이크(+25%)는 감점
     assert _selection_score(85.0, 9.1, 9.1) == pytest.approx(85.0)
     assert _selection_score(85.0, 11.4, 9.1) < 84.0
@@ -267,19 +267,19 @@ def test_selection_score_penalizes_fast_takes():
 # ---- 끝음 스타일 ----
 
 def test_ending_style_match_full_credit():
-    from core.prosody import ending_style_score
+    from core.analysis.prosody import ending_style_score
     # 화자(상승형 +2.0st/s)와 같은 스타일 → 만점
     assert ending_style_score([2.5, 1.5], [2.0, 2.2, 1.9]) == pytest.approx(1.0)
 
 
 def test_ending_style_reading_tone_penalized():
-    from core.prosody import ending_style_score
+    from core.analysis.prosody import ending_style_score
     # 실측 사례: 화자 +2.0 vs 클론 -4.3 (낭독체 하강) → 감점
     assert ending_style_score([-4.3, -3.5], [2.0, 1.8, 2.3]) < 0.6
 
 
 def test_ending_style_vacuous_when_ref_unreliable():
-    from core.prosody import ending_style_score
+    from core.analysis.prosody import ending_style_score
     # 참조 표본 3개 미만이면 가드 무효화 — 빈약한 통계로 선별을 왜곡하지 않기
     assert ending_style_score([], [1.0]) == 1.0
     assert ending_style_score([-9.0], [2.0, 1.8]) == 1.0
@@ -302,14 +302,14 @@ def test_pick_best_take_normal_case():
 # ---- 음절 강약 스타일 ----
 
 def test_stress_style_match_full_credit():
-    from core.prosody import stress_style_score
+    from core.analysis.prosody import stress_style_score
     ref = {"peak_range": 17.5, "peak_valley": 17.0}
     assert stress_style_score({"peak_range": 17.0, "peak_valley": 16.5},
                               ref) == pytest.approx(1.0)
 
 
 def test_stress_style_flat_and_choppy_penalized():
-    from core.prosody import stress_style_score
+    from core.analysis.prosody import stress_style_score
     ref = {"peak_range": 17.5, "peak_valley": 17.0}
     # 실측 사례: 균일 강세(범위 13.5) + 과분절(대비 22.9) → 감점
     assert stress_style_score({"peak_range": 13.5, "peak_valley": 22.9},
@@ -317,7 +317,7 @@ def test_stress_style_flat_and_choppy_penalized():
 
 
 def test_stress_style_vacuous_when_no_data():
-    from core.prosody import stress_style_score
+    from core.analysis.prosody import stress_style_score
     assert stress_style_score(None, {"peak_range": 17.0,
                                      "peak_valley": 17.0}) == 1.0
 

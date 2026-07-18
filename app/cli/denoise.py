@@ -10,7 +10,7 @@ import argparse
 import os
 import sys
 
-from core.audio import ensure_ffmpeg
+from core.media.audio import ensure_ffmpeg
 from core.denoise import run_denoise
 
 

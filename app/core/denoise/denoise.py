@@ -13,8 +13,8 @@ import os
 import subprocess
 import sys
 
-from . import ROOT, RNNOISE_MODEL
-from .audio import audio_codec_args, has_video_stream, run_ffmpeg
+from core import ROOT, RNNOISE_MODEL
+from core.media.audio import audio_codec_args, has_video_stream, run_ffmpeg
 
 DFN_VENV_PY = os.environ.get(
     "DFN_PYTHON", os.path.join(ROOT, ".venv-dfn", "bin", "python3"))
@@ -174,7 +174,7 @@ def _denoise_wav_dfn(in_wav, out_wav, on_progress=None):
     import numpy as np
     import soundfile as sf
     import tempfile
-    worker = os.path.join(ROOT, "core", "dfn_worker.py")
+    worker = os.path.join(ROOT, "core", "denoise", "dfn_worker.py")
     with tempfile.TemporaryDirectory() as wd:
         lim = os.path.join(wd, "lim.wav")
         unlim = os.path.join(wd, "unlim.wav")
@@ -193,7 +193,7 @@ def _denoise_wav_dfn(in_wav, out_wav, on_progress=None):
 def _resynth_wav(in_wav, out_wav, on_progress=None):
     """재합성(resemble-enhance) 워커 호출 — CPU 고정 (설정 근거는 워커 주석)."""
     _notify(on_progress, stage="resynth")
-    worker = os.path.join(ROOT, "core", "resynth_worker.py")
+    worker = os.path.join(ROOT, "core", "denoise", "resynth_worker.py")
     proc = subprocess.run([RE_VENV_PY, worker, in_wav, out_wav],
                           capture_output=True, text=True, timeout=7200)
     if proc.returncode != 0 or not os.path.exists(out_wav):
@@ -237,7 +237,7 @@ def run_denoise(input_path, output_path, boost=0.0, engine="auto",
         if not resynth_available():
             raise RuntimeError(
                 "재합성 엔진이 설치되어 있지 않습니다: bash packaging/scripts/install_resynth.sh")
-        from .audio import normalize_speech_level
+        from core.media.audio import normalize_speech_level
         with tempfile.TemporaryDirectory() as wd:
             raw = os.path.join(wd, "in.wav")
             _notify(on_progress, stage="extract")

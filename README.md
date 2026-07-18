@@ -181,12 +181,11 @@ python3 voice/clone_say.py --ref 내목소리.wav --script 대본.txt -o out.wav
 
 ```
 app/                    ★ 제품 (파이썬 엔진 + 네이티브 UI)
-  core/                   핵심 로직 패키지 (여기만 보면 됨 — 순수 로직)
-    audio.py                ffmpeg 래퍼
-    denoise.py              노이즈 제거 파이프라인
-    clone.py                보이스 클로닝 파이프라인
-    metrics.py, prosody.py  평가지표 SIM/CER/MOS + 북극성 VCS + 게이트
-    *_worker.py             엔진별 워커(DFN·재합성·TTS 서브프로세스)
+  core/                   핵심 로직 (순수) — 관심사별 하위 패키지
+    media/                  audio(ffmpeg 래퍼) · ffbin(바이너리 리졸버)
+    denoise/                denoise 파이프라인 + dfn·resynth 워커
+    clone/                  clone 파이프라인 + tts 워커
+    analysis/               metrics(SIM/CER/MOS/VCS 게이트) · prosody(운율/PNS)
   api/                    로컬 API 계층 (Flask 서버 + MCP + 저장소·프로필·잡)
     server.py, mcp_server.py, storage.py, profiles.py, dnjobs.py, rates.py, static/
   ui/                     네이티브 SwiftUI 앱 (전환 진행 중)

@@ -1,4 +1,4 @@
-"""ffmpeg 래퍼 유틸. 바이너리는 core.ffbin이 해결한다 (시스템 설치 비의존)."""
+"""ffmpeg 래퍼 유틸. 바이너리는 core.media.ffbin이 해결한다 (시스템 설치 비의존)."""
 import re
 import subprocess
 
