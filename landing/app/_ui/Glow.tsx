@@ -1,6 +1,6 @@
 import * as React from "react";
 
-/** Brand ray-burst glow — behind the hero. Radial-masked + blurred so there is no hard edge. */
+/** Brand ray-burst glow, behind the hero. Radial-masked + blurred so there is no hard edge. */
 export function RayBurst({ style }: { style?: React.CSSProperties }) {
   return (
     <div
@@ -41,7 +41,7 @@ export function RayBurst({ style }: { style?: React.CSSProperties }) {
   );
 }
 
-/** Soft ember aurora glow — behind the MCP + Pricing sections. */
+/** Soft ember aurora glow, behind the MCP + Pricing sections. */
 export function AuroraGlow({ style }: { style?: React.CSSProperties }) {
   return (
     <div

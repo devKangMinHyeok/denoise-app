@@ -22,10 +22,11 @@ export interface Post {
   Body: React.FC;
 }
 
-/** Serializable card fields (safe to hand to a client component — no Body). */
+/** Serializable card fields (safe to hand to a client component, no Body). */
 export type PostCard = Omit<Post, "Body">;
 
-const kang: Author = { name: "Minhyeok Kang", avatar: asset("/blog/avatar-thomas.png") };
+// Avatars use the initials fallback, no third-party author photos.
+const kang: Author = { name: "Minhyeok Kang" };
 const team: Author = { name: "Vocast Team" };
 
 // --- Featured: the natural-voice article, as a full Prose body ---
@@ -33,13 +34,13 @@ const NaturalVoiceBody: React.FC = () => (
   <Prose>
     <p>
       Almost every voice AI can pass a ten-second demo. The clip sounds clean, the words are clear,
-      and for about two sentences you believe it. Then you try to narrate a real script — a chapter,
-      a course module, a twenty-minute video — and the illusion cracks. The endings flatten, every
+      and for about two sentences you believe it. Then you try to narrate a real script, a chapter,
+      a course module, a twenty-minute video, and the illusion cracks. The endings flatten, every
       sentence lands with the same shape, and somewhere around minute three your ear stops hearing a
       person and starts hearing a machine reading.
     </p>
     <p>
-      That gap — between a good demo and a narration you can publish — is the only thing that matters.
+      That gap, between a good demo and a narration you can publish, is the only thing that matters.
       Vocast was built to close it, and to prove it closed with numbers rather than adjectives.
     </p>
 
@@ -53,12 +54,12 @@ const NaturalVoiceBody: React.FC = () => (
     </p>
     <p>
       So that is what Vocast measures first. Its north-star metric is a prosody naturalness score
-      (PNS) — a single number, benchmarked against how a real person reads the same lines.
+      (PNS), a single number, benchmarked against how a real person reads the same lines.
     </p>
 
     <Prose.Figure
       pair
-      images={[asset("/blog/fresh-look.png"), asset("/blog/api-extensions.png")]}
+      images={[asset("/blog/cover-1.svg"), asset("/blog/cover-2.svg")]}
       caption="Left: the quality report shown after every render. Right: the prosody breakdown per sentence."
     />
 
@@ -67,7 +68,7 @@ const NaturalVoiceBody: React.FC = () => (
     <ul>
       <li>
         <strong>Speaker similarity (SIM):</strong> our winning configuration lands between 0.917 and
-        0.945. Two recordings of the same real person score about 0.909 against each other — so the
+        0.945. Two recordings of the same real person score about 0.909 against each other, so the
         clone sits inside the range of your own voice on two different days.
       </li>
       <li>
@@ -75,7 +76,7 @@ const NaturalVoiceBody: React.FC = () => (
         script. On mixed scripts with numbers and loanwords, character error rate is 0%.
       </li>
       <li>
-        <strong>Naturalness (MOS):</strong> a no-reference model rates the clone at 3.50 — slightly
+        <strong>Naturalness (MOS):</strong> a no-reference model rates the clone at 3.50, slightly
         above the 3.24 reference it was cloned from.
       </li>
       <li>
@@ -85,7 +86,7 @@ const NaturalVoiceBody: React.FC = () => (
     <p>
       None of these are cherry-picked. They are enforced in continuous integration, and a render that
       misses a gate is rejected, not shipped. Calling a voice from an agent looks like{" "}
-      <code>clone_voice(text, profile_id=&quot;MyVoice&quot;)</code> — and it returns the score with the audio.
+      <code>clone_voice(text, profile_id=&quot;MyVoice&quot;)</code>, and it returns the score with the audio.
     </p>
 
     <blockquote>
@@ -93,10 +94,10 @@ const NaturalVoiceBody: React.FC = () => (
       measurable properties, and then refused to ship anything that missed them.
     </blockquote>
 
-    <Prose.Heading id="usable">So — can you actually use it?</Prose.Heading>
+    <Prose.Heading id="usable">So, can you actually use it?</Prose.Heading>
     <p>
-      Generation runs at roughly 4&times; realtime on an Apple Silicon Mac, entirely on the machine —
-      no upload, no queue, no per-minute meter. A karaoke view colours each word as it plays so you
+      Generation runs at roughly 4&times; realtime on an Apple Silicon Mac, entirely on the machine. 
+      No upload, no queue, no per-minute meter. A karaoke view colours each word as it plays so you
       proof a long narration by eye and ear at once. And when one paragraph comes out flat, you
       regenerate just that block instead of re-rendering the whole take. It is not a voice that fools
       you for ten seconds. It is a voice you can put on a twenty-minute video, in your own name.
@@ -108,13 +109,13 @@ const ProsodyBody: React.FC = () => (
   <Prose>
     <p>
       Most voice tools report one number, usually word accuracy, and call it quality. That measures
-      whether the words are right — not whether the delivery is human. We split naturalness into
+      whether the words are right, not whether the delivery is human. We split naturalness into
       properties we can score independently, so a regression in any one of them fails the build.
     </p>
     <Prose.Heading id="north-star">A prosody north-star</Prose.Heading>
     <p>
       PNS blends pitch dynamics, pause rhythm and the shape of sentence endings, benchmarked against a
-      human reading of the same text. A perfectly clear render can still fail it — which is the point.
+      human reading of the same text. A perfectly clear render can still fail it, which is the point.
     </p>
     <ul>
       <li>Pitch range that does not collapse into a monotone over long passages.</li>
@@ -129,13 +130,13 @@ const CloneBody: React.FC = () => (
   <Prose>
     <p>
       Naturalness is worthless if getting your voice in is a chore. Vocast builds a profile from ten
-      short guided lines — about ninety seconds, designed to cover the sounds that trip up cloning.
+      short guided lines, about ninety seconds, designed to cover the sounds that trip up cloning.
     </p>
     <Prose.Heading id="reusable">A profile you own</Prose.Heading>
     <p>
       From then on the profile is reusable. Narrate against it as often as you like, reinforce it with
       more source clips, version it, and roll back if a new version drifts. Your voice becomes an
-      asset you keep — not a one-off upload you hope worked.
+      asset you keep, not a one-off upload you hope worked.
     </p>
   </Prose>
 );
@@ -158,7 +159,7 @@ const LongformBody: React.FC = () => (
 const LocalBody: React.FC = () => (
   <Prose>
     <p>
-      If you make a living with your voice, where it lives is not a privacy nicety — it is the whole
+      If you make a living with your voice, where it lives is not a privacy nicety; it is the whole
       basis of trusting the tool.
     </p>
     <Prose.Heading id="local">One-time, on your machine</Prose.Heading>
@@ -179,7 +180,7 @@ export const POSTS: Post[] = [
       "Most AI voices sound great in a ten-second demo and fall apart over twenty minutes. Here is how we measure naturalness, and what it takes to ship a cloned voice you would put your name on.",
     readTime: "6 min read",
     date: "Jul 19, 2026",
-    cover: asset("/blog/fresh-look.png"),
+    cover: asset("/blog/cover-1.svg"),
     authors: [kang, team],
     featured: true,
     Body: NaturalVoiceBody,
@@ -188,10 +189,10 @@ export const POSTS: Post[] = [
     slug: "measuring-prosody-not-vibes",
     category: "Engineering",
     title: "Measuring prosody, not vibes",
-    excerpt: "Why Vocast scores pitch, pauses and sentence endings separately — and gates every render on all of them.",
+    excerpt: "Why Vocast scores pitch, pauses and sentence endings separately, and gates every render on all of them.",
     readTime: "4 min read",
     date: "Jul 12, 2026",
-    cover: asset("/blog/api-extensions.png"),
+    cover: asset("/blog/cover-2.svg"),
     authors: [team],
     Body: ProsodyBody,
   },
@@ -202,7 +203,7 @@ export const POSTS: Post[] = [
     excerpt: "Ten guided lines, one reusable profile you can version and roll back. Your voice as an asset you own.",
     readTime: "3 min read",
     date: "Jul 4, 2026",
-    cover: asset("/blog/teams.png"),
+    cover: asset("/blog/cover-3.svg"),
     authors: [kang],
     Body: CloneBody,
   },
@@ -213,7 +214,7 @@ export const POSTS: Post[] = [
     excerpt: "20,000-character scripts, per-paragraph regeneration, and performance transfer for the passages that need a specific delivery.",
     readTime: "4 min read",
     date: "Jun 26, 2026",
-    cover: asset("/blog/extension-picks.png"),
+    cover: asset("/blog/cover-4.svg"),
     authors: [team],
     Body: LongformBody,
   },
@@ -221,10 +222,10 @@ export const POSTS: Post[] = [
     slug: "why-one-time-and-fully-local",
     category: "Company",
     title: "Why Vocast is one-time and fully local",
-    excerpt: "No subscription, no server, no account. Your voice and your words stay on your machine — by design.",
+    excerpt: "No subscription, no server, no account. Your voice and your words stay on your machine, by design.",
     readTime: "3 min read",
     date: "Jun 18, 2026",
-    cover: asset("/blog/pro.png"),
+    cover: asset("/blog/cover-5.svg"),
     authors: [kang],
     Body: LocalBody,
   },

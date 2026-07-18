@@ -133,9 +133,9 @@ function MockTasks() {
 }
 
 const FEATURES = [
-  { media: <MockProfile />, title: "Your voice profile", body: "Read ten guided lines once. Vocast builds a reusable profile — version it, reinforce it, roll back anytime." },
+  { media: <MockProfile />, title: "Your voice profile", body: "Read ten guided lines once. Vocast builds a reusable profile, version it, reinforce it, roll back anytime." },
   { media: <MockLongform />, title: "Long-form narration", body: "Paste up to 20,000 characters. Edit any paragraph in place and re-render just that block, not the whole take." },
-  { media: <MockTransfer />, title: "Performance transfer", body: "Record a reference delivery and the clone follows your pacing, emphasis and pauses — not a flat read." },
+  { media: <MockTransfer />, title: "Performance transfer", body: "Record a reference delivery and the clone follows your pacing, emphasis and pauses, not a flat read." },
   { media: <MockKaraoke />, title: "Karaoke lyrics view", body: "Watch each word light up as it plays, and click any word to jump there. Proofing long narration gets fast." },
   { media: <MockNoise />, title: "Hybrid noise removal", body: "Studio-clean audio that keeps your word endings. Standard filtering or full resynthesis when you need it." },
   { media: <MockTasks />, title: "Task center + ETA", body: "Everything heavy runs in the background with a live ETA, so you keep writing while renders finish." },

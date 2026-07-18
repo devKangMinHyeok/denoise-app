@@ -1,4 +1,4 @@
-// @timbre/design-system — public API.
+// @timbre/design-system, public API.
 // Consumers must also import the token/font CSS once:
 //   import "@timbre/design-system/styles.css";
 
@@ -22,7 +22,7 @@ export type { LogoProps } from "./components/shared/Logo";
 export { Avatar } from "./components/shared/Avatar";
 export type { AvatarProps } from "./components/shared/Avatar";
 
-// Marketing (website only — do not use in the product app)
+// Marketing (website only, do not use in the product app)
 export { FeatureCard } from "./components/marketing/FeatureCard";
 export type { FeatureCardProps } from "./components/marketing/FeatureCard";
 export { SectionHeading } from "./components/marketing/SectionHeading";
@@ -32,7 +32,7 @@ export type { PromoCardProps } from "./components/marketing/PromoCard";
 export { TakeoffCTA } from "./components/marketing/TakeoffCTA";
 export type { TakeoffCTAProps } from "./components/marketing/TakeoffCTA";
 
-// Blog (marketing) — index + post
+// Blog (marketing), index + post
 export { CategoryTag } from "./components/marketing/CategoryTag";
 export type { CategoryTagProps } from "./components/marketing/CategoryTag";
 export { AuthorStack } from "./components/marketing/AuthorStack";

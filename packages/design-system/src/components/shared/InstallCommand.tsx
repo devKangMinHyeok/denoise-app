@@ -1,5 +1,5 @@
 "use client";
-// Ported from source/components/feedback/InstallCommand.jsx — copyable command chip.
+// Ported from source/components/feedback/InstallCommand.jsx, copyable command chip.
 import * as React from "react";
 
 const FEAT = '"calt","kern","liga","ss03"';

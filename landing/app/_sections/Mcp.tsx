@@ -53,7 +53,7 @@ export function Mcp() {
             Claude operates this app directly.
           </h2>
           <p style={{ margin: 0, font: "400 clamp(15px,1.6vw,18px)/1.6 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-mute)" }}>
-            Vocast ships a local MCP server, so an AI agent can clone, narrate and denoise for you —
+            Vocast ships a local MCP server, so an AI agent can clone, narrate and denoise for you, 
             entirely on your machine, no network in the loop.
           </p>
         </div>
@@ -70,7 +70,7 @@ export function Mcp() {
                 <ToolCall>list_voice_profiles() → picked &quot;MyVoice&quot;</ToolCall>
                 <ToolCall>clone_voice(text=…, profile_id=&quot;MyVoice&quot;) → PNS 84.2</ToolCall>
                 <div style={{ marginTop: 8, font: "400 13px/1.5 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>
-                  Done — clean cut plus a narrated intro in MyVoice, saved locally.
+                  Done, clean cut plus a narrated intro in MyVoice, saved locally.
                 </div>
               </div>
             </div>
@@ -87,7 +87,7 @@ export function Mcp() {
             <div style={{ borderRadius: "var(--rc-radius-md)", border: "1px solid rgba(245,115,43,.4)", background: "rgba(245,115,43,.08)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ color: "var(--rc-ray)", display: "inline-flex" }}><Icon name="shield" size={18} /></span>
               <div style={{ font: "500 12.5px/1.4 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>
-                All local stdio — no network, no cloud.
+                All local stdio, no network, no cloud.
               </div>
             </div>
           </div>

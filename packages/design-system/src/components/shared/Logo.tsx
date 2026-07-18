@@ -1,4 +1,4 @@
-// Ported from source/components/brand/Logo.jsx — Timbre voice-waveform mark + wordmark.
+// Ported from source/components/brand/Logo.jsx, Timbre voice-waveform mark + wordmark.
 // Bars use currentColor; `animated` pulses them like a live waveform (rc-eq keyframe).
 import * as React from "react";
 

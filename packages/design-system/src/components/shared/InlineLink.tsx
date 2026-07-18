@@ -1,5 +1,5 @@
 "use client";
-// Ported from source/components/inline/InlineLink.jsx — body-prose anchor.
+// Ported from source/components/inline/InlineLink.jsx, body-prose anchor.
 // Client component: uses hover handlers for the focus/hover underline.
 import * as React from "react";
 

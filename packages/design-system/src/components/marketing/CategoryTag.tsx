@@ -1,4 +1,4 @@
-// Ported from source/components/content/CategoryTag.jsx — blog category pill.
+// Ported from source/components/content/CategoryTag.jsx, blog category pill.
 import * as React from "react";
 
 const FEAT = '"calt","kern","liga","ss03"';

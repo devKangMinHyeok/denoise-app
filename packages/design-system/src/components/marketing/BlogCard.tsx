@@ -1,4 +1,4 @@
-// Ported from source/components/cards/BlogCard.jsx — blog post card.
+// Ported from source/components/cards/BlogCard.jsx, blog post card.
 import * as React from "react";
 import { Avatar } from "../shared/Avatar";
 import { CategoryTag } from "./CategoryTag";

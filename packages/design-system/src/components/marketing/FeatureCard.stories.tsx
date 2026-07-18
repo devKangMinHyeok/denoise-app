@@ -7,7 +7,7 @@ const meta: Meta<typeof FeatureCard> = {
   component: FeatureCard,
   args: {
     title: "Voice cloning, on-device",
-    children: "Paste a script and hear it in your own voice — intonation, breath and emphasis intact.",
+    children: "Paste a script and hear it in your own voice, intonation, breath and emphasis intact.",
   },
 };
 export default meta;

@@ -155,7 +155,7 @@ export function Nav({ active }: { active?: string } = {}) {
           </NavLink>
           <div style={{ marginTop: 4 }}>
             <Button variant="primary" as="a" href={`${HOME}#pricing`} style={{ width: "100%" }} onClick={() => setMenuOpen(false)}>
-              Buy — $49
+              Buy · $49
             </Button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-// Ported from source/components/content/BlogPostLayout.jsx — article detail shell.
+// Ported from source/components/content/BlogPostLayout.jsx, article detail shell.
 import * as React from "react";
 import { Avatar } from "../shared/Avatar";
 import { CategoryTag } from "./CategoryTag";

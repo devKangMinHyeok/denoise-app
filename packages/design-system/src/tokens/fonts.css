@@ -1,4 +1,4 @@
-/* Raycast — Fonts. Self-hosted Inter (variable) + JetBrains Mono, shipped in assets/fonts/.
+/* Timbre — Fonts. Self-hosted Inter (variable) + JetBrains Mono, shipped in assets/fonts/.
    Inter is loaded as a variable font (weights 100–900) so every weight in the type scale
    renders from one file. ss03 (the alternate g) is enabled via --rc-font-features. */
 @font-face {
@@ -26,6 +26,6 @@
 :root {
   --rc-font-sans: 'Inter', 'Inter Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --rc-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  /* ss03 alternate g is Raycast's signature typographic detail — enable site-wide */
+  /* ss03 alternate g is Timbre's signature typographic detail — enable site-wide */
   --rc-font-features: "calt", "kern", "liga", "ss03";
 }

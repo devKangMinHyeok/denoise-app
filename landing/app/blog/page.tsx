@@ -10,7 +10,7 @@ import { asset } from "../../lib/asset";
 const FEAT = '"calt","kern","liga","ss03"';
 
 export const metadata: Metadata = {
-  title: "Blog — Vocast",
+  title: "Blog, Vocast",
   description:
     "Notes on natural voice cloning, on-device audio, and shipping a voice you can actually publish. From the team building Vocast.",
 };

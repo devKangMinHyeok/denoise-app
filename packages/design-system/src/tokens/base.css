@@ -1,4 +1,4 @@
-/* Raycast — base element defaults. Applies the dark canvas + Inter ss03 site-wide. */
+/* Timbre — base element defaults. Applies the dark canvas + Inter ss03 site-wide. */
 :root { color-scheme: dark; }
 body {
   background: var(--rc-canvas);

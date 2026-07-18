@@ -1,4 +1,4 @@
-// Ported from source/components/content/Prose.jsx — long-form article typography
+// Ported from source/components/content/Prose.jsx, long-form article typography
 // with anchored headings and captioned/paired figures.
 import * as React from "react";
 
@@ -52,7 +52,7 @@ function ProseRoot({ children, measure = 720, style, ...rest }: ProseProps) {
   );
 }
 
-/** Anchored section heading — <h2 id> with a hover # link so a TOC can target it. */
+/** Anchored section heading, <h2 id> with a hover # link so a TOC can target it. */
 function ProseHeading({ id, level = 2, children }: ProseHeadingProps) {
   const Tag = (`h${level}` as unknown) as React.ElementType;
   return (

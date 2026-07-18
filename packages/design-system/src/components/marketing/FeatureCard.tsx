@@ -1,4 +1,4 @@
-// Ported from source/components/cards/FeatureCard.jsx — presentational card.
+// Ported from source/components/cards/FeatureCard.jsx, presentational card.
 import * as React from "react";
 
 const FEAT = '"calt","kern","liga","ss03"';

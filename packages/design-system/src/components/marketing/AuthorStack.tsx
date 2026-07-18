@@ -1,4 +1,4 @@
-// Ported from source/components/content/AuthorStack.jsx — co-author avatar cluster.
+// Ported from source/components/content/AuthorStack.jsx, co-author avatar cluster.
 import * as React from "react";
 import { Avatar } from "../shared/Avatar";
 

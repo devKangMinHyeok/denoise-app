@@ -16,7 +16,7 @@ const CARDS: { icon: IconProps["name"]; tint: string; title: string; body: strin
   {
     icon: "lock",
     tint: "var(--rc-accent-blue)",
-    title: "Subscriptions pile up — and your voice lives on someone's server",
+    title: "Subscriptions pile up, and your voice lives on someone's server",
     body: "Cloud voice tools bill monthly and keep your voiceprint. You never really own either one.",
   },
   {

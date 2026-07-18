@@ -1,4 +1,4 @@
-// Ported from source/components/marketing/TakeoffCTA.jsx — closing CTA band.
+// Ported from source/components/marketing/TakeoffCTA.jsx, closing CTA band.
 import * as React from "react";
 import { Button } from "../shared/Button";
 import { InstallCommand } from "../shared/InstallCommand";

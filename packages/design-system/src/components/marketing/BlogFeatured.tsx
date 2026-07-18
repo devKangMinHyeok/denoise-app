@@ -1,4 +1,4 @@
-// Ported from source/components/content/BlogFeatured.jsx — full-width index lead post.
+// Ported from source/components/content/BlogFeatured.jsx, full-width index lead post.
 import * as React from "react";
 import { AuthorStack, type BlogAuthor } from "./AuthorStack";
 import { CategoryTag } from "./CategoryTag";

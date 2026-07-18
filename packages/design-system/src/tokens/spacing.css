@@ -1,4 +1,4 @@
-/* Raycast — Spacing, radius & layout tokens. 8px base with 2/4/12 tight steps. */
+/* Timbre — Spacing, radius & layout tokens. 8px base with 2/4/12 tight steps. */
 :root {
   --rc-space-xxs: 2px;
   --rc-space-xs: 4px;

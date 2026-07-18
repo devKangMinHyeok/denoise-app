@@ -2,7 +2,7 @@ import * as React from "react";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
-/** macOS window frame — title bar with 3 dots + centered title, then body. Used for feature/chat mockups. */
+/** macOS window frame, title bar with 3 dots + centered title, then body. Used for feature/chat mockups. */
 export function WindowMock({
   title,
   children,

@@ -1,4 +1,4 @@
-// Ported from source/components/media/Avatar.jsx — circular avatar (image or initials).
+// Ported from source/components/media/Avatar.jsx, circular avatar (image or initials).
 import * as React from "react";
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {

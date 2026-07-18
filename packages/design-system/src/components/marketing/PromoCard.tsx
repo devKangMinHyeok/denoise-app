@@ -1,4 +1,4 @@
-// Ported from source/components/marketing/PromoCard.jsx — wide gradient promo card.
+// Ported from source/components/marketing/PromoCard.jsx, wide gradient promo card.
 import * as React from "react";
 
 const FEAT = '"calt","kern","liga","ss03"';

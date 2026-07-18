@@ -63,7 +63,7 @@ export const TextRamp: Story = {
           ["--rc-stone", "stone"],
         ].map(([v, n]) => (
           <div key={v} style={{ color: `var(${v})`, font: "400 20px/1.4 var(--rc-font-sans)", fontFeatureSettings: '"calt","kern","liga","ss03"' }}>
-            {n} — The struggling gopher juggles ({v})
+            {n}, The struggling gopher juggles ({v})
           </div>
         ))}
       </div>
@@ -73,13 +73,13 @@ export const TextRamp: Story = {
 
 export const Typography: Story = {
   render: () => (
-    <Wrap title="Type scale — Inter, ss03 alternate g on">
+    <Wrap title="Type scale, Inter, ss03 alternate g on">
       <div style={{ display: "flex", flexDirection: "column", gap: 12, color: "var(--rc-ink)", fontFeatureSettings: '"calt","kern","liga","ss03"' }}>
         <div style={{ font: "600 64px/1.05 var(--rc-font-sans)" }}>Display 64</div>
         <div style={{ font: "500 40px/1.12 var(--rc-font-sans)" }}>Heading 40</div>
         <div style={{ font: "500 20px/1.4 var(--rc-font-sans)" }}>Subtitle 20</div>
-        <div style={{ font: "400 16px/1.6 var(--rc-font-sans)", color: "var(--rc-body)" }}>Body 16 — the signature ligature is the single-storey g.</div>
-        <code style={{ font: "400 14px/1.5 var(--rc-font-mono)", color: "var(--rc-body)" }}>JetBrains Mono — brew install --cask timbre</code>
+        <div style={{ font: "400 16px/1.6 var(--rc-font-sans)", color: "var(--rc-body)" }}>Body 16, the signature ligature is the single-storey g.</div>
+        <code style={{ font: "400 14px/1.5 var(--rc-font-mono)", color: "var(--rc-body)" }}>JetBrains Mono, brew install --cask timbre</code>
       </div>
     </Wrap>
   ),

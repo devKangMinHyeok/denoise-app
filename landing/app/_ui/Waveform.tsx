@@ -22,7 +22,7 @@ export interface WaveformProps {
   count?: number;
   mode?: "raw" | "smooth";
   heights?: number[];
-  /** 0..1 playhead — bars before it use activeColor, after use inactiveColor */
+  /** 0..1 playhead, bars before it use activeColor, after use inactiveColor */
   pos?: number;
   onSeek?: (pos: number) => void;
   height?: number;

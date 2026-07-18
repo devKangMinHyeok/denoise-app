@@ -1,4 +1,4 @@
-// Ported from source/components/buttons/Button.jsx — plain function component,
+// Ported from source/components/buttons/Button.jsx, plain function component,
 // inline styles + CSS variables, no runtime deps. Presentational (no state).
 import * as React from "react";
 
@@ -11,7 +11,7 @@ export interface ButtonProps
   /** pressed state for the primary pill (dims one notch) */
   pressed?: boolean;
   size?: "sm" | "md";
-  /** render as a different element, e.g. "a" — then href/target/rel apply */
+  /** render as a different element, e.g. "a", then href/target/rel apply */
   as?: React.ElementType;
   /** anchor attributes, valid when `as="a"` */
   href?: string;
