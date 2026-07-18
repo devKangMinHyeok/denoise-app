@@ -1,0 +1,24 @@
+/* Timbre Design System — global entry point.
+   Consumers import this one file: `import "@timbre/design-system/styles.css";`
+   Import order matters (fonts → colors → type → spacing → motion → shadcn → base). */
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+@import "./tokens/animations.css";
+@import "./tokens/shadcn-dark.css";
+@import "./tokens/base.css";
+
+/* Page defaults — dark-only canvas. The `ss03` alternate g is the system signature. */
+:root {
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--rc-canvas);
+  color: var(--rc-body);
+  font-family: var(--rc-font-sans);
+  font-feature-settings: var(--rc-font-features);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}

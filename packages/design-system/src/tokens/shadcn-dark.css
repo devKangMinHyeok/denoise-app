@@ -1,0 +1,52 @@
+/* shadcn/ui — dark theme tokens ("slate"). Values taken from the attached shadcn
+   Figma (extracted slate palette: #0f172a, #e2e8f0, #64748b, #1e293b, #ef4444 …).
+   These are the product-UI tokens; the marketing system keeps its --rc-* tokens.
+   Namespaced --ui-* so the two systems coexist. */
+:root {
+  /* slate scale (base) */
+  --ui-slate-50:  #f8fafc;
+  --ui-slate-100: #f1f5f9;
+  --ui-slate-200: #e2e8f0;
+  --ui-slate-300: #cbd5e1;
+  --ui-slate-400: #94a3b8;
+  --ui-slate-500: #64748b;
+  --ui-slate-600: #475569;
+  --ui-slate-700: #334155;
+  --ui-slate-800: #1e293b;
+  --ui-slate-900: #0f172a;
+  --ui-slate-950: #020817;
+
+  /* semantic (dark mode) */
+  --ui-background: #020817;
+  --ui-foreground: #f8fafc;
+  --ui-card: #020817;
+  --ui-card-foreground: #f8fafc;
+  --ui-popover: #020817;
+  --ui-popover-foreground: #f8fafc;
+  --ui-primary: #f8fafc;
+  --ui-primary-foreground: #0f172a;
+  --ui-secondary: #1e293b;
+  --ui-secondary-foreground: #f8fafc;
+  --ui-muted: #1e293b;
+  --ui-muted-foreground: #94a3b8;
+  --ui-accent: #1e293b;
+  --ui-accent-foreground: #f8fafc;
+  --ui-destructive: #ef4444;
+  --ui-destructive-foreground: #f8fafc;
+  --ui-border: #1e293b;
+  --ui-input: #1e293b;
+  --ui-ring: #cbd5e1;
+
+  --ui-radius: 8px;      /* @kind radius */  /* shadcn 0.5rem */
+  --ui-radius-sm: 6px;   /* @kind radius */
+  --ui-radius-lg: 10px;  /* @kind radius */
+  --ui-font: 'Inter', var(--rc-font-sans, system-ui, sans-serif);
+  --ui-font-mono: 'Menlo', var(--rc-font-mono, ui-monospace, monospace);
+
+  /* chart series (shadcn charts palette, dark) — muted, desaturated tones led by a soft Timbre orange */
+  --ui-chart-1: #e08a54;  /* @kind color */  /* soft ember */
+  --ui-chart-2: #6f9bc4;  /* @kind color */  /* dusty blue */
+  --ui-chart-3: #7fb8a0;  /* @kind color */  /* sage */
+  --ui-chart-4: #a894c4;  /* @kind color */  /* muted lilac */
+  --ui-chart-5: #cbb487;  /* @kind color */  /* sand */
+}

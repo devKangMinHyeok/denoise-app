@@ -1,12 +1,14 @@
-name: Deploy Landing (Pages)
+name: Deploy Pages (Landing + Storybook)
 
-# 랜딩은 모노레포의 landing/ 에 산다. Pages 브랜치 소스는 /docs·/ 만 허용하므로
-# Actions로 landing/ 을 배포한다. (Next.js/Vercel 전환 전까지의 임시 정식 배포)
+# 한 GitHub Pages 사이트에 두 가지를 함께 서빙한다:
+#   /            → landing/ (마케팅 사이트, Next.js/Vercel 전환 전까지 임시)
+#   /storybook/  → @timbre/design-system 스토리북 (main 푸시마다 갱신)
 on:
   push:
     branches: [main]
     paths:
       - "landing/**"
+      - "packages/design-system/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -20,16 +22,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/design-system
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/design-system/package-lock.json
+
+      - name: Install design-system deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Storybook (served under /vocast/storybook/)
+        run: STORYBOOK_BASE=/vocast/storybook/ npm run build-storybook
+
+      - name: Assemble site (landing at /, storybook at /storybook)
+        working-directory: .
+        run: |
+          rm -rf _site && mkdir -p _site
+          cp -R landing/. _site/
+          mkdir -p _site/storybook
+          cp -R packages/design-system/storybook-static/. _site/storybook/
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: landing
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

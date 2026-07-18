@@ -1,0 +1,34 @@
+/* Raycast — Typography scale. Inter throughout, ss03 site-wide.
+   Exact sizes/weights/line-heights/letter-spacing from DESIGN.md. */
+:root {
+  /* size / weight / line-height / letter-spacing per tier */
+  --rc-display-xl: 600 64px/1.1 var(--rc-font-sans);
+  --rc-display-lg: 500 56px/1.17 var(--rc-font-sans);
+  --rc-heading-xl: 500 24px/1.6 var(--rc-font-sans);
+  --rc-heading-lg: 500 22px/1.15 var(--rc-font-sans);
+  --rc-heading-md: 500 20px/1.4 var(--rc-font-sans);
+  --rc-heading-sm: 500 18px/1.4 var(--rc-font-sans);
+  --rc-body-lg: 400 18px/1.6 var(--rc-font-sans);
+  --rc-body-md: 400 16px/1.6 var(--rc-font-sans);
+  --rc-body-strong: 500 16px/1.4 var(--rc-font-sans);
+  --rc-body-sm: 400 14px/1.6 var(--rc-font-sans);
+  --rc-body-sm-strong: 500 14px/1.6 var(--rc-font-sans);
+  --rc-caption-md: 400 13px/1.4 var(--rc-font-sans);
+  --rc-caption-sm: 400 12px/1.5 var(--rc-font-sans);
+  --rc-button-md: 500 14px/1.6 var(--rc-font-sans);
+}
+
+/* Utility type classes — carry font shorthand + letter-spacing + ss03 features.
+   Use in cards/specimens; components apply the same values inline. */
+.rc-display-xl { font: var(--rc-display-xl); letter-spacing: 0; font-feature-settings: var(--rc-font-features); }
+.rc-display-lg { font: var(--rc-display-lg); letter-spacing: .2px; font-feature-settings: var(--rc-font-features); }
+.rc-heading-xl { font: var(--rc-heading-xl); letter-spacing: .2px; font-feature-settings: var(--rc-font-features); }
+.rc-heading-lg { font: var(--rc-heading-lg); letter-spacing: 0; font-feature-settings: var(--rc-font-features); }
+.rc-heading-md { font: var(--rc-heading-md); letter-spacing: .2px; font-feature-settings: var(--rc-font-features); }
+.rc-heading-sm { font: var(--rc-heading-sm); letter-spacing: .2px; font-feature-settings: var(--rc-font-features); }
+.rc-body-lg { font: var(--rc-body-lg); letter-spacing: 0; font-feature-settings: var(--rc-font-features); }
+.rc-body-md { font: var(--rc-body-md); letter-spacing: 0; font-feature-settings: var(--rc-font-features); }
+.rc-body-strong { font: var(--rc-body-strong); letter-spacing: .2px; font-feature-settings: var(--rc-font-features); }
+.rc-body-sm { font: var(--rc-body-sm); letter-spacing: 0; font-feature-settings: var(--rc-font-features); }
+.rc-caption-md { font: var(--rc-caption-md); letter-spacing: .1px; font-feature-settings: var(--rc-font-features); }
+.rc-caption-sm { font: var(--rc-caption-sm); letter-spacing: .4px; font-feature-settings: var(--rc-font-features); }

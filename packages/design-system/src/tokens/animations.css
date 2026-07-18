@@ -1,0 +1,38 @@
+/* Raycast — Motion system. Calm, precise, keyboard-native: short fades and soft
+   glows, never bounces or big scale jumps. Easing + duration tokens plus the
+   reusable @keyframes the marketing pages lean on. */
+:root {
+  /* Durations */
+  --rc-dur-fast: .15s;    /* @kind other */    /* hovers, button state */
+  --rc-dur-base: .28s;    /* @kind other */    /* entrances, toggles */
+  --rc-dur-slow: .6s;     /* @kind other */    /* section fade-ups */
+  --rc-dur-ambient: 6s;   /* @kind other */    /* glow / float loops */
+
+  /* Easing — standard ease-out for entrances, gentle in-out for ambient loops */
+  --rc-ease-out: cubic-bezier(.16,1,.3,1);      /* @kind other */
+  --rc-ease-in-out: cubic-bezier(.65,0,.35,1);  /* @kind other */
+  --rc-ease-hover: ease;                         /* @kind other */
+}
+
+/* Entrance: fade + rise. Apply to sections revealed on scroll/mount. */
+@keyframes rc-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+/* Plain fade. */
+@keyframes rc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+/* Ambient glow pulse — for hero radial backdrops and the Cloud-Sync toggle halo. */
+@keyframes rc-glow-pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+/* Slow vertical float — orbital avatars / floating icon tiles. */
+@keyframes rc-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+/* Sheen sweep across a surface — key gradient / skeleton shimmer. */
+@keyframes rc-shimmer { from { background-position: -180% 0; } to { background-position: 180% 0; } }
+/* Equalizer — the Timbre logo bars pulsing during voice playback. */
+@keyframes rc-eq { 0%,100% { transform: scaleY(.42); } 50% { transform: scaleY(1); } }
+
+/* Utility classes — opt in per element. */
+.rc-anim-fade-up { animation: rc-fade-up var(--rc-dur-slow) var(--rc-ease-out) both; }
+.rc-anim-fade-in { animation: rc-fade-in var(--rc-dur-base) var(--rc-ease-out) both; }
+.rc-anim-glow { animation: rc-glow-pulse var(--rc-dur-ambient) var(--rc-ease-in-out) infinite; }
+.rc-anim-float { animation: rc-float var(--rc-dur-ambient) var(--rc-ease-in-out) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-anim-fade-up, .rc-anim-fade-in, .rc-anim-glow, .rc-anim-float { animation: none; }
+}

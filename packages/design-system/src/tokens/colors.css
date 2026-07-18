@@ -1,0 +1,58 @@
+/* Raycast — Color tokens. Dark-only system. Values from DESIGN.md + Figma extraction. */
+:root {
+  /* Brand / primary action */
+  --rc-primary: #ffffff;
+  --rc-primary-pressed: #e8e8e8;
+  --rc-on-primary: #000000;
+
+  /* Surface ladder (canvas → card, each notch lighter = one step closer) */
+  --rc-canvas: #07080a;
+  --rc-surface: #0d0d0d;
+  --rc-surface-elevated: #101111;
+  --rc-surface-card: #121212;
+  --rc-button-fg: #18191a;
+
+  /* Hairline borders (no drop shadows anywhere in the system) */
+  --rc-hairline: #242728;
+  --rc-hairline-soft: rgba(255,255,255,0.08);
+  --rc-hairline-strong: rgba(255,255,255,0.16);
+
+  /* Text ramp */
+  --rc-ink: #f4f4f6;
+  --rc-body: #cdcdcd;
+  --rc-charcoal: #d3d3d4;
+  --rc-mute: #9c9c9d;
+  --rc-ash: #6a6b6c;
+  --rc-stone: #434345;
+  --rc-on-dark: #ffffff;
+  --rc-on-dark-mute: rgba(255,255,255,0.72);
+
+  /* Saturated category accents — illustrations only, never chrome */
+  --rc-accent-blue: #f5732b;
+  --rc-accent-blue-soft: rgba(87,193,255,0.15);
+  --rc-accent-red: #ff6161;
+  --rc-accent-red-soft: rgba(255,97,97,0.15);
+  --rc-accent-green: #59d499;
+  --rc-accent-green-soft: rgba(89,212,153,0.15);
+  --rc-accent-yellow: #ffc533;
+  --rc-accent-yellow-soft: rgba(255,197,51,0.15);
+
+  /* Brand orange (logo mark + hero stripe). Refined, slightly warm-muted so it
+     reads premium rather than alert-orange, and stays distinct from the category accents. */
+  --rc-ray: #f5732b;
+
+  /* Signature gradients */
+  --rc-hero-stripe: linear-gradient(100.41deg, #ff9448 0.52%, #e0561c 100%); /* @kind color */
+  --rc-key-gradient: linear-gradient(180deg, #121212 0%, #0d0d0d 100%); /* @kind color */
+
+  /* ---- Semantic aliases ---- */
+  --rc-text-heading: var(--rc-ink);
+  --rc-text-body: var(--rc-body);
+  --rc-text-muted: var(--rc-mute);
+  --rc-text-disabled: var(--rc-ash);
+  --rc-bg-page: var(--rc-canvas);
+  --rc-bg-card: var(--rc-surface);
+  --rc-bg-input: var(--rc-surface-elevated);
+  --rc-border-card: var(--rc-hairline);
+  --rc-focus-border: var(--rc-hairline-strong);
+}

@@ -1,0 +1,14 @@
+/* Raycast — base element defaults. Applies the dark canvas + Inter ss03 site-wide. */
+:root { color-scheme: dark; }
+body {
+  background: var(--rc-canvas);
+  color: var(--rc-body);
+  font: var(--rc-body-md);
+  font-feature-settings: var(--rc-font-features);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: var(--rc-on-dark); text-decoration: none; }
+a:hover { color: var(--rc-ink); }
+a:focus-visible { outline: none; text-decoration: underline; }
+::selection { background: var(--rc-accent-blue-soft); color: var(--rc-ink); }

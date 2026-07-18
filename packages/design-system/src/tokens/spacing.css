@@ -1,0 +1,23 @@
+/* Raycast — Spacing, radius & layout tokens. 8px base with 2/4/12 tight steps. */
+:root {
+  --rc-space-xxs: 2px;
+  --rc-space-xs: 4px;
+  --rc-space-sm: 8px;
+  --rc-space-md: 12px;
+  --rc-space-lg: 16px;
+  --rc-space-xl: 24px;
+  --rc-space-xxl: 32px;
+  --rc-space-section: 96px;
+
+  --rc-radius-none: 0px;
+  --rc-radius-xs: 4px;
+  --rc-radius-sm: 6px;
+  --rc-radius-md: 8px;
+  --rc-radius-lg: 10px;
+  --rc-radius-xl: 16px;
+  --rc-radius-full: 9999px;
+
+  --rc-container: 1240px;   /* desktop content max-width */
+  --rc-gutter: 24px;
+  --rc-nav-height: 56px;
+}
