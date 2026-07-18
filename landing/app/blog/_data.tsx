@@ -2,11 +2,13 @@ import * as React from "react";
 import { Prose } from "@timbre/design-system";
 import { asset } from "../../lib/asset";
 
-export type Category = "Product" | "Engineering" | "Company" | "Voices";
+export type Category = "Voice" | "Engineering" | "Methodology" | "AI (MCP)" | "Privacy";
 
 export interface Author {
   name: string;
   avatar?: string;
+  role?: string;
+  bio?: string;
 }
 
 export interface Post {
@@ -26,8 +28,8 @@ export interface Post {
 export type PostCard = Omit<Post, "Body">;
 
 // Avatars use the initials fallback, no third-party author photos.
-const kang: Author = { name: "Minhyeok Kang" };
-const team: Author = { name: "Vocast Team" };
+const kang: Author = { name: "Minhyeok Kang", role: "Founder · Vocast", bio: "Building a local voice studio for creators. Writes about voice cloning, prosody metrics, and shipping on-device." };
+const team: Author = { name: "Vocast Team", role: "Vocast", bio: "Field notes from the people building Vocast." };
 
 // --- Featured: the natural-voice article, as a full Prose body ---
 const NaturalVoiceBody: React.FC = () => (
@@ -59,7 +61,7 @@ const NaturalVoiceBody: React.FC = () => (
 
     <Prose.Figure
       pair
-      images={[asset("/blog/cover-1.svg"), asset("/blog/cover-2.svg")]}
+      images={[asset("/blog/figure-quality.png"), asset("/blog/figure-audio.png")]}
       caption="Left: the quality report shown after every render. Right: the prosody breakdown per sentence."
     />
 
@@ -93,6 +95,11 @@ const NaturalVoiceBody: React.FC = () => (
       The honest version of &ldquo;it sounds natural&rdquo; is: we defined natural as a set of
       measurable properties, and then refused to ship anything that missed them.
     </blockquote>
+
+    <Prose.Figure
+      src={asset("/blog/figure-karaoke.png")}
+      caption="Karaoke proofing: each word colours as it plays; click any word to jump there."
+    />
 
     <Prose.Heading id="usable">So, can you actually use it?</Prose.Heading>
     <p>
@@ -174,13 +181,13 @@ const LocalBody: React.FC = () => (
 export const POSTS: Post[] = [
   {
     slug: "natural-voice-you-can-publish",
-    category: "Voices",
+    category: "Methodology",
     title: "Natural enough to publish: an AI voice you can actually use",
     excerpt:
       "Most AI voices sound great in a ten-second demo and fall apart over twenty minutes. Here is how we measure naturalness, and what it takes to ship a cloned voice you would put your name on.",
     readTime: "6 min read",
     date: "Jul 19, 2026",
-    cover: asset("/blog/cover-1.svg"),
+    cover: asset("/blog/figure-cover.png"),
     authors: [kang, team],
     featured: true,
     Body: NaturalVoiceBody,
@@ -192,46 +199,46 @@ export const POSTS: Post[] = [
     excerpt: "Why Vocast scores pitch, pauses and sentence endings separately, and gates every render on all of them.",
     readTime: "4 min read",
     date: "Jul 12, 2026",
-    cover: asset("/blog/cover-2.svg"),
+    cover: asset("/blog/figure-quality.png"),
     authors: [team],
     Body: ProsodyBody,
   },
   {
     slug: "clone-your-voice-in-ninety-seconds",
-    category: "Product",
+    category: "Voice",
     title: "Clone your voice in ninety seconds",
     excerpt: "Ten guided lines, one reusable profile you can version and roll back. Your voice as an asset you own.",
     readTime: "3 min read",
     date: "Jul 4, 2026",
-    cover: asset("/blog/cover-3.svg"),
+    cover: asset("/blog/figure-profile.png"),
     authors: [kang],
     Body: CloneBody,
   },
   {
     slug: "long-form-without-the-re-record",
-    category: "Product",
+    category: "Engineering",
     title: "Long-form without the re-record",
     excerpt: "20,000-character scripts, per-paragraph regeneration, and performance transfer for the passages that need a specific delivery.",
     readTime: "4 min read",
     date: "Jun 26, 2026",
-    cover: asset("/blog/cover-4.svg"),
+    cover: asset("/blog/figure-longform.png"),
     authors: [team],
     Body: LongformBody,
   },
   {
     slug: "why-one-time-and-fully-local",
-    category: "Company",
+    category: "Privacy",
     title: "Why Vocast is one-time and fully local",
     excerpt: "No subscription, no server, no account. Your voice and your words stay on your machine, by design.",
     readTime: "3 min read",
     date: "Jun 18, 2026",
-    cover: asset("/blog/cover-5.svg"),
+    cover: asset("/blog/figure-audio.png"),
     authors: [kang],
     Body: LocalBody,
   },
 ];
 
-export const CATEGORIES: ("All" | Category)[] = ["All", "Product", "Engineering", "Company", "Voices"];
+export const CATEGORIES: ("All" | Category)[] = ["All", "Voice", "Engineering", "Methodology", "AI (MCP)", "Privacy"];
 
 export function getPost(slug: string): Post | undefined {
   return POSTS.find((p) => p.slug === slug);
