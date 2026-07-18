@@ -16,14 +16,14 @@ WITH_MODELS=""
 [ "${1:-}" = "--with-models" ] && { WITH_MODELS="--with-models"; shift; }
 VERSION="${1:-$(grep -m1 '^version' "$ROOT/pyproject.toml" | cut -d'"' -f2)}"
 OUT="$ROOT/dist/release"
-NAME="NoiseCleaner-macos-arm64.tar.gz"
+NAME="Vocast-macos-arm64.tar.gz"
 
 echo "▸ 번들 빌드 ${WITH_MODELS:-(모델 미포함)}"
 bash "$ROOT/scripts/build_bundle.sh" $WITH_MODELS
 
 echo "▸ 압축: $NAME"
 mkdir -p "$OUT"
-tar -C "$ROOT/dist" -czf "$OUT/$NAME" NoiseCleaner
+tar -C "$ROOT/dist" -czf "$OUT/$NAME" Vocast
 SHA="$(shasum -a 256 "$OUT/$NAME" | awk '{print $1}')"
 SIZE="$(du -h "$OUT/$NAME" | cut -f1)"
 

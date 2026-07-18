@@ -53,20 +53,20 @@ uv run python web/server.py
   실시간으로 시각화된다: 참조 분석 → **테이크 오디션**(테이크마다 운율
   점수·끝음·강약이 카드로 뜨고 최고점이 👑 채택) → 마무리. 모든 생성은
   세션으로 저장되어 목록에서 다시 듣고 내려받을 수 있다
-  (`~/.noisecleaner/history/`).
+  (`~/.vocast/history/`).
 - **🎤 내 목소리** — 가이드 문장 10개(약 90초, 끝음 유형·호흡·속도·강세를
   커버하도록 설계)를 브라우저에서 바로 녹음하면 **보이스 프로필**을 만든다.
   기존 영상·음성 파일도 함께 넣을 수 있고(파일당 앞 3분 사용, 녹음 없이
   파일만으로도 가능), **소스마다 노이즈 제거를 개별 선택**할 수 있다
   (기본 켬). 억양·호흡·끝음·강세를 분석해 캐시하므로, 이후 클로닝은 참조
-  준비 없이 바로 시작된다 (`~/.noisecleaner/profiles/`).
+  준비 없이 바로 시작된다 (`~/.vocast/profiles/`).
 
 ## 3) 맥 앱으로 쓰기
 
 ```bash
 bash macapp/build_app.sh                # 노이즈 제거만
 bash macapp/build_app.sh --with-voice   # + 보이스 클로닝 탭 (Apple Silicon)
-open dist/NoiseCleaner.app
+open dist/Vocast.app
 ```
 
 더블클릭 한 번으로 서버가 켜지고 브라우저가 열린다. Dock이나 응용 프로그램 폴더에

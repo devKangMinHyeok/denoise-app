@@ -1,6 +1,6 @@
 #!/bin/bash
-# 노이즈 클리너 설치 (curl 파이프용).
-#   curl -fsSL https://get.noisecleaner.app/install.sh | bash
+# Vocast 설치 (curl 파이프용).
+#   curl -fsSL https://get.vocast.app/install.sh | bash
 #
 # curl로 받으므로 quarantine 딱지가 붙지 않아 Gatekeeper 경고 없이 실행된다
 # (브라우저로 .app을 받는 경우와 달리 코드 서명·공증이 불필요한 배포 경로).
@@ -8,13 +8,13 @@
 # 설정(환경변수):
 #   NC_URL     : 번들 tar.gz 직접 URL (기본: NC_RELEASE 기반 GitHub Releases)
 #   NC_SHA256  : 무결성 검증 체크섬 (없으면 검증 생략 + 경고)
-#   NC_PREFIX  : 설치 위치 (기본 ~/Applications/NoiseCleaner)
+#   NC_PREFIX  : 설치 위치 (기본 ~/Applications/Vocast)
 #   NC_BIN     : CLI 심링크 위치 (기본 ~/.local/bin)
 set -euo pipefail
 
 REPO="devKangMinHyeok/denoise-app"
 NC_RELEASE="${NC_RELEASE:-latest}"
-NC_PREFIX="${NC_PREFIX:-$HOME/Applications/NoiseCleaner}"
+NC_PREFIX="${NC_PREFIX:-$HOME/Applications/Vocast}"
 NC_BIN="${NC_BIN:-$HOME/.local/bin}"
 
 say() { printf '\033[1;35m▸\033[0m %s\n' "$1"; }
@@ -26,7 +26,7 @@ die() { printf '\033[1;31m✗\033[0m %s\n' "$1" >&2; exit 1; }
 
 # 2) 다운로드 URL 결정
 if [ -z "${NC_URL:-}" ]; then
-  NC_URL="https://github.com/$REPO/releases/${NC_RELEASE}/download/NoiseCleaner-macos-arm64.tar.gz"
+  NC_URL="https://github.com/$REPO/releases/${NC_RELEASE}/download/Vocast-macos-arm64.tar.gz"
 fi
 say "다운로드: $NC_URL"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
@@ -42,7 +42,7 @@ else
   printf '\033[1;33m!\033[0m NC_SHA256 미지정 — 무결성 검증 생략\n'
 fi
 
-# 4) 설치 (기존 것 교체, 사용자 데이터 ~/.noisecleaner는 건드리지 않음)
+# 4) 설치 (기존 것 교체, 사용자 데이터 ~/.vocast는 건드리지 않음)
 say "설치: $NC_PREFIX"
 rm -rf "$NC_PREFIX"; mkdir -p "$NC_PREFIX"
 tar -xzf "$TARBALL" -C "$NC_PREFIX" --strip-components=1
@@ -51,11 +51,11 @@ xattr -dr com.apple.quarantine "$NC_PREFIX" 2>/dev/null || true
 
 # 5) CLI 심링크
 mkdir -p "$NC_BIN"
-ln -sf "$NC_PREFIX/bin/noise-cleaner" "$NC_BIN/noise-cleaner"
+ln -sf "$NC_PREFIX/bin/vocast" "$NC_BIN/vocast"
 
 say "완료!"
 echo
-echo "  실행:  noise-cleaner        (또는 더블클릭: '$NC_PREFIX/노이즈클리너 실행.command')"
+echo "  실행:  vocast        (또는 더블클릭: '$NC_PREFIX/Vocast 실행.command')"
 echo "  브라우저에서 http://127.0.0.1:8756 가 열립니다."
 case ":$PATH:" in
   *":$NC_BIN:"*) ;;

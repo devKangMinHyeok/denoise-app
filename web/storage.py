@@ -2,7 +2,7 @@
 
 목표 두 가지:
 1. **업데이트 내구성**: 사용자 데이터(프로필·작업 기록)는 앱 번들 밖의
-   사용자 홈(`~/.noisecleaner`, `NOISECLEANER_HOME`으로 변경 가능)에 산다.
+   사용자 홈(`~/.vocast`, `NOISECLEANER_HOME`으로 변경 가능)에 산다.
    앱을 새 버전으로 교체해도 이 폴더는 그대로 남아 데이터가 유지된다.
 2. **클라우드 전환 seam**: 모든 영속 접근을 이 인터페이스 하나로 모은다.
    나중에 `Storage`를 구현한 `CloudStorage`(S3/GCS + 문서 DB)로 바꿔 끼우면
@@ -140,12 +140,25 @@ class LocalStorage(Storage):
 
 
 def _default_home() -> str:
-    return os.environ.get("NOISECLEANER_HOME",
-                          os.path.expanduser("~/.noisecleaner"))
+    # 신규 VOCAST_HOME 우선, 하위호환으로 옛 NOISECLEANER_HOME도 인정
+    env = os.environ.get("VOCAST_HOME") or os.environ.get("NOISECLEANER_HOME")
+    if env:
+        return env
+    new = os.path.expanduser("~/.vocast")
+    old = os.path.expanduser("~/.noisecleaner")
+    # 리브랜드 1회 마이그레이션: 옛 데이터가 있고 새 폴더가 없으면 이관.
+    # 실패하면 옛 폴더를 계속 써서 데이터 유실을 막는다 (보존 우선).
+    if not os.path.exists(new) and os.path.isdir(old):
+        try:
+            os.rename(old, new)
+        except OSError:
+            return old
+    return new
 
 
 def _make_backend() -> Storage:
-    backend = os.environ.get("NOISECLEANER_STORAGE", "local")
+    backend = (os.environ.get("VOCAST_STORAGE")
+               or os.environ.get("NOISECLEANER_STORAGE", "local"))
     if backend == "local":
         return LocalStorage(_default_home())
     raise RuntimeError(

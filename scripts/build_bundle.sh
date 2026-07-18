@@ -1,7 +1,7 @@
 #!/bin/bash
 # 완전 봉인 번들 빌드 — 받아서 실행되는 self-contained 배포본.
 #
-# 산출물 dist/NoiseCleaner/ 는 uv·파이썬·ffmpeg·brew가 전혀 없는 Mac에서도
+# 산출물 dist/Vocast/ 는 uv·파이썬·ffmpeg·brew가 전혀 없는 Mac에서도
 # 그대로 돈다. 세 개의 relocatable venv(각자 파이썬 동봉), 앱 코드, 동봉
 # ffmpeg, uv 바이너리, 더블클릭 런처를 담는다.
 #
@@ -13,7 +13,7 @@
 #   빌드에는 uv가 필요(개발 기기). 런타임에는 필요 없음.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DIST="$ROOT/dist/NoiseCleaner"
+DIST="$ROOT/dist/Vocast"
 RT="$DIST/runtime"
 WITH_MODELS=0
 [ "${1:-}" = "--with-models" ] && WITH_MODELS=1
@@ -100,13 +100,13 @@ fi
 echo "▸ uv 바이너리 동봉 (엔진 업데이트·재빌드용, 런타임 필수 아님)"
 mkdir -p "$RT/bin"; cp "$(command -v uv)" "$RT/bin/uv"
 
-echo "▸ 런처 생성 (더블클릭용 .command + CLI용 bin/noise-cleaner)"
-cp "$ROOT/scripts/launcher.command" "$DIST/노이즈클리너 실행.command"
-chmod +x "$DIST/노이즈클리너 실행.command"
+echo "▸ 런처 생성 (더블클릭용 .command + CLI용 bin/vocast)"
+cp "$ROOT/scripts/launcher.command" "$DIST/Vocast 실행.command"
+chmod +x "$DIST/Vocast 실행.command"
 # CLI 런처: curl 설치·Homebrew cask가 PATH에 심링크한다. 심링크로 불려도
 # 자기 실제 위치(번들 루트)를 찾도록 readlink로 해석한다.
 mkdir -p "$DIST/bin"
-cat > "$DIST/bin/noise-cleaner" <<'LAUNCH'
+cat > "$DIST/bin/vocast" <<'LAUNCH'
 #!/bin/bash
 set -e
 # 심링크(상대·절대)를 끝까지 따라 실제 위치 → 번들 루트(bin의 부모)
@@ -117,14 +117,14 @@ while [ -L "$SOURCE" ]; do
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 BUNDLE="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
-exec "$BUNDLE/노이즈클리너 실행.command" "$@"
+exec "$BUNDLE/Vocast 실행.command" "$@"
 LAUNCH
-chmod +x "$DIST/bin/noise-cleaner"
+chmod +x "$DIST/bin/vocast"
 
 SIZE=$(du -sh "$DIST" | cut -f1)
 echo
 echo "✅ 번들 완성: $DIST  ($SIZE)"
-echo "   더블클릭: '$DIST/노이즈클리너 실행.command'"
+echo "   더블클릭: '$DIST/Vocast 실행.command'"
 if [ "$WITH_MODELS" = "1" ]; then
   echo "   완전 오프라인 — 모델까지 동봉됨. 네트워크 없이 바로 실행."
 else

@@ -3,7 +3,7 @@
 # ⚠️ 상태: 초안. macOS에서 작성되어 아직 Windows 실기에서 검증되지 않음.
 #    Windows 머신(또는 windows-latest CI)에서 실행·검증한 뒤 배포에 쓸 것.
 #
-# 산출물 dist/NoiseCleaner/ 는 uv·파이썬이 없는 Windows에서도 도는 self-
+# 산출물 dist/Vocast/ 는 uv·파이썬이 없는 Windows에서도 도는 self-
 # contained 배포본. Windows에서는 mlx가 설치되지 않으므로 보이스 클로닝은
 # 자동 비활성(clone_available()==False)되고 노이즈 제거·재합성만 담긴다.
 #
@@ -12,7 +12,7 @@
 # python.exe 복사/런처를 쓰므로 uv --relocatable 로 처리한다.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
-$Dist = Join-Path $Root "dist\NoiseCleaner"
+$Dist = Join-Path $Root "dist\Vocast"
 $RT   = Join-Path $Dist "runtime"
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
@@ -49,7 +49,7 @@ foreach ($f in "denoise.py","evaluate.py","pyproject.toml","uv.lock","README.md"
 }
 
 Write-Host "▸ 런처 생성"
-Copy-Item (Join-Path $PSScriptRoot "launcher.bat") (Join-Path $Dist "노이즈클리너 실행.bat")
+Copy-Item (Join-Path $PSScriptRoot "launcher.bat") (Join-Path $Dist "Vocast 실행.bat")
 
 Write-Host "✅ (초안) 번들 생성: $Dist  — Windows 실기 검증 후 배포할 것"
 Write-Host "   미검증 항목: relocatable venv 재배치, DFN Windows 휠, deepspeed 스텁 경로, 런처"

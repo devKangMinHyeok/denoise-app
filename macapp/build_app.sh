@@ -2,13 +2,13 @@
 # 맥 앱(.app 번들) 빌드 스크립트.
 #   bash macapp/build_app.sh                # 노이즈 제거만
 #   bash macapp/build_app.sh --with-voice   # + 보이스 클로닝 (Apple Silicon)
-# 실행하면 dist/NoiseCleaner.app 이 만들어진다.
+# 실행하면 dist/Vocast.app 이 만들어진다.
 # 앱을 더블클릭하면: 로컬 서버를 켜고 → 브라우저로 웹 UI를 연다.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-APP="$DIST/NoiseCleaner.app"
+APP="$DIST/Vocast.app"
 PORT=8756
 WITH_VOICE="${1:-}"
 
@@ -36,10 +36,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>노이즈 클리너</string>
-  <key>CFBundleDisplayName</key><string>노이즈 클리너</string>
+  <key>CFBundleName</key><string>Vocast</string>
+  <key>CFBundleDisplayName</key><string>Vocast</string>
   <key>CFBundleExecutable</key><string>run</string>
-  <key>CFBundleIdentifier</key><string>dev.minhyeok.noisecleaner</string>
+  <key>CFBundleIdentifier</key><string>dev.minhyeok.vocast</string>
   <key>CFBundleVersion</key><string>2.0</string>
   <key>CFBundleShortVersionString</key><string>2.0</string>
   <key>CFBundlePackageType</key><string>APPL</string>
@@ -56,7 +56,7 @@ PY="\$ROOT/.venv/bin/python3"
 [ -x "\$PY" ] || PY=python3
 
 if ! curl -s "http://127.0.0.1:\$PORT/api/health" >/dev/null 2>&1; then
-  nohup "\$PY" "\$ROOT/web/server.py" --port "\$PORT" > /tmp/noisecleaner.log 2>&1 &
+  nohup "\$PY" "\$ROOT/web/server.py" --port "\$PORT" > /tmp/vocast.log 2>&1 &
   for i in \$(seq 1 40); do
     curl -s "http://127.0.0.1:\$PORT/api/health" >/dev/null 2>&1 && break
     sleep 0.25

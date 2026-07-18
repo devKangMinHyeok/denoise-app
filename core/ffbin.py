@@ -1,7 +1,7 @@
 """ffmpeg 바이너리 리졸버 — 시스템 설치에 의존하지 않기 위한 단일 진입점.
 
 우선순위:
-1. 환경변수 NOISECLEANER_FFMPEG (봉인 배포 시 앱 번들이 지정)
+1. 환경변수 VOCAST_FFMPEG (봉인 배포 시 앱 번들이 지정)
 2. imageio-ffmpeg 휠에 동봉된 정적 ffmpeg (brew 불필요, 오프라인)
 3. 시스템 PATH의 ffmpeg (개발 편의 폴백)
 
@@ -17,7 +17,7 @@ import subprocess
 
 @functools.lru_cache(maxsize=1)
 def ffmpeg_exe():
-    env = os.environ.get("NOISECLEANER_FFMPEG")
+    env = os.environ.get("VOCAST_FFMPEG") or os.environ.get("NOISECLEANER_FFMPEG")
     if env and os.path.exists(env):
         return env
     try:
@@ -30,7 +30,7 @@ def ffmpeg_exe():
         return sys_ff
     raise RuntimeError(
         "ffmpeg을 찾지 못했습니다. `uv pip install imageio-ffmpeg`로 동봉본을 "
-        "설치하거나 NOISECLEANER_FFMPEG로 경로를 지정하세요.")
+        "설치하거나 VOCAST_FFMPEG로 경로를 지정하세요.")
 
 
 @functools.lru_cache(maxsize=1)
@@ -46,8 +46,9 @@ def ensure_ffmpeg_on_path():
     if os.path.basename(exe) == "ffmpeg":  # 이미 표준 이름(시스템/번들)
         _prepend_path(os.path.dirname(exe))
         return exe
-    home = os.environ.get("NOISECLEANER_HOME",
-                          os.path.expanduser("~/.noisecleaner"))
+    home = (os.environ.get("VOCAST_HOME")
+            or os.environ.get("NOISECLEANER_HOME")
+            or os.path.expanduser("~/.vocast"))
     bindir = os.path.join(home, "bin")
     os.makedirs(bindir, exist_ok=True)
     link = os.path.join(bindir, "ffmpeg")

@@ -35,7 +35,7 @@ Windows CI(`windows-latest`)에서 `uv sync --frozen` + import + 테스트로
 | | macOS | Windows |
 |--|--|--|
 | 빌드 | `scripts/build_bundle.sh [--with-models]` (검증됨) | `scripts/build_bundle.ps1` (**초안, 실기 검증 필요**) |
-| 런처 | `노이즈클리너 실행.command` | `노이즈클리너 실행.bat` (초안) |
+| 런처 | `Vocast 실행.command` | `Vocast 실행.bat` (초안) |
 | 파이썬·ffmpeg | 동봉 (python-build-standalone + imageio-ffmpeg) | 동봉 (동일 원리) |
 | 서명 | codesign + notarize | Authenticode 코드 서명 |
 

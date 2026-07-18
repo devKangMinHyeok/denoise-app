@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""노이즈 클리너 로컬 MCP 서버 — 앱 계층 진입점.
+"""Vocast 로컬 MCP 서버 — 앱 계층 진입점.
 
 Claude·Codex 등 MCP 지원 AI 에이전트가 이 앱의 기능을 대화로 직접 조작한다.
 core/ 의 순수 로직과 web/ 의 저장소·프로필을 재사용한다 (동기 호출).
@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
-mcp = FastMCP("noise-cleaner")
+mcp = FastMCP("vocast")
 
 
 @mcp.tool()
@@ -137,7 +137,7 @@ def _print_config():
     import json
     py = sys.executable
     here = os.path.abspath(__file__)
-    cfg = {"mcpServers": {"noise-cleaner": {"command": py, "args": [here]}}}
+    cfg = {"mcpServers": {"vocast": {"command": py, "args": [here]}}}
     print(json.dumps(cfg, ensure_ascii=False, indent=2))
 
 

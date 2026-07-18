@@ -28,7 +28,7 @@ python mcp_server.py --config
 ```json
 {
   "mcpServers": {
-    "noise-cleaner": {
+    "vocast": {
       "command": "/경로/.venv/bin/python",
       "args": ["/경로/mcp_server.py"]
     }
@@ -38,7 +38,7 @@ python mcp_server.py --config
 
 - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
   의 `mcpServers`에 위 내용을 병합.
-- **Claude Code**: `claude mcp add noise-cleaner -- /경로/.venv/bin/python /경로/mcp_server.py`
+- **Claude Code**: `claude mcp add vocast -- /경로/.venv/bin/python /경로/mcp_server.py`
 - **봉인 번들**: command를 `<번들>/runtime/.venv/bin/python`,
   args를 `<번들>/mcp_server.py`로.
 

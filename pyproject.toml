@@ -1,5 +1,5 @@
 [project]
-name = "noisecleaner"
+name = "vocast"
 version = "0.1.0"
 description = "크리에이터를 위한 로컬 음성 스튜디오 — 노이즈 제거 + 보이스 클로닝 (Apple Silicon)"
 requires-python = ">=3.12,<3.13"

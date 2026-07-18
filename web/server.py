@@ -408,7 +408,7 @@ def main():
     ensure_ffmpeg()
     feats = "노이즈 제거" + (" + 보이스 클로닝" if clone_available() else
                             " (클로닝: 미설치 — voice/requirements-voice.txt)")
-    print(f"노이즈 클리너 [{feats}] → http://127.0.0.1:{args.port}")
+    print(f"Vocast [{feats}] → http://127.0.0.1:{args.port}")
     app.run(host="127.0.0.1", port=args.port)
 
 

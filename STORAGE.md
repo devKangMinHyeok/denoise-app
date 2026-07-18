@@ -8,14 +8,14 @@
 데이터는 **앱 번들 밖**의 사용자 홈에 산다:
 
 ```
-~/.noisecleaner/            (NOISECLEANER_HOME 으로 변경 가능)
+~/.vocast/            (NOISECLEANER_HOME 으로 변경 가능)
 ├─ profiles/<id>/meta.json + raw/ sources/ versions/ ...
 ├─ history/<id>/meta.json + output.wav
 ├─ denoise/<id>/meta.json + clean.* orig.m4a clean.m4a
 └─ rates.json               (ETA 학습 설정)
 ```
 
-앱 번들(`dist/NoiseCleaner/` 또는 개발 리포)을 새 버전으로 통째로 교체해도
+앱 번들(`dist/Vocast/` 또는 개발 리포)을 새 버전으로 통째로 교체해도
 이 홈은 건드리지 않으므로 프로필·작업이 그대로 남는다.
 
 **실측:** 기존 홈을 그대로 둔 채 어댑터로 전면 교체 후, 기존 프로필 4·히스토리

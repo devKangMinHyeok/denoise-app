@@ -738,64 +738,6 @@ wheels = [
 ]
 
 [[package]]
-name = "noisecleaner"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "flask" },
-    { name = "huggingface-hub" },
-    { name = "imageio-ffmpeg" },
-    { name = "librosa" },
-    { name = "mcp" },
-    { name = "mlx-audio", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
-    { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
-    { name = "numpy" },
-    { name = "pyworld" },
-    { name = "resemblyzer" },
-    { name = "scipy" },
-    { name = "setuptools" },
-    { name = "soundfile" },
-    { name = "torch" },
-    { name = "torchaudio" },
-]
-
-[package.optional-dependencies]
-eval = [
-    { name = "jiwer" },
-    { name = "onnxruntime" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "flask", specifier = ">=3.1" },
-    { name = "huggingface-hub", specifier = ">=1.23" },
-    { name = "imageio-ffmpeg", specifier = ">=0.6" },
-    { name = "jiwer", marker = "extra == 'eval'", specifier = ">=3.0" },
-    { name = "librosa", specifier = ">=0.11" },
-    { name = "mcp", specifier = ">=1.2" },
-    { name = "mlx-audio", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.5" },
-    { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.3" },
-    { name = "numpy", specifier = ">=2.4" },
-    { name = "onnxruntime", marker = "extra == 'eval'", specifier = ">=1.20" },
-    { name = "pyworld", specifier = ">=0.3.5" },
-    { name = "resemblyzer", specifier = ">=0.1.4" },
-    { name = "scipy", specifier = ">=1.18" },
-    { name = "setuptools", specifier = "<81" },
-    { name = "soundfile", specifier = ">=0.14" },
-    { name = "torch", specifier = ">=2.13" },
-    { name = "torchaudio", specifier = ">=2.11" },
-]
-provides-extras = ["eval"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0" }]
-
-[[package]]
 name = "numba"
 version = "0.66.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1678,6 +1620,64 @@ sdist = { url = "https://files.pythonhosted.org/packages/a2/65/b7c6c443ccc58678c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/45/ec/dbb7e5a6b91f86bfb9eb7d2988a2730907b6a729875b949c7f022e8b88fa/uvicorn-0.51.0-py3-none-any.whl", hash = "sha256:5d38af6cd620f2ae3849fb44fd4879e0890aa1febe8d47eb355fb45d93fe6a5b", size = 73219, upload-time = "2026-07-08T10:59:04.44Z" },
 ]
+
+[[package]]
+name = "vocast"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "flask" },
+    { name = "huggingface-hub" },
+    { name = "imageio-ffmpeg" },
+    { name = "librosa" },
+    { name = "mcp" },
+    { name = "mlx-audio", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
+    { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
+    { name = "numpy" },
+    { name = "pyworld" },
+    { name = "resemblyzer" },
+    { name = "scipy" },
+    { name = "setuptools" },
+    { name = "soundfile" },
+    { name = "torch" },
+    { name = "torchaudio" },
+]
+
+[package.optional-dependencies]
+eval = [
+    { name = "jiwer" },
+    { name = "onnxruntime" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=3.1" },
+    { name = "huggingface-hub", specifier = ">=1.23" },
+    { name = "imageio-ffmpeg", specifier = ">=0.6" },
+    { name = "jiwer", marker = "extra == 'eval'", specifier = ">=3.0" },
+    { name = "librosa", specifier = ">=0.11" },
+    { name = "mcp", specifier = ">=1.2" },
+    { name = "mlx-audio", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.5" },
+    { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.3" },
+    { name = "numpy", specifier = ">=2.4" },
+    { name = "onnxruntime", marker = "extra == 'eval'", specifier = ">=1.20" },
+    { name = "pyworld", specifier = ">=0.3.5" },
+    { name = "resemblyzer", specifier = ">=0.1.4" },
+    { name = "scipy", specifier = ">=1.18" },
+    { name = "setuptools", specifier = "<81" },
+    { name = "soundfile", specifier = ">=0.14" },
+    { name = "torch", specifier = ">=2.13" },
+    { name = "torchaudio", specifier = ">=2.11" },
+]
+provides-extras = ["eval"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.0" }]
 
 [[package]]
 name = "webrtcvad"
