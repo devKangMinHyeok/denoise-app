@@ -1,0 +1,77 @@
+# 이식성 · 환경 격리
+
+이 앱은 **개발자 기기의 시스템 상태에 의존하지 않도록** 봉인되어 있다.
+"내 Mac에서만 되는" 상태를 없애고, 판매 배포와 재현을 위한 기반을 만든다.
+
+## 유일한 전제: uv
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+bash bootstrap.sh
+```
+
+uv는 단일 정적 바이너리(수 MB)다. brew·시스템 파이썬·ffmpeg 설치가 전부 불필요.
+
+## 무엇이 봉인되는가
+
+| 이전 (시스템 의존) | 지금 (봉인) |
+|---|---|
+| `brew install python@3.11` | uv가 **관리형 CPython 3.11/3.12**를 내려받음 |
+| `brew install ffmpeg` (+ffprobe) | **imageio-ffmpeg 휠**로 ffmpeg 7.1 동봉 (arnndn·aac 포함 확인). ffprobe는 안 씀 — `ffmpeg -i` stderr 파싱으로 대체 |
+| `pip install`로 그때그때 버전 | **uv.lock**으로 전 버전 고정, 클린룸 재현 검증됨 |
+| 세 venv가 절대경로로 서로 참조 | 상대경로(`ROOT` 기준), 폴더째 이동 가능 |
+
+## 세 개의 격리된 환경
+
+의존성 충돌(구버전 torch·deepspeed) 때문에 엔진마다 전용 venv를 쓴다.
+전부 uv 관리 파이썬으로 만들어진다.
+
+| 환경 | 파이썬 | 용도 | 설치 |
+|---|---|---|---|
+| `.venv` | 3.12 | 웹 앱·클로닝·오케스트레이션 | `uv sync --frozen` |
+| `.venv-dfn` | 3.11 | 하이브리드 노이즈 제거(DeepFilterNet) | `scripts/install_dfn.sh` |
+| `.venv-re` | 3.11 | 재합성(resemble-enhance) | `scripts/install_resynth.sh` |
+
+리졸버(`core/denoise.py`)가 `.venv-dfn`/`.venv-re` 존재 여부로 엔진을
+자동 감지한다. 없으면 RNNoise로 폴백(표준)하거나 재합성 모드를 숨긴다.
+경로는 환경변수 `DFN_PYTHON`·`RESYNTH_PYTHON`으로 재지정 가능.
+
+## 런타임에 다운로드되는 것 (봉인 대상 아님 — 정상)
+
+용량·라이선스 때문에 저장소에 넣지 않고 최초 실행 시 받는다:
+
+- **TTS·Whisper·resemble-enhance 모델** — huggingface_hub 캐시(`~/.cache/huggingface`)
+- **DNSMOS 품질 모델**(.onnx) — `scripts/download_dnsmos.sh` (평가 기능에만 필요)
+
+오프라인 사용은 이들을 한 번 받은 뒤부터 가능하다.
+
+## 사용자 데이터 위치
+
+- 프로필·작업 기록: `~/.noisecleaner/{profiles,history,denoise}/`
+  (환경변수 `NOISECLEANER_HOME`으로 변경 가능)
+- 이 폴더만 백업하면 전체 이전 가능.
+
+## ffmpeg 경로 재지정 (봉인 배포 시)
+
+앱 번들이 자체 ffmpeg를 지정하려면:
+
+```bash
+export NOISECLEANER_FFMPEG=/path/to/ffmpeg
+```
+
+리졸버 우선순위: `NOISECLEANER_FFMPEG` → 동봉(imageio-ffmpeg) → 시스템 PATH.
+
+## 재현 검증 (클린룸)
+
+임시 경로에 락만으로 환경을 재구성해 시스템 무관 재현을 확인:
+
+```bash
+UV_PROJECT_ENVIRONMENT=/tmp/repro uv sync --frozen
+UV_PROJECT_ENVIRONMENT=/tmp/repro uv run --frozen python -m pytest tests -q
+```
+
+## 남은 시스템 의존 (판매 데스크톱 앱에서 마저 봉인할 것)
+
+- **uv 자체** — 지금은 사용자가 uv를 깔아야 함. 봉인 앱에서는 uv나 세 venv를
+  앱 번들에 포함(또는 PyInstaller류로 동결)하면 "설치=압축 풀기"가 된다.
+- **Apple Silicon 전용** — mlx가 Metal을 쓰므로 Intel Mac·타 OS 미지원(제품 사양).

@@ -1,38 +1,34 @@
-"""ffmpeg 래퍼 유틸."""
-import shutil
+"""ffmpeg 래퍼 유틸. 바이너리는 core.ffbin이 해결한다 (시스템 설치 비의존)."""
+import re
 import subprocess
+
+from .ffbin import _DUR_RE, ffmpeg_exe, probe_stderr
 
 
 def ensure_ffmpeg():
-    if not shutil.which("ffmpeg"):
-        raise RuntimeError("ffmpeg이 필요합니다. 설치: brew install ffmpeg")
+    ffmpeg_exe()  # 못 찾으면 RuntimeError (설치 안내 포함)
 
 
 def has_video_stream(path):
-    out = subprocess.run(
-        ["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries",
-         "stream=codec_type", "-of", "csv=p=0", path],
-        capture_output=True, text=True)
-    return "video" in out.stdout
+    """비디오 스트림 존재 여부 — ffmpeg -i stderr 파싱 (ffprobe 비의존)."""
+    return bool(re.search(r"Stream #\d+:\d+.*: Video:", probe_stderr(path)))
 
 
 def run_ffmpeg(args):
     """ffmpeg 실행 (에러 출력 캡처). 실패 시 stderr를 담은 RuntimeError."""
-    proc = subprocess.run(["ffmpeg", "-y", "-v", "error", *args],
+    proc = subprocess.run([ffmpeg_exe(), "-y", "-v", "error", *args],
                           capture_output=True, text=True)
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg 실패: {proc.stderr[-400:]}")
 
 
 def media_duration(path):
-    """미디어 길이(초). 실패 시 None."""
-    out = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "csv=p=0", path], capture_output=True, text=True)
-    try:
-        return float(out.stdout.strip())
-    except ValueError:
+    """미디어 길이(초). 실패 시 None. ffmpeg -i의 Duration 라인 파싱."""
+    m = _DUR_RE.search(probe_stderr(path))
+    if not m:
         return None
+    h, mm, s = m.groups()
+    return int(h) * 3600 + int(mm) * 60 + float(s)
 
 
 def make_audio_preview(src, out_m4a, bitrate="96k"):

@@ -15,28 +15,33 @@ CLI · 로컬 웹 앱 · 맥 앱, 세 가지 방식으로 쓸 수 있다.
 ffmpeg.wasm으로 브라우저 안에서 직접 처리한다 — 파일이 서버로 전송되지 않고,
 내 컴퓨터(브라우저) 밖으로 나가지 않는다. 최초 접속 시 변환 엔진(약 30MB)을 한 번 내려받는다.
 
-## 준비물
+## 준비물 — uv 하나면 끝
+
+시스템에 파이썬·ffmpeg·brew가 없어도 된다. **[uv](https://docs.astral.sh/uv/)**
+하나만 있으면 관리형 파이썬과 잠긴 의존성을 재현하고, ffmpeg는 휠로 동봉된다.
 
 ```bash
-brew install ffmpeg
+curl -LsSf https://astral.sh/uv/install.sh | sh   # uv 설치 (최초 1회)
+bash bootstrap.sh                                  # 클론 후 한 방 설치
 ```
+
+격리 세부는 [PORTABILITY.md](PORTABILITY.md) 참고 (무엇이 봉인되고 무엇이
+런타임에 다운로드되는지).
 
 ## 1) CLI로 쓰기
 
 ```bash
-python3 denoise.py input.mov                # → input_clean.mov
-python3 denoise.py input.mov -o output.mov  # 출력 이름 지정
-python3 denoise.py input.mov --boost 13     # 볼륨도 13dB 키우기
+uv run python denoise.py input.mov                # → input_clean.mov
+uv run python denoise.py input.mov -o output.mov  # 출력 이름 지정
+uv run python denoise.py input.mov --boost 13     # 볼륨도 13dB 키우기
 ```
 
-의존성 없음 — 파이썬 표준 라이브러리 + ffmpeg만으로 동작.
+ffmpeg는 동봉본(imageio-ffmpeg)을 자동으로 쓴다 — 시스템 설치 불필요.
 
 ## 2) 로컬 웹 앱으로 쓰기
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python3 web/server.py
+uv run python web/server.py
 ```
 
 브라우저에서 `http://127.0.0.1:8756` 접속 → 파일을 끌어다 놓으면 끝.

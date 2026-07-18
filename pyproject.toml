@@ -1,0 +1,40 @@
+[project]
+name = "noisecleaner"
+version = "0.1.0"
+description = "크리에이터를 위한 로컬 음성 스튜디오 — 노이즈 제거 + 보이스 클로닝 (Apple Silicon)"
+requires-python = ">=3.12,<3.13"
+
+# 메인 환경(웹 앱 + 클로닝 + 노이즈 제거 오케스트레이션)에 필요한 전부.
+# DFN·재합성 엔진은 의존성 충돌(구버전 torch/deepspeed) 때문에 전용 venv로
+# 분리 설치한다 (scripts/install_dfn.sh, scripts/install_resynth.sh).
+dependencies = [
+    "flask>=3.1",
+    "mlx-audio>=0.4.5",
+    "mlx-whisper>=0.4.3",
+    "librosa>=0.11",
+    "soundfile>=0.14",
+    "torch>=2.13",
+    "torchaudio>=2.11",
+    "pyworld>=0.3.5",
+    "resemblyzer>=0.1.4",
+    "numpy>=2.4",
+    "scipy>=1.18",
+    "huggingface-hub>=1.23",
+    "imageio-ffmpeg>=0.6",       # ffmpeg 바이너리 동봉 (시스템 설치 불필요)
+    "setuptools<81",             # resemblyzer/pyworld의 webrtcvad가 pkg_resources 사용
+]
+
+[project.optional-dependencies]
+# 품질 평가(evaluate.py, DNSMOS)까지 쓸 때만
+eval = ["onnxruntime>=1.20", "jiwer>=3.0"]
+
+[dependency-groups]
+# 개발용 (테스트 러너)
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "web", "voice"]

@@ -10,13 +10,16 @@
 # - numpy 2.x에서 CFM 솔버의 float(fsolve(...)) 가 죽음 → numpy<2 고정
 # - torchaudio 2.11의 load는 torchcodec 요구 → IO는 soundfile로 (워커가 처리)
 # - 모델은 git-lfs 대신 huggingface_hub로 받는다 (워커가 run_dir 직접 지정)
+# uv가 관리형 CPython 3.11을 내려받으므로 시스템 python3.11(brew) 불필요.
 set -e
 cd "$(dirname "$0")/.."
 
-python3.11 -m venv .venv-re
-./.venv-re/bin/pip install --upgrade pip
-./.venv-re/bin/pip install resemble-enhance --no-deps
-./.venv-re/bin/pip install torch torchaudio "numpy<2" librosa soundfile \
+command -v uv >/dev/null 2>&1 || {
+  echo "uv가 필요합니다: curl -LsSf https://astral.sh/uv/install.sh | sh"; exit 1; }
+
+uv venv --python 3.11 .venv-re
+VIRTUAL_ENV=.venv-re uv pip install resemble-enhance --no-deps
+VIRTUAL_ENV=.venv-re uv pip install torch torchaudio "numpy<2" librosa soundfile \
   rich tqdm resampy tabulate omegaconf pandas matplotlib huggingface_hub
 
 SP=$(./.venv-re/bin/python3 -c "import site; print(site.getsitepackages()[0])")
