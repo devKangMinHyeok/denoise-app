@@ -29,5 +29,7 @@ def mlx_transcribe(wav_path, **kwargs):
     모든 Whisper 호출은 이 래퍼를 거쳐 전역 락으로 직렬화한다.
     """
     import mlx_whisper
+    from .ffbin import ensure_ffmpeg_on_path
+    ensure_ffmpeg_on_path()  # whisper는 오디오 로드에 bare `ffmpeg`를 PATH에서 찾음
     with MLX_LOCK:
         return mlx_whisper.transcribe(wav_path, **kwargs)

@@ -22,6 +22,11 @@ def main():
     os.dup2(2, 1)
     sys.stdout = sys.__stdout__ = os.fdopen(1, "w")
 
+    # 이 파일은 스크립트로 실행되므로(상대 임포트 불가) 패키지 루트를 path에 추가
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.ffbin import ensure_ffmpeg_on_path
+    ensure_ffmpeg_on_path()  # mlx_audio의 bare `ffmpeg` 호출 대비
+
     model_obj, model_name = None, None
     for line in sys.stdin:
         line = line.strip()

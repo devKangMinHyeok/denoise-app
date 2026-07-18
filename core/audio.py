@@ -2,11 +2,12 @@
 import re
 import subprocess
 
-from .ffbin import _DUR_RE, ffmpeg_exe, probe_stderr
+from .ffbin import _DUR_RE, ensure_ffmpeg_on_path, ffmpeg_exe, probe_stderr
 
 
 def ensure_ffmpeg():
     ffmpeg_exe()  # 못 찾으면 RuntimeError (설치 안내 포함)
+    ensure_ffmpeg_on_path()  # 제3자 라이브러리(whisper 등)의 bare 호출 대비
 
 
 def has_video_stream(path):

@@ -33,6 +33,41 @@ def ffmpeg_exe():
         "설치하거나 NOISECLEANER_FFMPEG로 경로를 지정하세요.")
 
 
+@functools.lru_cache(maxsize=1)
+def ensure_ffmpeg_on_path():
+    """동봉 ffmpeg를 `ffmpeg`란 이름으로 PATH에 얹는다 (멱등).
+
+    우리 코드는 full path로 부르지만, mlx-whisper 등 제3자 라이브러리는 오디오
+    로드에 bare `ffmpeg`를 PATH에서 찾는다. 동봉 바이너리는 이름이
+    `ffmpeg-macos-...`이므로 그대로는 안 잡힌다 → `ffmpeg` 심링크를 만들어
+    쓰기 가능한 사용자 디렉토리에 두고 PATH 앞에 붙인다.
+    """
+    exe = ffmpeg_exe()
+    if os.path.basename(exe) == "ffmpeg":  # 이미 표준 이름(시스템/번들)
+        _prepend_path(os.path.dirname(exe))
+        return exe
+    home = os.environ.get("NOISECLEANER_HOME",
+                          os.path.expanduser("~/.noisecleaner"))
+    bindir = os.path.join(home, "bin")
+    os.makedirs(bindir, exist_ok=True)
+    link = os.path.join(bindir, "ffmpeg")
+    try:
+        if os.path.realpath(link) != os.path.realpath(exe):
+            if os.path.lexists(link):
+                os.remove(link)
+            os.symlink(exe, link)
+    except OSError:
+        pass
+    _prepend_path(bindir)
+    return link
+
+
+def _prepend_path(d):
+    parts = os.environ.get("PATH", "").split(os.pathsep)
+    if d not in parts:
+        os.environ["PATH"] = os.pathsep.join([d, *parts])
+
+
 def probe_stderr(path):
     """`ffmpeg -i path`의 stderr 텍스트 (스트림/길이 파싱용). 출력을 안 지정하면
     ffmpeg는 종료코드 1로 정보만 stderr에 찍는다 — 그 텍스트를 그대로 돌려준다."""
