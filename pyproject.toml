@@ -26,6 +26,7 @@ dependencies = [
     "huggingface-hub>=1.23",
     "imageio-ffmpeg>=0.6",       # ffmpeg 바이너리 동봉 (시스템 설치 불필요)
     "setuptools<81",             # resemblyzer/pyworld의 webrtcvad가 pkg_resources 사용
+    "mcp>=1.2",                  # 로컬 MCP 서버 (Claude·Codex가 앱 기능 조작)
 ]
 
 [project.optional-dependencies]

@@ -61,8 +61,9 @@ bash "$ROOT/scripts/_deepspeed_stub.sh" "$RT/.venv-re"
 
 echo "▸ 앱 코드·모델 복사"
 for d in core web voice models docs; do cp -R "$ROOT/$d" "$DIST/$d"; done
-cp "$ROOT/denoise.py" "$ROOT/evaluate.py" "$ROOT/pyproject.toml" \
-   "$ROOT/uv.lock" "$ROOT/README.md" "$ROOT/PORTABILITY.md" "$DIST/"
+cp "$ROOT/denoise.py" "$ROOT/evaluate.py" "$ROOT/mcp_server.py" \
+   "$ROOT/pyproject.toml" "$ROOT/uv.lock" "$ROOT/README.md" \
+   "$ROOT/PORTABILITY.md" "$DIST/"
 find "$DIST" -name "__pycache__" -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 if [ "$WITH_MODELS" = "1" ]; then

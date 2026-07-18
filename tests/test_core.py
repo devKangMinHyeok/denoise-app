@@ -366,6 +366,19 @@ def test_guide_sentences_cover_prosody_dimensions():
         assert needed in focuses, f"가이드에 '{needed}' 유형 문장이 필요"
 
 
+def test_mcp_server_registers_tools():
+    """MCP 서버가 앱 기능을 도구로 노출한다 (에이전트 연동 회귀 방지)."""
+    pytest.importorskip("mcp")
+    import asyncio
+    import mcp_server
+    tools = asyncio.new_event_loop().run_until_complete(
+        mcp_server.mcp.list_tools())
+    names = {t.name for t in tools}
+    assert {"health", "denoise", "clone_voice", "list_voice_profiles",
+            "list_history"} <= names
+    assert all(t.description for t in tools)  # 각 도구에 설명 있음
+
+
 def test_storage_adapter_local(tmp_path):
     """저장소 어댑터: 문서·엔티티 디렉토리·설정 왕복 + 목록·삭제."""
     from web.storage import LocalStorage
