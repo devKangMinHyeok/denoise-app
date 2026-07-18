@@ -1,0 +1,167 @@
+import * as React from "react";
+import { SectionHeading, FeatureCard, Badge } from "@timbre/design-system";
+import { Container } from "../_ui/Container";
+import { Section } from "../_ui/Section";
+import { WindowMock } from "../_ui/WindowMock";
+import { Waveform } from "../_ui/Waveform";
+import { Icon } from "../_ui/Icon";
+import { KaraokeDemo } from "./KaraokeDemo";
+
+const FEAT = '"calt","kern","liga","ss03"';
+const mono = { font: "400 12px/1.5 var(--rc-font-mono)", color: "var(--rc-mute)" } as const;
+
+function Bar({ v, color = "var(--rc-ray)" }: { v: number; color?: string }) {
+  return (
+    <div style={{ height: 5, borderRadius: 3, background: "var(--rc-surface-elevated)", overflow: "hidden" }}>
+      <div style={{ width: `${v * 100}%`, height: "100%", background: color }} />
+    </div>
+  );
+}
+
+// --- 1. Voice profile ---
+function MockProfile() {
+  return (
+    <WindowMock title="MyVoice">
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ color: "var(--rc-ray)", display: "inline-flex" }}><Icon name="mic" size={16} /></span>
+        <span style={{ font: "500 13px/1 var(--rc-font-sans)", color: "var(--rc-ink)", fontFeatureSettings: FEAT }}>MyVoice</span>
+        <Badge variant="pro">v3 · rollback</Badge>
+      </div>
+      <div style={{ ...mono, display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span>Guided line</span>
+        <span style={{ color: "var(--rc-accent-green)" }}>10 / 10</span>
+      </div>
+      <Bar v={1} color="var(--rc-accent-green)" />
+    </WindowMock>
+  );
+}
+
+// --- 2. Long-form ---
+function MockLongform() {
+  const rows = ["The story begins on a quiet…", "By the second act the pace…", "Everything changes when…"];
+  return (
+    <WindowMock title="script.md · 3 paragraphs">
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {rows.map((r, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "7px 10px",
+              borderRadius: "var(--rc-radius-sm)",
+              background: i === 1 ? "var(--rc-surface-elevated)" : "transparent",
+              border: i === 1 ? "1px solid var(--rc-hairline)" : "1px solid transparent",
+              font: "400 12px/1.4 var(--rc-font-sans)",
+              fontFeatureSettings: FEAT,
+              color: i === 1 ? "var(--rc-ink)" : "var(--rc-mute)",
+            }}
+          >
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r}</span>
+            {i === 1 && <span style={{ color: "var(--rc-ray)", flex: "none" }}>(editing)</span>}
+          </div>
+        ))}
+      </div>
+      <div style={{ ...mono, textAlign: "right", marginTop: 10 }}>18,240 / 20,000 chars</div>
+    </WindowMock>
+  );
+}
+
+// --- 3. Performance transfer ---
+function MockTransfer() {
+  return (
+    <WindowMock title="performance transfer">
+      <div style={{ marginBottom: 8, ...mono }}>reference take</div>
+      <Waveform count={40} mode="raw" pos={1} activeColor="var(--rc-accent-blue)" height={30} />
+      <div style={{ textAlign: "center", margin: "8px 0", ...mono, color: "var(--rc-accent-green)" }}>↓ delivery followed</div>
+      <Waveform count={40} mode="raw" pos={1} activeColor="var(--rc-ray)" height={30} />
+    </WindowMock>
+  );
+}
+
+// --- 4. Karaoke view ---
+function MockKaraoke() {
+  const words = ["Read", "it", "back", "in", "your", "own", "voice."];
+  return (
+    <WindowMock title="karaoke view">
+      <div style={{ font: "500 18px/1.5 var(--rc-font-sans)", letterSpacing: ".1px", fontFeatureSettings: FEAT }}>
+        {words.map((w, i) => (
+          <span key={i} style={{ color: i === 3 ? "var(--rc-ray)" : i < 3 ? "var(--rc-body)" : "#33373a" }}>
+            {w}{" "}
+          </span>
+        ))}
+      </div>
+    </WindowMock>
+  );
+}
+
+// --- 5. Noise removal ---
+function MockNoise() {
+  return (
+    <WindowMock title="noise removal">
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        <span style={{ ...mono, padding: "3px 8px", borderRadius: 6, background: "rgba(245,115,43,.14)", color: "var(--rc-ray)" }}>Standard</span>
+        <span style={{ ...mono, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--rc-hairline)" }}>Resynth</span>
+      </div>
+      <Waveform count={44} mode="smooth" pos={1} activeColor="var(--rc-ray)" height={30} />
+      <div style={{ ...mono, marginTop: 10 }}>speech loss 0.0% · silence −38 dB</div>
+    </WindowMock>
+  );
+}
+
+// --- 6. Task center ---
+function MockTasks() {
+  return (
+    <WindowMock title="task center">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div>
+          <div style={{ ...mono, display: "flex", justifyContent: "space-between", marginBottom: 6, color: "var(--rc-body)" }}>
+            <span>Narrate chapter-02</span><span style={{ color: "var(--rc-ray)" }}>ETA 40s</span>
+          </div>
+          <Bar v={0.62} />
+        </div>
+        <div>
+          <div style={{ ...mono, display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span>Denoise interview.mov</span><span style={{ color: "var(--rc-accent-green)" }}>done ✓</span>
+          </div>
+          <Bar v={1} color="var(--rc-accent-green)" />
+        </div>
+      </div>
+    </WindowMock>
+  );
+}
+
+const FEATURES = [
+  { media: <MockProfile />, title: "Your voice profile", body: "Read ten guided lines once. Vocast builds a reusable profile — version it, reinforce it, roll back anytime." },
+  { media: <MockLongform />, title: "Long-form narration", body: "Paste up to 20,000 characters. Edit any paragraph in place and re-render just that block, not the whole take." },
+  { media: <MockTransfer />, title: "Performance transfer", body: "Record a reference delivery and the clone follows your pacing, emphasis and pauses — not a flat read." },
+  { media: <MockKaraoke />, title: "Karaoke lyrics view", body: "Watch each word light up as it plays, and click any word to jump there. Proofing long narration gets fast." },
+  { media: <MockNoise />, title: "Hybrid noise removal", body: "Studio-clean audio that keeps your word endings. Standard filtering or full resynthesis when you need it." },
+  { media: <MockTasks />, title: "Task center + ETA", body: "Everything heavy runs in the background with a live ETA, so you keep writing while renders finish." },
+];
+
+export function Features() {
+  return (
+    <Section id="features">
+      <Container>
+        <SectionHeading title="Narrate in your voice," accent="clean audio included." />
+        <div
+          style={{
+            marginTop: 56,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {FEATURES.map((f) => (
+            <FeatureCard key={f.title} media={f.media} title={f.title} style={{ background: "var(--rc-surface-card)" }}>
+              {f.body}
+            </FeatureCard>
+          ))}
+        </div>
+        <KaraokeDemo />
+      </Container>
+    </Section>
+  );
+}

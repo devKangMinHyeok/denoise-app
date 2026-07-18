@@ -26,3 +26,12 @@ app/ui/DerivedData/
 landing/node_modules/
 landing/.next/
 landing/out/
+
+# JS/pnpm (모노레포 전역)
+node_modules/
+_site/
+storybook-static/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo

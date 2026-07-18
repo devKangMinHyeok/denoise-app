@@ -1,0 +1,22 @@
+// Vocast 랜딩 — Next.js (App Router).
+// - transpilePackages: 워크스페이스 DS(@timbre/design-system)의 raw TS/TSX를 Next가 컴파일.
+// - GitHub Pages 배포(PAGES=1)일 때만 정적 export + /vocast basePath.
+//   Vercel 등 루트 배포에서는 basePath 없이 그대로 동작.
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const isPages = process.env.PAGES === "1";
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ["@timbre/design-system"],
+  images: { unoptimized: true },
+  // 이 모노레포 루트를 트레이싱 루트로 고정 (상위 docusaurus-blog lockfile 오탐 방지)
+  outputFileTracingRoot: repoRoot,
+  ...(isPages
+    ? { output: "export", basePath: "/vocast", trailingSlash: true }
+    : {}),
+};
+
+export default nextConfig;

@@ -20,6 +20,8 @@ export interface LogoProps extends React.HTMLAttributes<HTMLSpanElement> {
   animated?: boolean;
   /** rendered height in px (width scales to aspect) */
   height?: number;
+  /** wordmark text (shared mark, per-product name). Defaults to "Timbre". */
+  wordmark?: string;
   title?: string;
 }
 
@@ -27,7 +29,8 @@ export function Logo({
   variant = "full",
   height = 24,
   animated = false,
-  title = "Timbre",
+  wordmark = "Timbre",
+  title = wordmark,
   style,
   ...rest
 }: LogoProps) {
@@ -95,7 +98,7 @@ export function Logo({
           color: "var(--rc-ink)",
         }}
       >
-        Timbre<span style={{ color: "var(--rc-ray)" }}>.</span>
+        {wordmark}<span style={{ color: "var(--rc-ray)" }}>.</span>
       </span>
     </span>
   );

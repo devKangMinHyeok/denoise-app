@@ -1,14 +1,16 @@
 name: Deploy Pages (Landing + Storybook)
 
-# 한 GitHub Pages 사이트에 두 가지를 함께 서빙한다:
-#   /            → landing/ (마케팅 사이트, Next.js/Vercel 전환 전까지 임시)
-#   /storybook/  → @timbre/design-system 스토리북 (main 푸시마다 갱신)
+# 한 GitHub Pages 사이트에 함께 서빙 (main 푸시마다 갱신):
+#   /            → Vocast 랜딩 (Next.js 정적 export, PAGES=1 → basePath /vocast)
+#   /storybook/  → @timbre/design-system 스토리북
 on:
   push:
     branches: [main]
     paths:
       - "landing/**"
       - "packages/design-system/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -27,29 +29,26 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/design-system
     steps:
       - uses: actions/checkout@v4
-
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: packages/design-system/package-lock.json
-
-      - name: Install design-system deps
-        run: npm ci --no-audit --no-fund
+          cache: pnpm
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
 
       - name: Build Storybook (served under /vocast/storybook/)
-        run: STORYBOOK_BASE=/vocast/storybook/ npm run build-storybook
+        run: STORYBOOK_BASE=/vocast/storybook/ pnpm --filter @timbre/design-system build-storybook
+
+      - name: Build landing (static export, basePath /vocast)
+        run: PAGES=1 pnpm --filter vocast-landing build
 
       - name: Assemble site (landing at /, storybook at /storybook)
-        working-directory: .
         run: |
           rm -rf _site && mkdir -p _site
-          cp -R landing/. _site/
+          cp -R landing/out/. _site/
           mkdir -p _site/storybook
           cp -R packages/design-system/storybook-static/. _site/storybook/
 

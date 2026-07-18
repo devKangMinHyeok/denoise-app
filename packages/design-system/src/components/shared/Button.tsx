@@ -11,8 +11,12 @@ export interface ButtonProps
   /** pressed state for the primary pill (dims one notch) */
   pressed?: boolean;
   size?: "sm" | "md";
-  /** render as a different element, e.g. "a" — pass an anchor's href via rest */
+  /** render as a different element, e.g. "a" — then href/target/rel apply */
   as?: React.ElementType;
+  /** anchor attributes, valid when `as="a"` */
+  href?: string;
+  target?: string;
+  rel?: string;
 }
 
 export function Button({

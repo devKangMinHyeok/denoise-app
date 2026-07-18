@@ -1,0 +1,16 @@
+/* Page-level globals. Design tokens + fonts + body defaults come from the DS
+   (imported before this in layout.tsx: "@timbre/design-system/styles.css"). */
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+::selection {
+  background: rgba(245, 115, 43, 0.22);
+  color: var(--rc-ink);
+}
+:root {
+  --page-max: 1180px;
+  --gutter: 24px;
+}
