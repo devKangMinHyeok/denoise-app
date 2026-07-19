@@ -9,6 +9,7 @@ const LINKS = [
   { label: "Quality", href: "/#quality" },
   { label: "Privacy", href: "/#privacy" },
   { label: "AI (MCP)", href: "/#mcp" },
+  { label: "Tools", href: "/tools" },
   { label: "Pricing", href: "/#pricing" },
   { label: "Blog", href: "/blog" },
 ];

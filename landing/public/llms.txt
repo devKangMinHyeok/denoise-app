@@ -8,6 +8,12 @@ Vocast runs entirely on an Apple Silicon Mac (M1 or newer, macOS 12+). Your voic
 
 - [Vocast home](https://vocast.me/): overview, features, pricing ($49 one-time) and FAQ.
 - [Blog](https://vocast.me/blog/): methodology, metrics and product notes.
+- [Free audio tools](https://vocast.me/tools/): free, private, in-browser audio utilities (nothing is uploaded).
+
+## Free tools
+
+- [Audio noise remover](https://vocast.me/tools/audio-noise-remover/): remove background noise from audio or video, in your browser, nothing uploaded.
+- [Script reading time calculator](https://vocast.me/tools/script-reading-time-calculator/): turn a script into an estimated spoken length at your speaking pace.
 
 ## Blog
 

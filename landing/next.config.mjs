@@ -12,6 +12,9 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const nextConfig = {
   transpilePackages: ["@timbre/design-system"],
   images: { unoptimized: true },
+  // 사이트 전역 URL 규약 = trailing slash. canonical/sitemap/내부 링크가 모두 "/x/"
+  // 형태라 서빙도 이에 맞춰 정렬(그래야 canonical이 308 리다이렉트를 안 가리킴).
+  trailingSlash: true,
   // public/ 정적 에셋(블로그 이미지 등)을 basePath 아래에서도 찾도록 노출.
   // 일반 <img>/CSS url()은 basePath가 자동 적용되지 않으므로 asset() 헬퍼로 접두.
   env: { NEXT_PUBLIC_BASE_PATH: isPages ? "/vocast" : "" },

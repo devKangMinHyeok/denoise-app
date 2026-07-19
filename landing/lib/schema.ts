@@ -111,7 +111,64 @@ export function breadcrumbSchema(items: { name: string; path: string }[]) {
   };
 }
 
+// --- Free tools ---
+
+export interface ToolSchemaInput {
+  slug: string;
+  name: string;
+  description: string;
+  howto?: { name: string; text: string }[];
+}
+
+/** 무료 도구 = 무료(price 0) WebApplication */
+export function toolWebAppSchema(tool: ToolSchemaInput) {
+  const url = abs(`/tools/${tool.slug}/`);
+  return {
+    "@type": "WebApplication",
+    name: tool.name,
+    description: tool.description,
+    url,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Any (runs in a web browser)",
+    browserRequirements: "Requires a modern browser. Runs entirely on the client, nothing is uploaded.",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    isAccessibleForFree: true,
+    inLanguage: SITE.lang,
+    publisher: { "@id": ORG_ID },
+  };
+}
+
+export function howToSchema(tool: ToolSchemaInput) {
+  if (!tool.howto || tool.howto.length === 0) return null;
+  return {
+    "@type": "HowTo",
+    name: `How to use the ${tool.name.toLowerCase()}`,
+    description: tool.description,
+    step: tool.howto.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+    })),
+  };
+}
+
+/** /tools 인덱스: 라이브 도구들의 ItemList */
+export function toolListSchema(tools: { slug: string; name: string }[]) {
+  return {
+    "@type": "ItemList",
+    name: "Free audio tools",
+    numberOfItems: tools.length,
+    itemListElement: tools.map((t, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: t.name,
+      url: abs(`/tools/${t.slug}/`),
+    })),
+  };
+}
+
 /** 여러 스키마를 하나의 @graph 로 묶어 반환 */
-export function graph(...nodes: object[]) {
-  return { "@context": "https://schema.org", "@graph": nodes };
+export function graph(...nodes: (object | null)[]) {
+  return { "@context": "https://schema.org", "@graph": nodes.filter(Boolean) };
 }

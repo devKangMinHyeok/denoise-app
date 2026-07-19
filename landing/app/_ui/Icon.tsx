@@ -17,6 +17,13 @@ const P: Record<string, React.ReactNode> = {
   folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
   github: <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.94.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor" stroke="none" />,
   refresh: (<><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v5h-5" /></>),
+  upload: (<><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /><path d="M12 15V4M7 9l5-5 5 5" /></>),
+  download: (<><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /><path d="M12 4v11M7 10l5 5 5-5" /></>),
+  gauge: (<><path d="M4 18a8 8 0 1 1 16 0" /><path d="M12 14l4-4" /></>),
+  clean: (<><path d="M3 12h3M18 12h3" /><path d="M8 6v12M12 3v18M16 8v8" /></>),
+  record: <circle cx="12" cy="12" r="6" fill="currentColor" stroke="none" />,
+  convert: (<><path d="M4 8h13l-3-3M20 16H7l3 3" /></>),
+  alert: (<><path d="M12 3 2 20h20L12 3z" /><path d="M12 10v5M12 18h.01" /></>),
 };
 
 export interface IconProps extends React.SVGAttributes<SVGSVGElement> {
