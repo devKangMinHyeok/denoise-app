@@ -61,25 +61,22 @@ struct ProfileSelector: View {
     }
 
     var body: some View {
-        // A plain Button hosting the styled chip; a native menu is attached so the
-        // full avatar + name + chevron always render (Menu labels can collapse custom views).
-        Button { cycleDefault() } label: { chip }
+        // A plain Button hosting the styled chip; a native menu lists the real voice
+        // profiles from the engine so one can be chosen for narration.
+        Button { cycle() } label: { chip }
             .buttonStyle(.plain)
             .contextMenu {
-                ForEach(app.voices.profiles) { p in
-                    Button(p.name) { setDefault(p) }
+                ForEach(app.backendProfiles) { p in
+                    Button(p.name) { app.selectedProfileID = p.id }
                 }
             }
     }
 
-    private func cycleDefault() {
-        let ps = app.voices.profiles
-        guard let cur = ps.firstIndex(where: { $0.isDefault }) else { return }
-        let next = (cur + 1) % ps.count
-        for i in app.voices.profiles.indices { app.voices.profiles[i].isDefault = (i == next) }
-    }
-    private func setDefault(_ p: VoiceProfile) {
-        for i in app.voices.profiles.indices { app.voices.profiles[i].isDefault = (app.voices.profiles[i].id == p.id) }
+    private func cycle() {
+        let ids = app.backendProfiles.map(\.id)
+        guard !ids.isEmpty else { return }
+        let cur = app.selectedProfileID.flatMap { ids.firstIndex(of: $0) } ?? -1
+        app.selectedProfileID = ids[(cur + 1) % ids.count]
     }
 }
 
@@ -130,7 +127,7 @@ struct ComposingStudio: View {
                 Spacer()
                 HStack(spacing: 12) {
                     ProgressView().controlSize(.small).tint(Palette.accent)
-                    Text("Rendering \(Int(app.studio.renderProgress * 100))% · ETA \(fmtTime(app.studio.renderETA))")
+                    Text("\(app.studio.renderStage.isEmpty ? "Rendering" : app.studio.renderStage) · \(Int(app.studio.renderProgress * 100))%")
                         .font(.mono(12)).foregroundStyle(Palette.body)
                     SecondaryButton(title: "Cancel") { }
                 }
@@ -228,10 +225,7 @@ struct BlockCard: View {
 struct KaraokeView: View {
     @Environment(AppModel.self) private var app
 
-    private var words: [String] {
-        let b = app.studio.selectedBlock ?? app.studio.blocks[safe: 1] ?? app.studio.blocks.first
-        return b?.text.split(separator: " ").map(String.init) ?? []
-    }
+    private var words: [String] { app.studio.karaokeWords }
 
     var body: some View {
         ScrollView {
@@ -246,7 +240,10 @@ struct KaraokeView: View {
                         .padding(.vertical, state == .current ? 2 : 0)
                         .background(state == .current
                                     ? RoundedRectangle(cornerRadius: Radius.row).fill(Palette.accent) : nil)
-                        .onTapGesture { app.studio.karaokeWordIndex = i }
+                        .onTapGesture {
+                            if i < app.studio.words.count { app.studioSeek(to: app.studio.words[i].s) }
+                            app.studio.karaokeWordIndex = i
+                        }
                 }
             }
             .padding(.horizontal, 60).padding(.vertical, 40)
@@ -270,7 +267,7 @@ struct Transport: View {
     var body: some View {
         HStack(spacing: 16) {
             PlayCircle(playing: app.studio.playing, size: 42, filled: true) {
-                app.studio.playing.toggle()
+                app.studioPlayToggle()
             }
             Text(fmtTime(app.studio.currentTime)).font(.mono(13)).foregroundStyle(Palette.body)
                 .frame(width: 40, alignment: .leading)
@@ -281,7 +278,7 @@ struct Transport: View {
                     .contentShape(Rectangle())
                     .gesture(DragGesture(minimumDistance: 0).onChanged { v in
                         let frac = min(1, max(0, v.location.x / geo.size.width))
-                        app.studio.currentTime = frac * total
+                        app.studioSeek(to: frac * total)
                     })
             }
             .frame(height: 34)

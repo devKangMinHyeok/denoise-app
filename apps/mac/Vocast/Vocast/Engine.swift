@@ -36,6 +36,31 @@ struct DNJob: Decodable {
     let report: DNReport?
 }
 
+// MARK: Narration (Studio) decodables
+
+struct EngineProfile: Decodable, Identifiable {
+    let id: String
+    let name: String
+}
+
+struct NWord: Decodable { let w: String; let s: Double; let e: Double }
+struct NPara: Decodable { let text: String }
+
+struct NJob: Decodable {
+    let id: String
+    let status: String          // preparing | generating | done | error
+    let stage: String?
+    let eta_sec: Double?
+    let elapsed_sec: Double?
+    let paragraphs: [NPara]?
+    let words: [NWord]?
+    let pns: Double?
+    let rtf: Double?
+    let profile: String?
+    let text: String?
+    let error: String?
+}
+
 enum EngineError: LocalizedError {
     case badResponse(Int, String)
     case notAvailable(String)
@@ -118,6 +143,38 @@ final class EngineClient {
     /// Download URL for the cleaned result file.
     func denoiseFileURL(_ id: String) -> URL {
         base.appendingPathComponent("api/dnjobs/\(id)/file")
+    }
+
+    // MARK: Narration (Studio)
+
+    func listProfiles() async throws -> [EngineProfile] {
+        let (data, resp) = try await get("/api/profiles")
+        try check(resp, data)
+        struct R: Decodable { let profiles: [EngineProfile] }
+        return try JSONDecoder().decode(R.self, from: data).profiles
+    }
+
+    func createNarration(text: String, profileID: String?, fast: Bool = false) async throws -> String {
+        var fields: [MultipartField] = [
+            .text(name: "text", value: text),
+            .text(name: "fast", value: fast ? "1" : "0"),
+        ]
+        if let p = profileID { fields.append(.text(name: "profile_id", value: p)) }
+        let (data, resp) = try await multipartPost("/api/jobs", fields: fields)
+        try check(resp, data)
+        struct R: Decodable { let job_id: String }
+        return try JSONDecoder().decode(R.self, from: data).job_id
+    }
+
+    func narrationStatus(_ id: String) async throws -> NJob {
+        let (data, resp) = try await get("/api/jobs/\(id)")
+        try check(resp, data)
+        return try JSONDecoder().decode(NJob.self, from: data)
+    }
+
+    /// Playable URL for the composed narration audio.
+    func narrationAudioURL(_ id: String) -> URL {
+        base.appendingPathComponent("api/jobs/\(id)/audio")
     }
 
     // MARK: HTTP plumbing

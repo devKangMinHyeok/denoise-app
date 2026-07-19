@@ -180,14 +180,25 @@ final class StudioModel {
     var renderETA: Double = 0
 
     // Karaoke
-    var karaokeWordIndex: Int = 5
+    var karaokeWordIndex: Int = 0
+
+    // Real engine render
+    var renderJobID: String?
+    var renderStage: String = ""
+    var audioURL: URL?
+    var words: [NWord] = []
+    var audioDuration: Double = 0
 
     var charCount: Int { scriptText.count }
-    var totalDuration: Double { blocks.reduce(0) { $0 + $1.duration } }
+    var totalDuration: Double {
+        audioDuration > 0 ? audioDuration : blocks.reduce(0) { $0 + $1.duration }
+    }
     var selectedBlock: Block? { blocks.first { $0.id == selectedBlockID } }
 
+    /// Real word timeline (from the engine) drives karaoke when present.
     var karaokeWords: [String] {
-        (blocks.first { $0.id == selectedBlockID } ?? blocks.dropFirst().first ?? blocks.first)?
+        if !words.isEmpty { return words.map(\.w) }
+        return (blocks.first { $0.id == selectedBlockID } ?? blocks.dropFirst().first ?? blocks.first)?
             .text.split(separator: " ").map(String.init) ?? []
     }
 

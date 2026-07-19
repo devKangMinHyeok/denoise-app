@@ -47,8 +47,13 @@ final class AppModel {
     var engineReady = false
     var engineStarting = true
     var resynthAvailable = false
+    var backendProfiles: [EngineProfile] = []
+    var selectedProfileID: String?
     private var dnPollTask: Task<Void, Never>?
     private var dnPlayer: AVPlayer?
+    private var renderTask: Task<Void, Never>?
+    private var studioPlayer: AVPlayer?
+    private var studioTimeObserver: Any?
 
     init() {
         // Launch the local engine as a child process and point the client at it.
@@ -79,6 +84,8 @@ final class AppModel {
         if let h = await engine.waitUntilReady(timeout: 40) {
             engineReady = true
             resynthAvailable = h.resynth
+            backendProfiles = (try? await engine.listProfiles()) ?? []
+            if selectedProfileID == nil { selectedProfileID = backendProfiles.first?.id }
         } else {
             engineReady = false
             resynthAvailable = false
@@ -146,26 +153,149 @@ final class AppModel {
         guard !studio.scriptText.isEmpty, studio.phase != .rendering else { return }
         studio.phase = .rendering
         studio.rendering = true
+        studio.renderStage = "Preparing"
+        stopStudioPlayback()
+        let text = studio.scriptText
+        let start = Date()
 
         let job = Job(kind: .narrationRender, title: "Narration render",
-                      subtitle: "\(currentProfileName) · 4x realtime", state: .running,
-                      target: "4 blocks", profile: currentProfileName)
+                      subtitle: "\(currentProfileName) · TTS on this Mac", state: .running,
+                      target: "narration", profile: currentProfileName)
         tasks.jobs.insert(job, at: 0)
 
-        drive(4.0, eta: 12, tick: { p, e in
-            self.studio.renderProgress = p
-            self.studio.renderETA = e
-            job.progress = p
-            job.eta = e
-        }, done: {
-            self.studio.blocks = self.makeBlocks()
-            self.studio.selectedBlockID = self.studio.blocks.first?.id
-            self.studio.phase = .rendered
-            self.studio.rendering = false
-            job.state = .done
-            job.timeLabel = "just now"
-            self.complete("Narration is ready, 4 blocks rendered.")
-        })
+        renderTask?.cancel()
+        renderTask = Task { @MainActor in
+            do {
+                let jid = try await engine.createNarration(text: text, profileID: selectedProfileID)
+                studio.renderJobID = jid
+                while !Task.isCancelled {
+                    let st = try await engine.narrationStatus(jid)
+                    let eta = st.eta_sec ?? 30
+                    let elapsed = Date().timeIntervalSince(start)
+                    studio.renderStage = narrationStageText(st.stage)
+                    // Prefer real take progress ("take n/m") over the time estimate.
+                    if let frac = takeFraction(st.stage) {
+                        studio.renderProgress = 0.05 + frac * 0.9
+                    } else {
+                        studio.renderProgress = min(0.9, elapsed / max(eta, 1))
+                    }
+                    studio.renderETA = max(1, eta - elapsed)
+                    job.progress = studio.renderProgress
+                    job.eta = studio.renderETA
+
+                    if st.status == "done" {
+                        studio.words = st.words ?? []
+                        studio.audioDuration = st.words?.last?.e ?? 0
+                        studio.audioURL = engine.narrationAudioURL(jid)
+                        studio.blocks = makeRealBlocks(st, text: text)
+                        studio.selectedBlockID = studio.blocks.first?.id
+                        studio.karaokeWordIndex = 0
+                        studio.currentTime = 0
+                        studio.phase = .rendered
+                        studio.rendering = false
+                        job.state = .done
+                        job.timeLabel = "just now"
+                        complete("Narration is ready.")
+                        return
+                    }
+                    if st.status == "error" {
+                        studio.phase = .empty
+                        studio.rendering = false
+                        tasks.jobs.removeAll { $0.id == job.id }
+                        notify("Narration failed: \(st.error ?? "unknown error")")
+                        return
+                    }
+                    try await Task.sleep(nanoseconds: 700_000_000)
+                }
+            } catch let e as EngineError {
+                studio.phase = .empty; studio.rendering = false
+                tasks.jobs.removeAll { $0.id == job.id }
+                notify(engineMessage(e))
+            } catch {
+                studio.phase = .empty; studio.rendering = false
+                tasks.jobs.removeAll { $0.id == job.id }
+                notify("Could not reach the local engine. Is it running?")
+            }
+        }
+    }
+
+    private func narrationStageText(_ stage: String?) -> String {
+        switch stage {
+        case "reference": return "Preparing the voice"
+        case "takes": return "Generating speech"
+        case "post": return "Composing"
+        case "done": return "Done"
+        default:
+            if let s = stage, s.hasPrefix("take ") { return "Generating speech (\(s.dropFirst(5)))" }
+            return "Generating"
+        }
+    }
+
+    private func takeFraction(_ stage: String?) -> Double? {
+        guard let s = stage, s.hasPrefix("take ") else { return nil }
+        let parts = s.dropFirst(5).split(separator: "/")
+        guard parts.count == 2, let n = Double(parts[0]), let m = Double(parts[1]), m > 0 else { return nil }
+        return n / m
+    }
+
+    private func makeRealBlocks(_ st: NJob, text: String) -> [Block] {
+        let paras: [String]
+        if let p = st.paragraphs, !p.isEmpty {
+            paras = p.map { $0.text }
+        } else {
+            paras = text.components(separatedBy: "\n\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+        let total = st.words?.last?.e ?? 0
+        let per = paras.isEmpty ? 0 : total / Double(paras.count)
+        return paras.enumerated().map { i, t in
+            Block(text: t, status: .rendered,
+                  duration: per > 0 ? per : Double(6 + i),
+                  version: 1,
+                  peaks: Waveform.peaks(34, seed: UInt64(100 + i * 13)),
+                  scorecard: .sample(attention: false))
+        }
+    }
+
+    // MARK: Studio transport playback (real composed audio)
+
+    func studioPlayToggle() {
+        guard let url = studio.audioURL else { return }
+        if studio.playing {
+            studioPlayer?.pause()
+            studio.playing = false
+            return
+        }
+        if studioPlayer == nil {
+            let player = AVPlayer(url: url)
+            studioTimeObserver = player.addPeriodicTimeObserver(
+                forInterval: CMTime(seconds: 0.08, preferredTimescale: 600), queue: .main
+            ) { [weak self] time in
+                guard let self else { return }
+                let sec = time.seconds
+                self.studio.currentTime = sec
+                if let idx = self.studio.words.lastIndex(where: { $0.s <= sec }) {
+                    self.studio.karaokeWordIndex = idx
+                }
+            }
+            studioPlayer = player
+        }
+        studioPlayer?.play()
+        studio.playing = true
+    }
+
+    func stopStudioPlayback() {
+        studioPlayer?.pause()
+        if let obs = studioTimeObserver { studioPlayer?.removeTimeObserver(obs); studioTimeObserver = nil }
+        studioPlayer = nil
+        studio.playing = false
+    }
+
+    func studioSeek(to sec: Double) {
+        studio.currentTime = sec
+        studioPlayer?.seek(to: CMTime(seconds: sec, preferredTimescale: 600))
+        if let idx = studio.words.lastIndex(where: { $0.s <= sec }) { studio.karaokeWordIndex = idx }
     }
 
     func regenerateBlock(_ id: Block.ID) {
@@ -390,34 +520,18 @@ final class AppModel {
     // MARK: Helpers
 
     var currentProfileName: String {
-        voices.profiles.first(where: { $0.isDefault })?.name ?? "Ava, narration"
+        if let id = selectedProfileID, let p = backendProfiles.first(where: { $0.id == id }) {
+            return p.name
+        }
+        return backendProfiles.first?.name ?? "Default voice"
     }
 
-    var currentProfileSim: String {
-        voices.profiles.first(where: { $0.isDefault })?.sim ?? "0.94"
-    }
+    /// Per-profile SIM is not surfaced by a simple render yet; shown as an example.
+    var currentProfileSim: String { "0.94" }
 
     var currentProfileInitials: String {
-        voices.profiles.first(where: { $0.isDefault })?.initials ?? "AR"
-    }
-
-    private func makeBlocks() -> [Block] {
-        let paras = studio.scriptText
-            .components(separatedBy: "\n\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        let durations: [Double] = [11, 12, 9, 7]
-        let versions: [Int] = [2, 3, 1, 1]
-        return paras.enumerated().map { i, text in
-            Block(
-                text: text,
-                status: .rendered,
-                duration: durations[safe: i] ?? Double(6 + i),
-                version: versions[safe: i] ?? 1,
-                peaks: Waveform.peaks(34, seed: UInt64(100 + i * 13)),
-                scorecard: .sample(attention: i == 1)   // block 2 is the "attention" example
-            )
-        }
+        let name = currentProfileName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? "V" : String(name.prefix(2)).uppercased()
     }
 
     // MARK: Onboarding
