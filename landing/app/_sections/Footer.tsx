@@ -20,9 +20,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Resources",
     links: [
       { label: "Blog", href: asset("/blog/") },
-      { label: "Quality methodology", href: "https://github.com/devKangMinHyeok/vocast/blob/main/docs/QUALITY.md" },
-      { label: "GitHub", href: "https://github.com/devKangMinHyeok/vocast" },
-      { label: "Browser demo", href: asset("/demo/") },
+      { label: "Quality methodology", href: asset("/blog/measuring-prosody-not-vibes/") },
     ],
   },
   {

@@ -20,7 +20,6 @@ export function organizationSchema() {
     name: SITE.name,
     url: abs("/"),
     logo: abs("/blog/vocast-mark.svg"),
-    sameAs: [SITE.github],
   };
 }
 

@@ -10,6 +10,6 @@ export const FAQ_ITEMS: FaqItem[] = [
   { q: "Which Mac do I need?", a: "An Apple Silicon Mac (M1 or newer) on macOS 12+. Voice cloning uses on-device Metal acceleration; noise removal works everywhere." },
   { q: "How do I connect an AI agent?", a: "Vocast exposes a local MCP server over stdio. Point Claude, or any MCP-capable agent, at it and it can call denoise, clone_voice and the rest directly." },
   { q: "Can I clone any voice?", a: "Only your own voice, or a voice you have explicit consent to use. Cloning is built for creators narrating their own work, not for impersonation." },
-  { q: "Is the source public?", a: "The engine, quality methodology and MCP server are open on GitHub. You can read exactly how cloning, scoring and denoising work." },
+  { q: "How is quality measured?", a: "Every render is scored on speaker similarity, word accuracy, naturalness and a prosody metric, and a render that misses any gate is rejected rather than shipped. The full methodology is on our blog." },
   { q: "What's the refund policy?", a: "14 days, no questions asked. If it doesn't fit your workflow, email us within two weeks for a full refund." },
 ];

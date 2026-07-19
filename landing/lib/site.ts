@@ -18,10 +18,9 @@ export const SITE = {
 
   ogImage: "/og.png", // public/og.png (1200x630)
   twitter: "", // @핸들 생기면 채우기 (예: "@vocast")
-  github: "https://github.com/devKangMinHyeok/vocast",
 
   price: { amount: "49", currency: "USD" },
-  author: { name: "Minhyeok Kang", url: "https://github.com/devKangMinHyeok" },
+  author: { name: "Minhyeok Kang" },
 
   keywords: [
     "voice cloning",

@@ -13,7 +13,6 @@ const LINKS = [
   { label: "Blog", href: "/blog" },
 ];
 const FEAT = '"calt","kern","liga","ss03"';
-const GITHUB = "https://github.com/devKangMinHyeok/vocast";
 
 function NavLink({
   href,
@@ -108,7 +107,6 @@ export function Nav({ active }: { active?: string } = {}) {
               ))}
             </div>
             <span style={{ width: 1, height: 22, background: "var(--rc-hairline)" }} />
-            <NavLink href={GITHUB}>GitHub</NavLink>
             <Button variant="primary" size="sm" as={Link} href="/#pricing">
               Buy
             </Button>
@@ -154,9 +152,6 @@ export function Nav({ active }: { active?: string } = {}) {
               {l.label}
             </NavLink>
           ))}
-          <NavLink href={GITHUB} onClick={() => setMenuOpen(false)}>
-            GitHub
-          </NavLink>
           <div style={{ marginTop: 4 }}>
             <Button variant="primary" as={Link} href="/#pricing" style={{ width: "100%" }} onClick={() => setMenuOpen(false)}>
               Buy · $49

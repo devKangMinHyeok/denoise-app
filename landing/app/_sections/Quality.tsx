@@ -3,6 +3,7 @@ import { SectionHeading, GradientText, InlineLink } from "@timbre/design-system"
 import { Container } from "../_ui/Container";
 import { Section } from "../_ui/Section";
 import { Icon } from "../_ui/Icon";
+import { asset } from "../../lib/asset";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
@@ -45,7 +46,7 @@ export function Quality() {
           ))}
         </div>
         <div style={{ marginTop: 28, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <InlineLink href="https://github.com/devKangMinHyeok/vocast/blob/main/docs/QUALITY.md">
+          <InlineLink href={asset("/blog/measuring-prosody-not-vibes/")}>
             Read the methodology
           </InlineLink>
           <Icon name="arrowRight" size={15} />

@@ -7,8 +7,7 @@ Vocast runs entirely on an Apple Silicon Mac (M1 or newer, macOS 12+). Your voic
 ## Product
 
 - [Vocast home](https://devkangminhyeok.github.io/vocast/): overview, features, pricing ($49 one-time) and FAQ.
-- [Browser demo](https://devkangminhyeok.github.io/vocast/demo/): in-browser noise-removal demo, no install.
-- [Source and methodology](https://github.com/devKangMinHyeok/vocast): the engine, quality scoring and MCP server are open on GitHub.
+- [Blog](https://devkangminhyeok.github.io/vocast/blog/): methodology, metrics and product notes.
 
 ## Blog
 
