@@ -18,11 +18,7 @@ enum OnboardingStep: Int, CaseIterable { case welcome, download, mic, ready }
 @MainActor @Observable
 final class OnboardingModel {
     var step: OnboardingStep = .welcome
-    var downloadProgress: Double = 0
-    var downloadETA: Double = 8
-    var downloading = false
-
-    var downloadComplete: Bool { downloadProgress >= 1 }
+    var tier: String = "balanced"   // balanced | advanced
 }
 
 // MARK: - AppModel (root) + job engine
@@ -49,6 +45,8 @@ final class AppModel {
     var resynthAvailable = false
     var backendProfiles: [EngineProfile] = []
     var selectedProfileID: String?
+    var modelStatus: ModelStatus?
+    private var modelPollTask: Task<Void, Never>?
     private var dnPollTask: Task<Void, Never>?
     private var dnPlayer: AVPlayer?
     private var renderTask: Task<Void, Never>?
@@ -86,11 +84,38 @@ final class AppModel {
             resynthAvailable = h.resynth
             backendProfiles = (try? await engine.listProfiles()) ?? []
             if selectedProfileID == nil { selectedProfileID = backendProfiles.first?.id }
+            modelStatus = try? await engine.modelStatus()
         } else {
             engineReady = false
             resynthAvailable = false
         }
         engineStarting = false
+    }
+
+    // MARK: Model download (first run)
+
+    func refreshModelStatus() async {
+        modelStatus = try? await engine.modelStatus()
+    }
+
+    func downloadModels(tier: String) {
+        modelPollTask?.cancel()
+        modelPollTask = Task { @MainActor in
+            do {
+                try await engine.startModelDownload(tier: tier)
+            } catch {
+                notify("Could not start the model download. Is the engine running?")
+                return
+            }
+            while !Task.isCancelled {
+                if let s = try? await engine.modelStatus() {
+                    modelStatus = s
+                    if s.ready { return }
+                    if let e = s.error, !e.isEmpty { notify("Download error: \(e)"); return }
+                }
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+        }
     }
 
     // Shell UI state
@@ -535,15 +560,6 @@ final class AppModel {
     }
 
     // MARK: Onboarding
-
-    func startModelDownload() {
-        guard !onboarding.downloading else { return }
-        onboarding.downloading = true
-        drive(5.0, eta: 8, tick: { p, e in
-            self.onboarding.downloadProgress = p
-            self.onboarding.downloadETA = e
-        }, done: { })
-    }
 
     func requestMic() {
         AVCaptureDevice.requestAccess(for: .audio) { _ in }

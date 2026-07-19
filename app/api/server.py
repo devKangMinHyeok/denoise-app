@@ -49,6 +49,20 @@ def health():
                    platform=platform.system(), apple_silicon=is_apple)
 
 
+@app.get("/api/models/status")
+def models_status_api():
+    from api import models as models_mod
+    return jsonify(models_mod.status())
+
+
+@app.post("/api/models/download")
+def models_download_api():
+    from api import models as models_mod
+    body = request.get_json(silent=True) or {}
+    started = models_mod.start_download(body.get("tier", "balanced"))
+    return jsonify(ok=True, started=started)
+
+
 def _save_upload(f):
     name, ext = os.path.splitext(os.path.basename(f.filename))
     ext = ext.lower()

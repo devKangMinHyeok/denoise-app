@@ -115,21 +115,44 @@ struct GeneralPane: View {
 // MARK: - Models
 
 struct ModelsPane: View {
+    @Environment(AppModel.self) private var app
+
+    private var installed: [String: Bool] { app.modelStatus?.installed ?? [:] }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "Models", blurb: "Installed models and local storage.")
+            SettingsHeader(title: "Models", blurb: "Downloaded voice and transcription models, kept in the app's own folder. Nothing is uploaded.")
             settingsCard {
-                SettingRow(label: "Vocast voice model", sub: "v1.4 · 1.8 GB") {
-                    SecondaryButton(title: "Re-download") { }
-                }
+                modelRow("Voice model (fast)", "1.9 GB", installed["tts_fast"] ?? false)
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Denoise model", sub: "v2.1 · 240 MB") {
-                    SecondaryButton(title: "Re-download") { }
-                }
+                modelRow("Transcription model", "1.5 GB", installed["whisper"] ?? false)
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Storage used", sub: "Example value") {
-                    Text("2.1 GB").font(.mono(13)).foregroundStyle(Palette.ink)
+                modelRow("Voice model (high quality)", "2.9 GB", installed["tts_best"] ?? false)
+                Divider().overlay(Palette.hairline)
+                modelRow("Noise removal", "bundled", true)
+            }
+
+            if let s = app.modelStatus, s.downloading {
+                VStack(alignment: .leading, spacing: 8) {
+                    ThinProgress(value: s.fraction, height: 6, gradient: true)
+                    Text(String(format: "Downloading, %.1f / %.1f GB", s.downloadedGB, s.totalGB))
+                        .font(.mono(12)).foregroundStyle(Palette.mute)
                 }
+            } else if (installed["tts_best"] ?? false) == false {
+                SecondaryButton(title: "Download high quality voice model (2.9 GB)") {
+                    app.downloadModels(tier: "advanced")
+                }
+            }
+        }
+        .task { await app.refreshModelStatus() }
+    }
+
+    private func modelRow(_ name: String, _ size: String, _ isInstalled: Bool) -> some View {
+        SettingRow(label: name, sub: size) {
+            HStack(spacing: 7) {
+                StatusDot(color: isInstalled ? Palette.good : Palette.ash, size: 7)
+                Text(isInstalled ? "installed" : "not installed")
+                    .font(.mono(12)).foregroundStyle(isInstalled ? Palette.good : Palette.ash)
             }
         }
     }

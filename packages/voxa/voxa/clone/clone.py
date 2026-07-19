@@ -20,6 +20,16 @@ WHISPER = "mlx-community/whisper-large-v3-turbo"
 MAX_REF_SEC = 15  # 참조는 앞 15초면 충분
 
 
+def _model_downloaded(repo_id):
+    """HF 캐시(HF_HOME 존중)에 모델이 이미 받아져 있는지 — 없는데 자동
+    다운로드로 사용자를 몇 GB 기다리게 하지 않기 위한 확인."""
+    import glob
+    home = os.environ.get("HF_HOME") or os.path.expanduser("~/.cache/huggingface")
+    d = os.path.join(home, "hub", "models--" + repo_id.replace("/", "--"),
+                     "snapshots")
+    return bool(glob.glob(os.path.join(d, "*", "*")))
+
+
 def clone_available():
     """이 환경에서 보이스 클로닝을 쓸 수 있는지 (mlx 설치 여부)."""
     return (importlib.util.find_spec("mlx_audio") is not None
@@ -130,7 +140,10 @@ def synthesize(text, ref_wav, ref_text, output_path, fast=False, retries=1,
     저사양(GPU 없는) CI 러너에서 mlx_audio가 파일을 안 만들고 종료코드 0을
     내거나 멈추는 경우가 관찰됨 → 출력 파일 검증 + 타임아웃 + 재시도.
     """
-    model = MODEL_FAST if fast else MODEL_BEST
+    # 고품질(1.7B)이 안 받아져 있으면(balanced 설치) 빠른(0.6B) 모델로 폴백 —
+    # 렌더 도중 몇 GB를 몰래 받지 않도록.
+    model = MODEL_FAST if fast else (
+        MODEL_BEST if _model_downloaded(MODEL_BEST) else MODEL_FAST)
     out_dir = os.path.dirname(os.path.abspath(output_path)) or "."
     prefix = os.path.splitext(os.path.basename(output_path))[0]
     try:

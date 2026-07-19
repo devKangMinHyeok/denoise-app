@@ -50,38 +50,111 @@ struct OnboardingView: View {
             .padding(.top, 4)
             PrimaryButton(title: "Get started") {
                 withAnimation(Motion.calm) { o.step = .download }
-                app.startModelDownload()
             }
             .padding(.top, 8)
         }
     }
 
-    // 2. Model download
+    // 2. Model download (real)
     private var download: some View {
-        VStack(spacing: 24) {
-            Text("Downloading the voice model").font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
+        let s = app.modelStatus
+        return VStack(spacing: 24) {
+            Text((s?.ready == true) ? "Voice models ready" : "Download the voice models")
+                .font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Vocast voice model").font(.ui(15, .medium)).foregroundStyle(Palette.ink)
-                    Spacer()
-                    Text("\(gb(o.downloadProgress)) / 1.8 GB").font(.mono(12)).foregroundStyle(Palette.mute)
-                }
-                ThinProgress(value: o.downloadProgress, height: 8, gradient: true)
-                HStack {
-                    Text("\(Int(o.downloadProgress * 100))%").font(.mono(12)).foregroundStyle(Palette.mute)
-                    Spacer()
-                    Text(o.downloadComplete ? "Done" : "ETA \(fmtTime(o.downloadETA))")
-                        .font(.mono(12)).foregroundStyle(Palette.mute)
-                }
-            }
-            .padding(Space.xl)
-            .frame(maxWidth: 440)
-            .card(Palette.surface, radius: Radius.card)
 
-            PrimaryButton(title: "Continue", enabled: o.downloadComplete) {
+            if !app.engineReady {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small).tint(Palette.accent)
+                    Text("Preparing the engine on this Mac.").font(.ui(14)).foregroundStyle(Palette.mute)
+                }
+                .frame(maxWidth: 440)
+            } else if let s, s.ready {
+                readyCard(s)
+            } else if let s, s.downloading {
+                progressCard(s)
+            } else {
+                tierChooser
+            }
+
+            PrimaryButton(title: "Continue", enabled: s?.ready == true) {
                 withAnimation(Motion.calm) { o.step = .mic }
             }
+        }
+        .task(id: app.engineReady) { if app.engineReady { await app.refreshModelStatus() } }
+    }
+
+    private var tierChooser: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                tierCard("balanced", "Balanced", "Fast voice model plus transcription.", "3.4 GB")
+                tierCard("advanced", "High quality", "Adds the larger, higher quality voice.", "6.3 GB")
+            }
+            PrimaryButton(title: "Download models") { app.downloadModels(tier: o.tier) }
+            Text("Downloaded once to this Mac and kept in the app's own folder. Nothing is uploaded.")
+                .font(.ui(12.5)).foregroundStyle(Palette.ash)
+                .multilineTextAlignment(.center).frame(maxWidth: 440)
+        }
+    }
+
+    private func tierCard(_ id: String, _ title: String, _ desc: String, _ size: String) -> some View {
+        let sel = o.tier == id
+        return Button { o.tier = id } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(title).font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
+                    Spacer()
+                    if sel { Image(systemName: "checkmark.circle.fill").font(.system(size: 15)).foregroundStyle(Palette.accent) }
+                }
+                Text(desc).font(.ui(12.5)).foregroundStyle(Palette.mute).fixedSize(horizontal: false, vertical: true)
+                Text(size).font(.mono(12)).foregroundStyle(Palette.ash)
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .fill(sel ? Palette.accent.opacity(0.06) : Palette.surface))
+            .hairline(Radius.card, color: sel ? Palette.accent : Palette.hairline)
+        }.buttonStyle(.plain)
+    }
+
+    private func progressCard(_ s: ModelStatus) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(modelLabel(s.current)).font(.ui(15, .medium)).foregroundStyle(Palette.ink)
+                Spacer()
+                Text(String(format: "%.1f / %.1f GB", s.downloadedGB, s.totalGB))
+                    .font(.mono(12)).foregroundStyle(Palette.mute)
+            }
+            ThinProgress(value: s.fraction, height: 8, gradient: true)
+            HStack {
+                Text("\(Int(s.fraction * 100))%").font(.mono(12)).foregroundStyle(Palette.mute)
+                Spacer()
+                Text("Downloading").font(.mono(12)).foregroundStyle(Palette.mute)
+            }
+        }
+        .padding(Space.xl).frame(maxWidth: 440)
+        .card(Palette.surface, radius: Radius.card)
+    }
+
+    private func readyCard(_ s: ModelStatus) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 20)).foregroundStyle(Palette.good)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("All models downloaded").font(.ui(15, .medium)).foregroundStyle(Palette.ink)
+                Text(String(format: "%.1f GB on this Mac", s.totalGB)).font(.mono(12)).foregroundStyle(Palette.mute)
+            }
+            Spacer()
+        }
+        .padding(Space.lg).frame(maxWidth: 440)
+        .card(Palette.surface, radius: Radius.card)
+    }
+
+    private func modelLabel(_ key: String?) -> String {
+        switch key {
+        case "tts_fast": return "Voice model (fast)"
+        case "tts_best": return "Voice model (high quality)"
+        case "whisper": return "Transcription model"
+        default: return "Voice models"
         }
     }
 
@@ -146,9 +219,5 @@ struct OnboardingView: View {
         .padding(.horizontal, 12).frame(height: 30)
         .background(Capsule().fill(Palette.surface))
         .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
-    }
-
-    private func gb(_ p: Double) -> String {
-        String(format: "%.1f", 0.1 + p * 1.7)
     }
 }

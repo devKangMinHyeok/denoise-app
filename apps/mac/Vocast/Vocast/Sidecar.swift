@@ -40,6 +40,9 @@ final class Sidecar {
         // Parent-death watchdog: the server self-exits if this app process dies,
         // so a crash cannot leave an orphaned engine behind.
         env["VOCAST_PARENT_PID"] = "\(ProcessInfo.processInfo.processIdentifier)"
+        // Keep all downloaded models inside the app's own folder (not the shared
+        // Hugging Face cache), so they are contained and removable with the app.
+        env["HF_HOME"] = Sidecar.modelsDir().path
         proc.environment = env
 
         // Pipe logs to a temp file for debugging.
@@ -64,6 +67,16 @@ final class Sidecar {
     func stop() {
         process?.terminate()
         process = nil
+    }
+
+    /// App-owned folder for downloaded models (Application Support/Vocast/models).
+    /// All engine model downloads are confined here via HF_HOME.
+    static func modelsDir() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+        let dir = base.appendingPathComponent("Vocast/models", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
 
     // MARK: Location

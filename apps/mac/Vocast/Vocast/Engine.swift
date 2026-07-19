@@ -61,6 +61,23 @@ struct NJob: Decodable {
     let error: String?
 }
 
+// MARK: Model download
+
+struct ModelStatus: Decodable {
+    let tier: String
+    let downloading: Bool
+    let ready: Bool
+    let current: String?
+    let downloaded_mb: Int
+    let total_mb: Int
+    let error: String?
+    let installed: [String: Bool]
+
+    var downloadedGB: Double { Double(downloaded_mb) / 1024 }
+    var totalGB: Double { Double(total_mb) / 1024 }
+    var fraction: Double { total_mb > 0 ? min(1, Double(downloaded_mb) / Double(total_mb)) : 0 }
+}
+
 enum EngineError: LocalizedError {
     case badResponse(Int, String)
     case notAvailable(String)
@@ -143,6 +160,29 @@ final class EngineClient {
     /// Download URL for the cleaned result file.
     func denoiseFileURL(_ id: String) -> URL {
         base.appendingPathComponent("api/dnjobs/\(id)/file")
+    }
+
+    // MARK: Models
+
+    func modelStatus() async throws -> ModelStatus {
+        let (data, resp) = try await get("/api/models/status")
+        try check(resp, data)
+        return try JSONDecoder().decode(ModelStatus.self, from: data)
+    }
+
+    func startModelDownload(tier: String) async throws {
+        var req = URLRequest(url: base.appendingPathComponent("api/models/download"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["tier": tier])
+        do {
+            let (data, resp) = try await session.data(for: req)
+            try check(resp, data)
+        } catch let e as EngineError {
+            throw e
+        } catch {
+            throw EngineError.transport(error.localizedDescription)
+        }
     }
 
     // MARK: Narration (Studio)
