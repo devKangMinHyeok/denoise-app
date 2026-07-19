@@ -26,7 +26,13 @@ command -v uv >/dev/null 2>&1 || { echo "❌ uv is required to build the engine"
 
 echo "▸ Building the embedded engine (main env only) → $STAGE"
 rm -rf "$STAGE"; mkdir -p "$STAGE/runtime"
-PY312_SRC="$(dirname "$(dirname "$(uv python find 3.12)")")"
+# Use a uv-managed (python-build-standalone) Python: it is relocatable, unlike a
+# Homebrew/system Python. Force managed so the bundle is self-contained.
+uv python install 3.12 >/dev/null 2>&1 || true
+PY312_BIN="$(UV_PYTHON_PREFERENCE=only-managed uv python find 3.12)"
+[ -x "$PY312_BIN" ] || { echo "❌ no uv-managed Python 3.12 found"; exit 1; }
+PY312_SRC="$(dirname "$(dirname "$PY312_BIN")")"
+echo "  managed python: $PY312_SRC"
 cp -R "$PY312_SRC/." "$STAGE/runtime/py312/"
 
 # Relocatable venv with a relative python symlink, so it works from inside the .app.
