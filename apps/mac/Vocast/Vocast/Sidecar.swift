@@ -1,0 +1,123 @@
+import Foundation
+import Darwin
+
+/// Launches and manages the local Python engine as a child process (sidecar), so the
+/// app can talk to it over HTTP without the user starting a server. Picks a free port,
+/// spawns the Flask server, and terminates it when the app quits.
+final class Sidecar {
+    private var process: Process?
+    private(set) var port: Int = 0
+
+    /// Start the engine and return its base URL (server may still be booting).
+    /// Returns nil if it could not be launched (missing uv / engine dir); in that
+    /// case the app falls back to whatever the EngineClient default points at.
+    @discardableResult
+    func start() -> URL? {
+        // An external engine URL wins: do not spawn, just point at it.
+        if let s = ProcessInfo.processInfo.environment["VOCAST_ENGINE_URL"],
+           let u = URL(string: s) {
+            return u
+        }
+        guard process == nil else {
+            return URL(string: "http://127.0.0.1:\(port)")
+        }
+        guard let dir = engineDir(), let uv = findUV() else {
+            NSLog("Vocast: could not locate the engine directory or uv; not spawning sidecar.")
+            return nil
+        }
+
+        let p = freePort()
+        port = p
+
+        let proc = Process()
+        proc.executableURL = uv
+        proc.arguments = ["run", "python", "api/server.py", "--port", "\(p)"]
+        proc.currentDirectoryURL = dir
+
+        var env = ProcessInfo.processInfo.environment
+        let extra = "\(uv.deletingLastPathComponent().path):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        env["PATH"] = (env["PATH"].map { "\($0):\(extra)" }) ?? extra
+        proc.environment = env
+
+        // Pipe logs to a temp file for debugging.
+        let logURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("vocast-sidecar.log")
+        FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        if let fh = try? FileHandle(forWritingTo: logURL) {
+            proc.standardOutput = fh
+            proc.standardError = fh
+        }
+
+        do {
+            try proc.run()
+            process = proc
+            NSLog("Vocast: sidecar launched on port \(p) (log: \(logURL.path))")
+            return URL(string: "http://127.0.0.1:\(p)")
+        } catch {
+            NSLog("Vocast: failed to launch sidecar: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func stop() {
+        process?.terminate()
+        process = nil
+    }
+
+    // MARK: Location
+
+    private func engineDir() -> URL? {
+        let fm = FileManager.default
+        func hasServer(_ base: String) -> Bool { fm.fileExists(atPath: base + "/api/server.py") }
+
+        if let s = ProcessInfo.processInfo.environment["VOCAST_ENGINE_DIR"], hasServer(s) {
+            return URL(fileURLWithPath: s)
+        }
+        // Bundled engine (Phase 4): Vocast.app/Contents/Resources/engine
+        if let res = Bundle.main.resourceURL?.appendingPathComponent("engine"),
+           hasServer(res.path) {
+            return res
+        }
+        // Dev default: the repo's app/ directory.
+        let dev = "\(NSHomeDirectory())/Desktop/service-development/denoise-app/app"
+        if hasServer(dev) { return URL(fileURLWithPath: dev) }
+        return nil
+    }
+
+    private func findUV() -> URL? {
+        let fm = FileManager.default
+        let candidates = [
+            "\(NSHomeDirectory())/.local/bin/uv",
+            "/opt/homebrew/bin/uv",
+            "/usr/local/bin/uv",
+        ]
+        for c in candidates where fm.isExecutableFile(atPath: c) {
+            return URL(fileURLWithPath: c)
+        }
+        return nil
+    }
+
+    // MARK: Free port
+
+    private func freePort() -> Int {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return 8756 }
+        defer { close(fd) }
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = 0
+        addr.sin_addr.s_addr = in_addr_t(0)   // INADDR_ANY
+        let bindResult = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Darwin.bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard bindResult == 0 else { return 8756 }
+        var len = socklen_t(MemoryLayout<sockaddr_in>.size)
+        _ = withUnsafeMutablePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(fd, $0, &len)
+            }
+        }
+        return Int(UInt16(bigEndian: addr.sin_port))
+    }
+}

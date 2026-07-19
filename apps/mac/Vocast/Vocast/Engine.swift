@@ -51,7 +51,7 @@ enum EngineError: LocalizedError {
 }
 
 final class EngineClient {
-    let base: URL
+    var base: URL
     private let session: URLSession
 
     init(base: URL? = nil) {

@@ -43,13 +43,25 @@ final class AppModel {
 
     // Local Python engine (HTTP sidecar)
     let engine = EngineClient()
+    let sidecar = Sidecar()
     var engineReady = false
+    var engineStarting = true
     var resynthAvailable = false
     private var dnPollTask: Task<Void, Never>?
     private var dnPlayer: AVPlayer?
 
     init() {
+        // Launch the local engine as a child process and point the client at it.
+        if let url = sidecar.start() { engine.base = url }
         Task { await checkEngine() }
+
+        // Terminate the sidecar when the app quits.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.sidecar.stop()
+        }
+
         // Dev/test hook: preload a denoise file so the pipeline can be exercised
         // without driving the native open panel. Only active when the env var is set.
         if let f = ProcessInfo.processInfo.environment["VOCAST_TEST_FILE"], !f.isEmpty {
@@ -62,13 +74,16 @@ final class AppModel {
     }
 
     func checkEngine() async {
-        if let h = await engine.waitUntilReady(timeout: 6) {
+        engineStarting = true
+        // Spawning Python + importing the engine takes a few seconds.
+        if let h = await engine.waitUntilReady(timeout: 40) {
             engineReady = true
             resynthAvailable = h.resynth
         } else {
             engineReady = false
             resynthAvailable = false
         }
+        engineStarting = false
     }
 
     // Shell UI state
