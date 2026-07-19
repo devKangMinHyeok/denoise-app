@@ -10,6 +10,11 @@ import { KaraokeDemo } from "./KaraokeDemo";
 const FEAT = '"calt","kern","liga","ss03"';
 const mono = { font: "400 12px/1.5 var(--rc-font-mono)", color: "var(--rc-mute)" } as const;
 
+// 6개 목업의 높이를 210px로 고정하고 본문을 세로 중앙 정렬 → 카드마다 아래 제목/설명이
+// 같은 위치에서 시작하도록 정렬.
+const MOCK_STYLE = { height: 210, display: "flex", flexDirection: "column" } as const;
+const MOCK_BODY = { flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" } as const;
+
 function Bar({ v, color = "var(--rc-ray)" }: { v: number; color?: string }) {
   return (
     <div style={{ height: 5, borderRadius: 3, background: "var(--rc-surface-elevated)", overflow: "hidden" }}>
@@ -21,7 +26,7 @@ function Bar({ v, color = "var(--rc-ray)" }: { v: number; color?: string }) {
 // --- 1. Voice profile ---
 function MockProfile() {
   return (
-    <WindowMock title="MyVoice">
+    <WindowMock title="MyVoice" style={MOCK_STYLE} bodyStyle={MOCK_BODY}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <span style={{ color: "var(--rc-ray)", display: "inline-flex" }}><Icon name="mic" size={16} /></span>
         <span style={{ font: "500 13px/1 var(--rc-font-sans)", color: "var(--rc-ink)", fontFeatureSettings: FEAT }}>MyVoice</span>
@@ -40,7 +45,7 @@ function MockProfile() {
 function MockLongform() {
   const rows = ["The story begins on a quiet…", "By the second act the pace…", "Everything changes when…"];
   return (
-    <WindowMock title="script.md · 3 paragraphs">
+    <WindowMock title="script.md · 3 paragraphs" style={MOCK_STYLE} bodyStyle={MOCK_BODY}>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {rows.map((r, i) => (
           <div
@@ -71,7 +76,7 @@ function MockLongform() {
 // --- 3. Performance transfer ---
 function MockTransfer() {
   return (
-    <WindowMock title="performance transfer">
+    <WindowMock title="performance transfer" style={MOCK_STYLE} bodyStyle={MOCK_BODY}>
       <div style={{ marginBottom: 8, ...mono }}>reference take</div>
       <Waveform count={40} mode="raw" pos={1} activeColor="var(--rc-accent-blue)" height={30} />
       <div style={{ textAlign: "center", margin: "8px 0", ...mono, color: "var(--rc-accent-green)" }}>↓ delivery followed</div>
@@ -84,7 +89,7 @@ function MockTransfer() {
 function MockKaraoke() {
   const words = ["Read", "it", "back", "in", "your", "own", "voice."];
   return (
-    <WindowMock title="karaoke view">
+    <WindowMock title="karaoke view" style={MOCK_STYLE} bodyStyle={MOCK_BODY}>
       <div style={{ font: "500 18px/1.5 var(--rc-font-sans)", letterSpacing: ".1px", fontFeatureSettings: FEAT }}>
         {words.map((w, i) => (
           <span key={i} style={{ color: i === 3 ? "var(--rc-ray)" : i < 3 ? "var(--rc-body)" : "#33373a" }}>
@@ -99,7 +104,7 @@ function MockKaraoke() {
 // --- 5. Noise removal ---
 function MockNoise() {
   return (
-    <WindowMock title="noise removal">
+    <WindowMock title="noise removal" style={MOCK_STYLE} bodyStyle={MOCK_BODY}>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         <span style={{ ...mono, padding: "3px 8px", borderRadius: 6, background: "rgba(245,115,43,.14)", color: "var(--rc-ray)" }}>Standard</span>
         <span style={{ ...mono, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--rc-hairline)" }}>Resynth</span>
@@ -113,7 +118,7 @@ function MockNoise() {
 // --- 6. Task center ---
 function MockTasks() {
   return (
-    <WindowMock title="task center">
+    <WindowMock title="task center" style={MOCK_STYLE} bodyStyle={MOCK_BODY}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <div style={{ ...mono, display: "flex", justifyContent: "space-between", marginBottom: 6, color: "var(--rc-body)" }}>
