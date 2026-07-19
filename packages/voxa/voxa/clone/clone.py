@@ -410,7 +410,16 @@ def synthesize_best(text, ref_wav, ref_text, natural_wav, output_path,
             ensure_breath_pauses(out, text)
             reshape_energy_contour(out, out)
             normalize_speech_level(out)
-        _notify(on_progress, stage="done")
+        # Emit a single-paragraph meta so this job still supports partial
+        # regeneration (regenerating para 0 re-renders the whole clip).
+        dur = 0.0
+        try:
+            import soundfile as sf
+            dur = sf.info(out).duration
+        except Exception:
+            pass
+        _notify(on_progress, stage="done",
+                paragraphs=[{"text": text, "start": 0.0, "end": round(dur, 3)}])
         return out, None
 
     ctx = build_prosody_ctx(natural_wav)

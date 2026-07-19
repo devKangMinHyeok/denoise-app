@@ -50,6 +50,7 @@ final class AppModel {
     private var dnPollTask: Task<Void, Never>?
     private var dnPlayer: AVPlayer?
     private var renderTask: Task<Void, Never>?
+    private var regenTask: Task<Void, Never>?
     private var studioPlayer: AVPlayer?
     private var studioTimeObserver: Any?
 
@@ -337,23 +338,78 @@ final class AppModel {
 
     func regenerateBlock(_ id: Block.ID) {
         guard let idx = studio.blocks.firstIndex(where: { $0.id == id }) else { return }
+        guard let parentJob = studio.renderJobID else {
+            notify("This narration cannot regenerate single blocks. Render it again first.")
+            return
+        }
+        // Re-render just this paragraph on the engine; it recomposes the full audio.
         studio.blocks[idx].status = .rerendering
-        studio.blocks[idx].version += 1
+        stopStudioPlayback()
+        let text = studio.scriptText
+        let versions = studio.blocks.map { $0.version }   // preserve per-block versions
+        let start = Date()
 
         let job = Job(kind: .narrationRender, title: "Narration render, block \(idx + 1)",
-                      subtitle: "\(currentProfileName) · 4x realtime", state: .running,
+                      subtitle: "\(currentProfileName) · TTS on this Mac", state: .running,
                       target: "block \(idx + 1) of \(studio.blocks.count)", profile: currentProfileName)
         tasks.jobs.insert(job, at: 0)
 
-        drive(2.6, eta: 8, tick: { _, e in job.eta = e; job.progress = 1 - e / 8 },
-              done: {
-            if let i = self.studio.blocks.firstIndex(where: { $0.id == id }) {
-                self.studio.blocks[i].status = .rendered
+        regenTask?.cancel()
+        regenTask = Task { @MainActor in
+            do {
+                let jid = try await engine.regenerateParagraph(jobID: parentJob, paragraph: idx)
+                while !Task.isCancelled {
+                    let st = try await engine.narrationStatus(jid)
+                    let eta = st.eta_sec ?? 12
+                    let elapsed = Date().timeIntervalSince(start)
+                    if let frac = takeFraction(st.stage) {
+                        job.progress = 0.05 + frac * 0.9
+                    } else {
+                        job.progress = min(0.9, elapsed / max(eta, 1))
+                    }
+                    job.eta = max(1, eta - elapsed)
+
+                    if st.status == "done" {
+                        // The regen job is now the current narration (recomposed audio).
+                        studio.renderJobID = jid
+                        studio.words = st.words ?? []
+                        studio.audioDuration = st.words?.last?.e ?? 0
+                        studio.audioURL = engine.narrationAudioURL(jid)
+                        let full = await RealWaveform.peaks(from: engine.narrationAudioURL(jid), count: 240) ?? []
+                        studio.transportPeaks = full.isEmpty ? Waveform.peaks(90, seed: 500) : full
+                        var blocks = makeRealBlocks(st, text: text, fullPeaks: full)
+                        // Keep prior versions, bump the one we just regenerated.
+                        for i in blocks.indices where i < versions.count { blocks[i].version = versions[i] }
+                        if idx < blocks.count { blocks[idx].version += 1 }
+                        studio.blocks = blocks
+                        studio.selectedBlockID = idx < blocks.count ? blocks[idx].id : blocks.first?.id
+                        studio.currentTime = 0
+                        studio.karaokeWordIndex = 0
+                        job.state = .done
+                        job.timeLabel = "just now"
+                        complete("Block \(idx + 1) re-rendered.")
+                        return
+                    }
+                    if st.status == "error" {
+                        if let i = studio.blocks.firstIndex(where: { $0.id == id }) {
+                            studio.blocks[i].status = .rendered
+                        }
+                        tasks.jobs.removeAll { $0.id == job.id }
+                        notify("Block \(idx + 1) could not be re-rendered: \(st.error ?? "unknown error")")
+                        return
+                    }
+                    try await Task.sleep(nanoseconds: 700_000_000)
+                }
+            } catch let e as EngineError {
+                if let i = studio.blocks.firstIndex(where: { $0.id == id }) { studio.blocks[i].status = .rendered }
+                tasks.jobs.removeAll { $0.id == job.id }
+                notify(engineMessage(e))
+            } catch {
+                if let i = studio.blocks.firstIndex(where: { $0.id == id }) { studio.blocks[i].status = .rendered }
+                tasks.jobs.removeAll { $0.id == job.id }
+                notify("Could not reach the local engine. Is it running?")
             }
-            job.state = .done
-            job.timeLabel = "just now"
-            self.complete("Block \(idx + 1) re-rendered.")
-        })
+        }
     }
 
     // MARK: Guided recording (real microphone capture)

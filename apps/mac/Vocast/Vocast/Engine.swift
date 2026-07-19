@@ -286,6 +286,17 @@ final class EngineClient {
         return try JSONDecoder().decode(NJob.self, from: data)
     }
 
+    /// Re-render a single paragraph of a finished narration job without redoing the
+    /// whole thing (Studio-style partial regeneration). Returns a new job id that
+    /// composes the updated paragraph back into the full audio.
+    func regenerateParagraph(jobID: String, paragraph: Int) async throws -> String {
+        let (data, resp) = try await jsonPost("/api/jobs/\(jobID)/regen",
+                                              body: ["paragraph": paragraph])
+        try check(resp, data)
+        struct R: Decodable { let job_id: String }
+        return try JSONDecoder().decode(R.self, from: data).job_id
+    }
+
     /// Playable URL for the composed narration audio.
     func narrationAudioURL(_ id: String) -> URL {
         base.appendingPathComponent("api/jobs/\(id)/audio")
