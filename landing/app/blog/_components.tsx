@@ -1,7 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { Avatar, CategoryTag } from "@timbre/design-system";
-import { asset } from "../../lib/asset";
 import type { PostCard, Author } from "./_data";
 
 const FEAT = '"calt","kern","liga","ss03"';
@@ -55,7 +54,7 @@ export function BlogHeader() {
 export function FeaturedPost({ post }: { post: PostCard }) {
   return (
     <Link
-      href={asset(`/blog/${post.slug}/`)}
+      href={`/blog/${post.slug}/`}
       style={{
         display: "flex",
         flexWrap: "wrap",
