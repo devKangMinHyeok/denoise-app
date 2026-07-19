@@ -27,7 +27,7 @@ export interface Post {
 /** Serializable card fields (safe to hand to a client component, no Body). */
 export type PostCard = Omit<Post, "Body">;
 
-const kang: Author = { name: "Minhyeok Kang", avatar: asset("/blog/kang-minhyeok.png"), role: "Founder · Vocast", bio: "Building a local voice studio for creators. Writes about voice cloning, prosody metrics, and shipping on-device." };
+const kang: Author = { name: "Minhyeok Kang", avatar: asset("/blog/kang-minhyeok.png"), role: "Voice AI Engineer", bio: "Voice AI engineer building a local, on-device voice studio for creators. Writes about voice cloning, prosody metrics, and shipping AI on-device." };
 const team: Author = { name: "Vocast Team", avatar: asset("/blog/vocast-mark.svg"), role: "Vocast", bio: "Field notes from the people building Vocast." };
 
 // --- Featured: the natural-voice article, as a full Prose body ---
