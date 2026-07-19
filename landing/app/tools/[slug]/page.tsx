@@ -12,6 +12,8 @@ import { NoiseRemover } from "../panels/NoiseRemover";
 import { MicTest } from "../panels/MicTest";
 import { VoiceRecorder } from "../panels/VoiceRecorder";
 import { SilenceRemover } from "../panels/SilenceRemover";
+import { Loudness } from "../panels/Loudness";
+import { Converter } from "../panels/Converter";
 
 const PANELS: Record<string, React.ComponentType> = {
   "script-reading-time-calculator": ReadingTime,
@@ -19,6 +21,8 @@ const PANELS: Record<string, React.ComponentType> = {
   "mic-test": MicTest,
   "voice-recorder": VoiceRecorder,
   "silence-remover": SilenceRemover,
+  "loudness-normalizer": Loudness,
+  "audio-format-converter": Converter,
 };
 
 export function generateStaticParams() {

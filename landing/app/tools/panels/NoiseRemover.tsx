@@ -3,35 +3,14 @@ import * as React from "react";
 import { ToolPanel, Dropzone, ReadoutTile, ProgressShimmer, ErrorBox } from "../_ui";
 import { Waveform } from "../../_ui/Waveform";
 import { Icon } from "../../_ui/Icon";
+import { loadFFmpeg } from "../lib/ffmpeg";
 
 const FEAT = '"calt","kern","liga","ss03"';
 const sans = "var(--rc-font-sans)";
 const mono = "var(--rc-font-mono)";
 
 // 기존 브라우저 데모의 벤더 ffmpeg.wasm(단일스레드 코어)을 그대로 재사용.
-const VENDOR = "/demo/vendor";
 const RNNOISE = "/demo/rnnoise-sh.rnnn";
-
-type FF = Record<string, (...args: unknown[]) => unknown>;
-let ffmpegPromise: Promise<{ ff: FF; fetchFile: (f: File | string) => Promise<Uint8Array> }> | null = null;
-async function loadFFmpeg() {
-  if (ffmpegPromise) return ffmpegPromise;
-  ffmpegPromise = (async () => {
-    const ffmpegMod: { FFmpeg: new () => FF } = await import(
-      /* webpackIgnore: true */ `${VENDOR}/ffmpeg/index.js`
-    );
-    const utilMod: { fetchFile: (f: File | string) => Promise<Uint8Array> } = await import(
-      /* webpackIgnore: true */ `${VENDOR}/util/index.js`
-    );
-    const ff = new ffmpegMod.FFmpeg();
-    await (ff.load as (o: unknown) => Promise<void>)({
-      coreURL: new URL(`${VENDOR}/core/ffmpeg-core.js`, location.href).href,
-      wasmURL: new URL(`${VENDOR}/core/ffmpeg-core.wasm`, location.href).href,
-    });
-    return { ff, fetchFile: utilMod.fetchFile };
-  })();
-  return ffmpegPromise;
-}
 
 type State = "empty" | "active" | "success" | "error";
 

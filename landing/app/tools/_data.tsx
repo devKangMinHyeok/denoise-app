@@ -205,7 +205,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     slug: "loudness-normalizer",
-    live: false,
+    live: true,
     name: "Loudness (LUFS) normalizer",
     shortName: "Loudness",
     icon: "gauge",
@@ -213,10 +213,28 @@ export const TOOLS: ToolDef[] = [
     windowTitle: "loudness",
     cardTitle: "Loudness normalizer",
     cardDesc: "Match YouTube, podcast, or broadcast loudness targets.",
+    metaTitle: "Loudness (LUFS) normalizer, free and in your browser",
+    metaDescription: "Normalize audio to a LUFS target for YouTube, podcasts, or broadcast. Measures loudness and true peak, applies gain, downloads a WAV. Runs in your browser.",
+    quickAnswer:
+      "This free loudness normalizer matches your audio to a LUFS target so it sounds consistent on the platform you publish to. Drop a file, pick a target (for example -14 LUFS for YouTube or -16 for podcasts), and it measures your integrated loudness and true peak, applies the right gain, and gives you a WAV. It runs in your browser, nothing is uploaded.",
+    keywords: ["loudness normalizer", "lufs normalizer online", "normalize audio loudness", "-14 lufs youtube", "audio loudness tool"],
+    faqs: [
+      { q: "What is LUFS?", a: "LUFS is a measure of perceived loudness. Streaming platforms target a specific level, so matching it keeps your audio as loud as everything else, without being turned down or up automatically." },
+      { q: "Which target should I use?", a: "-14 LUFS suits YouTube, -16 LUFS suits most podcasts and Apple, and -23 LUFS is the broadcast standard (EBU R128). You can also set a custom target." },
+      { q: "Is my audio uploaded?", a: "No. Measurement and normalization happen in your browser, and your file never leaves your device." },
+      { q: "What is true peak?", a: "True peak is the highest level the signal reaches, in dBTP. Normalizing keeps it below a safe ceiling so it does not clip on playback." },
+    ],
+    howto: [
+      { name: "Pick a target", text: "Choose the LUFS target for where you will publish, or set a custom value." },
+      { name: "Add your file", text: "Drop an audio file. Loudness is measured on your device." },
+      { name: "Download", text: "See the before and after loudness, then download the normalized WAV." },
+    ],
+    cta: { title: "Consistent loudness, in your voice", body: "Levels matched. Vocast narrates your scripts in a voice cloned from your own, ready to publish, fully local on your Mac." },
+    related: ["audio-noise-remover", "silence-remover", "audio-format-converter"],
   },
   {
     slug: "audio-format-converter",
-    live: false,
+    live: true,
     name: "Audio format converter",
     shortName: "Converter",
     icon: "convert",
@@ -224,6 +242,24 @@ export const TOOLS: ToolDef[] = [
     windowTitle: "convert",
     cardTitle: "Audio format converter",
     cardDesc: "Convert between mp3, wav, m4a, and more, privately.",
+    metaTitle: "Audio format converter, private and in your browser",
+    metaDescription: "Convert audio between mp3, wav, m4a, ogg, and flac in your browser. Unlike upload-based converters, your file never leaves your device. Free, no signup.",
+    quickAnswer:
+      "This free audio converter changes a file between mp3, wav, m4a, ogg, and flac, with a bitrate choice for the compressed formats. Unlike most online converters that upload your file to a server, this one runs entirely in your browser, so your audio never leaves your device. Drop a file, pick a format, and download.",
+    keywords: ["audio converter online free", "convert mp3 to wav", "audio format converter", "wav to mp3", "m4a to mp3 online"],
+    faqs: [
+      { q: "Is my file uploaded to a server?", a: "No. Unlike most online converters, this runs in your browser using an in-browser engine. Your file stays on your device the whole time." },
+      { q: "Which formats are supported?", a: "Input can be most common audio and video files. Output can be mp3, wav, m4a (AAC), ogg, or flac, with a bitrate option for the compressed ones." },
+      { q: "Does converting reduce quality?", a: "Converting to a lossless format (wav, flac) preserves quality. Converting to a lossy format (mp3, m4a, ogg) re-compresses, so pick a higher bitrate for better quality." },
+      { q: "Why is the first conversion slower?", a: "The first run downloads the in-browser engine once. After that, conversions are faster." },
+    ],
+    howto: [
+      { name: "Pick a format", text: "Choose the output format, and a bitrate if it is a compressed one." },
+      { name: "Add your file", text: "Drop an audio file. It is converted on your device." },
+      { name: "Download", text: "Play it back and download. Nothing was uploaded." },
+    ],
+    cta: { title: "Right format, then your voice", body: "File converted. Vocast narrates your scripts in a voice cloned from your own, exporting clean audio, fully local on your Mac." },
+    related: ["audio-noise-remover", "loudness-normalizer", "voice-recorder"],
   },
 ];
 

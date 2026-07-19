@@ -17,6 +17,8 @@ Vocast runs entirely on an Apple Silicon Mac (M1 or newer, macOS 12+). Your voic
 - [Mic test](https://vocast.me/tools/mic-test/): check your microphone level, clipping, and quality before recording.
 - [Voice recorder](https://vocast.me/tools/voice-recorder/): record, trim, and download audio as WAV, all in your browser.
 - [Silence remover and trimmer](https://vocast.me/tools/silence-remover/): cut dead air automatically or trim by hand, then download a WAV.
+- [Loudness (LUFS) normalizer](https://vocast.me/tools/loudness-normalizer/): match YouTube, podcast, or broadcast loudness targets in your browser.
+- [Audio format converter](https://vocast.me/tools/audio-format-converter/): convert between mp3, wav, m4a, ogg, and flac, privately, nothing uploaded.
 
 ## Blog
 
