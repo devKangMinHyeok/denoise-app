@@ -6,16 +6,16 @@ Vocast runs entirely on an Apple Silicon Mac (M1 or newer, macOS 12+). Your voic
 
 ## Product
 
-- [Vocast home](https://devkangminhyeok.github.io/vocast/): overview, features, pricing ($49 one-time) and FAQ.
-- [Blog](https://devkangminhyeok.github.io/vocast/blog/): methodology, metrics and product notes.
+- [Vocast home](https://vocast.me/): overview, features, pricing ($49 one-time) and FAQ.
+- [Blog](https://vocast.me/blog/): methodology, metrics and product notes.
 
 ## Blog
 
-- [Natural enough to publish: an AI voice you can actually use](https://devkangminhyeok.github.io/vocast/blog/natural-voice-you-can-publish/): how we define and measure naturalness, and what it takes to ship a cloned voice you would put your name on.
-- [Measuring prosody, not vibes](https://devkangminhyeok.github.io/vocast/blog/measuring-prosody-not-vibes/): why Vocast scores pitch, pauses and sentence endings separately and gates every render on all of them.
-- [Clone your voice in ninety seconds](https://devkangminhyeok.github.io/vocast/blog/clone-your-voice-in-ninety-seconds/): ten guided lines, one reusable profile you can version and roll back.
-- [Long-form without the re-record](https://devkangminhyeok.github.io/vocast/blog/long-form-without-the-re-record/): 20,000-character scripts, per-paragraph regeneration and performance transfer.
-- [Why Vocast is one-time and fully local](https://devkangminhyeok.github.io/vocast/blog/why-one-time-and-fully-local/): no subscription, no server, no account, by design.
+- [Natural enough to publish: an AI voice you can actually use](https://vocast.me/blog/natural-voice-you-can-publish/): how we define and measure naturalness, and what it takes to ship a cloned voice you would put your name on.
+- [Measuring prosody, not vibes](https://vocast.me/blog/measuring-prosody-not-vibes/): why Vocast scores pitch, pauses and sentence endings separately and gates every render on all of them.
+- [Clone your voice in ninety seconds](https://vocast.me/blog/clone-your-voice-in-ninety-seconds/): ten guided lines, one reusable profile you can version and roll back.
+- [Long-form without the re-record](https://vocast.me/blog/long-form-without-the-re-record/): 20,000-character scripts, per-paragraph regeneration and performance transfer.
+- [Why Vocast is one-time and fully local](https://vocast.me/blog/why-one-time-and-fully-local/): no subscription, no server, no account, by design.
 
 ## Key facts
 

@@ -9,9 +9,10 @@ export const SITE = {
   description:
     "Vocast is a local, on-device Mac voice studio for creators. Clone your voice from about ninety seconds of audio, then narrate scripts up to 20,000 characters in a voice that sounds like you. Fully local, no account, no subscription. $49 one-time.",
 
-  // GitHub Pages 프로젝트 경로: origin + basePath 로 분리해 절대 URL을 정확히 조립한다.
-  origin: "https://devkangminhyeok.github.io",
-  basePath: "/vocast",
+  // 정식 사이트는 Vercel + 커스텀 도메인(vocast.me). 루트 서빙이라 basePath 없음.
+  // origin + basePath 로 분리해 절대 URL을 조립한다.
+  origin: "https://vocast.me",
+  basePath: "",
 
   locale: "en_US",
   lang: "en",
@@ -42,7 +43,7 @@ export const SITE = {
   googleSiteVerification: "",
 } as const;
 
-/** 사이트 정식 루트 URL (끝 슬래시 없음): https://devkangminhyeok.github.io/vocast */
+/** 사이트 정식 루트 URL (끝 슬래시 없음): https://vocast.me */
 export const SITE_URL = `${SITE.origin}${SITE.basePath}`;
 
 /** basePath 없는 라우트/공개파일 경로 → 절대 URL. 예: abs("/blog/") */

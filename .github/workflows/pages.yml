@@ -1,13 +1,12 @@
-name: Deploy Pages (Landing + Storybook)
+name: Deploy Storybook (Pages)
 
-# 한 GitHub Pages 사이트에 함께 서빙 (main 푸시마다 갱신):
-#   /            → Vocast 랜딩 (Next.js 정적 export, PAGES=1 → basePath /vocast)
-#   /storybook/  → @timbre/design-system 스토리북
+# GitHub Pages는 이제 Storybook만 서빙한다.
+#   https://devkangminhyeok.github.io/vocast/  → @timbre/design-system 스토리북
+# 정식 랜딩/블로그는 Vercel + 커스텀 도메인(vocast.me)으로 이전됨.
 on:
   push:
     branches: [main]
     paths:
-      - "landing/**"
       - "packages/design-system/**"
       - "pnpm-lock.yaml"
       - "package.json"
@@ -39,18 +38,13 @@ jobs:
       - name: Install workspace deps
         run: pnpm install --frozen-lockfile
 
-      - name: Build Storybook (served under /vocast/storybook/)
-        run: STORYBOOK_BASE=/vocast/storybook/ pnpm --filter @timbre/design-system build-storybook
+      - name: Build Storybook (served at /vocast/)
+        run: STORYBOOK_BASE=/vocast/ pnpm --filter @timbre/design-system build-storybook
 
-      - name: Build landing (static export, basePath /vocast)
-        run: PAGES=1 pnpm --filter vocast-landing build
-
-      - name: Assemble site (landing at /, storybook at /storybook)
+      - name: Assemble site (storybook at root)
         run: |
           rm -rf _site && mkdir -p _site
-          cp -R landing/out/. _site/
-          mkdir -p _site/storybook
-          cp -R packages/design-system/storybook-static/. _site/storybook/
+          cp -R packages/design-system/storybook-static/. _site/
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
