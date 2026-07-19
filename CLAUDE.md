@@ -9,18 +9,19 @@
 
 | 경로 | 내용 |
 |------|------|
-| `landing/` | Next.js(App Router) 마케팅 랜딩 + 블로그. 정적 export → GitHub Pages |
+| `landing/` | Next.js(App Router) 마케팅 랜딩 + 블로그. Vercel + vocast.me 정식 배포 |
 | `packages/design-system/` | `@timbre/design-system` (Timbre DS). React + TS, `--rc-*` CSS 토큰, Storybook |
 | `packages/voxa/` | 파이썬 음성 엔진 (media/denoise/clone/analysis) |
 | `app/` | 로컬 앱(파이썬 CLI/웹) + 맥 앱 |
 | `packaging/` | 맥 앱/번들 빌드 |
 | `docs/` | 품질 방법론 등 문서 |
-| `.github/workflows/` | `ci.yml`(유닛), `quality.yml`(품질 게이트), `pages.yml`(랜딩 + Storybook 배포) |
+| `.github/workflows/` | `ci.yml`(유닛), `quality.yml`(품질 게이트), `pages.yml`(Storybook만 Pages 배포) |
 
 - 패키지 매니저: **pnpm 10.22.0**. JS 워크스페이스는 `landing` + `packages/design-system`.
   (voxa는 파이썬이라 JS 워크스페이스에 없음.)
-- 배포: `main` 푸시 → `pages.yml`이 `PAGES=1`로 landing 정적 빌드 →
-  `https://devkangminhyeok.github.io/vocast/` (basePath `/vocast`).
+- 정식 배포: **Vercel + 커스텀 도메인 vocast.me** (`main` 푸시 시 자동 배포, 루트 서빙).
+  GitHub Pages는 Storybook만 (`devkangminhyeok.github.io/vocast/`).
+  (도메인 붙이기 전까지 vocast.me DNS 작업은 `polaris/specs/planned/`에 spec으로 있음.)
 
 ## 표준 규칙 (반드시 지킬 것)
 
@@ -40,7 +41,7 @@
    - Server Component 기본. 이벤트 핸들러/상태가 필요한 컴포넌트만 `"use client"`.
 5. **GitHub 노출 금지**: 유료 출시 후 저장소를 private로 전환 예정. 랜딩/블로그/구조화 데이터에
    GitHub 링크나 "오픈소스" 문구를 넣지 않는다.
-6. **작업 흐름**: landing 변경 시 `cd landing && PAGES=1 pnpm exec next build`로 검증한 뒤
+6. **작업 흐름**: landing 변경 시 `cd landing && pnpm exec next build`로 검증한 뒤 (Vercel과 동일)
    커밋한다. **커밋/푸시는 사용자가 요청할 때만.** main에서 작업 중이면 상관없지만 커밋 메시지
    끝에는 `Co-Authored-By` 라인을 남긴다.
 7. **SEO 단일 소스**: 사이트 전역 메타 상수는 `landing/lib/site.ts`. sitemap/robots/layout 메타/
@@ -58,3 +59,73 @@
 | AI 검색(GEO) 최적화 | `/review geo` (+ `landing/public/llms.txt`) |
 
 스킬은 `.claude/skills/`에 있다.
+
+<!-- POLARIS-START (do not edit between markers; managed by Polaris) -->
+## Polaris
+
+This repository uses [Polaris](https://github.com/retemper/polaris) — strategy-as-code for AI agents. The rules below govern your behavior in this repository.
+
+**Before proposing any non-trivial code change:**
+- Read `polaris/mission.md`. Internalize the anti-strategy items, the current phase, and the riskiest strategic assumption.
+- Read `polaris/philosophy.md` if present. These principles are invariant across Goal changes — every proposal must respect them.
+- List `polaris/goals/active/` and read the frontmatter of each active Goal. These are the outcomes the repo is currently converging on.
+- Scan `polaris/specs/in-progress/` and `polaris/specs/planned/` for a Spec that covers the proposed work.
+
+**When no Spec covers the proposed work:**
+- Run `/spec` to create one. Do not write implementation code until the Spec exists on disk.
+- One-line fixes and obvious chores can bypass Spec creation, but you must say so explicitly in chat before acting.
+
+**When the user reports a bug, incident, or observation that isn't itself a Spec-scoped change:**
+- Run `/issue` to file it under `polaris/issues/open/`. Issues are lightweight operational reports, not strategic layers — no Clarity Gate scoring applies.
+- When a later Spec addresses the Issue, `/spec` records the link on the Spec side via `related_issues:`. The Issue file does not store its Spec.
+
+**When a Spec exists for this work:**
+- Stay within the scope declared in S1 (what changes) and S3 (out of scope).
+- The Spec's `goal:` frontmatter field names its parent Goal in `polaris/goals/active/`. Verify the work still advances that Goal's G1 target outcome — if it drifts, raise it.
+- If the Spec's `related_issues:` lists any Issues, they live in `polaris/issues/open/`. Resolving the Spec closes those Issues (`git mv` to `polaris/issues/closed/` and fill `Resolution notes`).
+- If the work requires expanding scope, stop and ask the user to amend the Spec.
+
+**When the proposed work spans multiple Specs (umbrella effort):**
+- Each piece is its own Spec under the umbrella's group folder. Hierarchy is filesystem-only: the parent's full slug is a folder under `polaris/specs/{status}/`; the parent file is `{parent-slug}/{parent-slug}.md`; children live as sibling files inside.
+- Children's statuses diverge freely from the parent's — the same group folder appears under multiple status dirs (e.g., `polaris/specs/in-progress/{parent-slug}/` for in-flight pieces, `polaris/specs/done/{parent-slug}/` for completed pieces).
+- To find every Spec in a group: `find polaris/specs -path "*/{parent-slug}/*"`.
+- To attach a Spec to a parent or change its parent: `git mv` only. There is no `parent_spec:` frontmatter field — `/spec` asks "Is this Spec part of a larger Spec?" during creation, and any later restructuring is a manual `git mv`.
+
+**When the user expresses disorientation or asks an open-ended navigation question:**
+- Signal examples: "what should I do next", "where are we", "what's in progress", "뭐 해야지", "지금 뭐가 필요해", "어디까지 했지".
+- Suggest `/polaris` — it reads current filesystem state and proposes concrete next moves. Do not improvise an answer from memory of the codebase state.
+
+**If the proposed change conflicts with an anti-strategy item in `polaris/mission.md` or a principle in `polaris/philosophy.md`:**
+- Halt. Name the specific item or principle being violated and raise the conflict with the user.
+- Do not silently proceed. The user must either cancel the change or explicitly amend the conflicting file.
+
+**Never:**
+- Trust metadata over filesystem reality. The directory a Spec, Goal, or Issue lives in IS its status — `planned/` `in-progress/` `done/` `canceled/` for Specs, `active/` `achieved/` `abandoned/` for Goals, `open/` `closed/` for Issues. No `status:` field overrides this.
+- Move Spec, Goal, or Issue files across status directories, or rewrite `polaris/mission.md` or `polaris/philosophy.md`, without the user's explicit request.
+- Create a Spec without a parent Goal. Every Spec must link to an active Goal via its `goal:` frontmatter field.
+- Treat Philosophy principles as aspirational. If a principle exists in `polaris/philosophy.md`, violating it is a strategic decision that requires explicit user amendment, not silent deviation.
+- Store Spec references on Issues. The Spec's `related_issues:` frontmatter is the canonical direction for the Spec↔Issue link. Issues do not carry a `related_specs:` field.
+- Add a `parent_spec:`, `children:`, or any similar field to record Spec hierarchy. The folder structure under `polaris/specs/{status}/{parent-slug}/` is canonical; `git mv` is the only attach/detach/reparent mechanism.
+
+**Directory layout (strategic context):**
+- `polaris/mission.md` — mission, anti-strategy, current phase, riskiest strategic assumption
+- `polaris/philosophy.md` — principles invariant across Goal changes (identity-level commitments); may not exist if the user hasn't defined any
+- `polaris/goals/active/` — outcomes currently being pursued
+- `polaris/goals/achieved/` — outcomes that have been observed (historical reference; `Outcome notes` section filled)
+- `polaris/goals/abandoned/` — outcomes no longer being pursued, with reason recorded
+- `polaris/specs/planned/` — Specs not yet started
+- `polaris/specs/in-progress/` — active work
+- `polaris/specs/done/` — completed (historical reference)
+- `polaris/specs/canceled/` — canceled with reason recorded in the Spec
+- `polaris/specs/{status}/{parent-slug}/` — when a Spec has children, it becomes a group folder under its status dir. Parent file: `{parent-slug}/{parent-slug}.md`. Children: sibling files in the same folder. Each Spec's status is independent, so the same group folder may appear under multiple status dirs.
+- `polaris/issues/open/` — bug / incident / observation reports not yet resolved
+- `polaris/issues/closed/` — resolved, wontfix, duplicate, or obsolete Issues with `Resolution notes` filled
+
+**Slash commands (from the Polaris plugin):**
+- `/init` — one-time setup: interview for mission, anti-strategy, phase, philosophy, and 2-3 initial Goals
+- `/philosophy` — add a new Philosophy principle (P1–P3 interrogation)
+- `/goal` — add a new Goal (G1–G4 interrogation)
+- `/spec` — create a new Spec under a parent Goal (Clarity Gate S1–S6)
+- `/issue` — file a bug / incident / observation report (structural, no scoring)
+- `/polaris` — compass: read current state and propose next moves (use when disoriented; accepts optional context arg)
+<!-- POLARIS-END -->
