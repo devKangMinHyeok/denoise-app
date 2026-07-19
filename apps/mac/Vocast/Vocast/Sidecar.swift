@@ -43,6 +43,9 @@ final class Sidecar {
         // Keep all downloaded models inside the app's own folder (not the shared
         // Hugging Face cache), so they are contained and removable with the app.
         env["HF_HOME"] = Sidecar.modelsDir().path
+        // Same for torch.hub, which fetches the UTMOS model behind the prosody score.
+        // Without this it lands in ~/.cache/torch and outlives the app.
+        env["TORCH_HOME"] = Sidecar.modelsDir().appendingPathComponent("torch").path
         proc.environment = env
 
         // Pipe logs to a temp file for debugging.

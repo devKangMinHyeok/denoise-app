@@ -6,10 +6,15 @@
 # its own bundle (no dev repo, no system Python needed). Models are NOT bundled; the
 # app downloads them on first run into ~/Library/Application Support/Vocast/models.
 #
-#   bash apps/mac/build_app.sh                 # ad-hoc signed (runs locally)
+#   bash apps/mac/build_app.sh                 # beta build, ad-hoc signed
+#   VOCAST_VARIANT=release bash apps/mac/build_app.sh
 #   VOCAST_SIGN_ID="Developer ID Application: NAME (TEAMID)" \
 #   VOCAST_NOTARY_PROFILE="vocast-notary" \
-#     bash apps/mac/build_app.sh               # Developer ID signed + notarized
+#     VOCAST_VARIANT=release bash apps/mac/build_app.sh   # signed + notarized
+#
+# Variants exist so a test build is never mistaken for the real one: beta gets a cyan
+# icon, its own name and its own bundle id, so both can sit in /Applications together.
+# The default is beta, because an unnotarized build is a test build by definition.
 #
 # Build needs uv (dev machine). The resulting app needs neither uv nor Python.
 set -euo pipefail
@@ -21,6 +26,14 @@ PROJ="$HERE/Vocast/Vocast.xcodeproj"
 BUILD="$HERE/build"
 STAGE="$BUILD/engine"
 DD="$BUILD/DerivedData"
+
+VARIANT="${VOCAST_VARIANT:-beta}"
+case "$VARIANT" in
+  release) APP_NAME="Vocast";      BUNDLE_ID="me.vocast.Vocast";      APPICON="AppIcon" ;;
+  beta)    APP_NAME="Vocast Beta"; BUNDLE_ID="me.vocast.Vocast.beta"; APPICON="AppIconBeta" ;;
+  *) echo "❌ VOCAST_VARIANT must be release or beta (got: $VARIANT)"; exit 1 ;;
+esac
+echo "▸ Variant: $VARIANT  ($APP_NAME, $BUNDLE_ID, icon $APPICON)"
 
 command -v uv >/dev/null 2>&1 || { echo "❌ uv is required to build the engine"; exit 1; }
 
@@ -47,18 +60,39 @@ uv export --frozen --no-dev --no-emit-project --no-emit-package voxa --project "
 VIRTUAL_ENV="$STAGE/runtime/.venv" uv pip install -q -r "$BUILD/reqs.txt"
 rm -f "$BUILD/reqs.txt"
 
+echo "▸ Pruning parts of the venv that are never used at runtime"
+SPKG="$STAGE/runtime/.venv/lib/python3.12/site-packages"
+# libtorch C++ headers: only needed to compile extensions against torch, not to run it.
+rm -rf "$SPKG/torch/include"
+# DNSMOS (onnxruntime) and speaker similarity (resemblyzer) are quality-evaluation
+# tools; the app never computes them while rendering. sklearn arrives with them, and
+# librosa was verified to import and run with sklearn removed.
+rm -rf "$SPKG/onnxruntime" "$SPKG/resemblyzer" "$SPKG/sklearn" "$SPKG"/scikit_learn*
+# torch itself has to stay, and so do torch/bin and torch/testing. Measured, not guessed:
+#   - transformers imports torch at module load and mlx-audio's Qwen3 tokenizer goes
+#     through transformers, so TTS generation fails outright without it,
+#   - PNS is computed from UTMOS, which is a torch model, so dropping torch silently
+#     turns off take scoring and paragraph metrics,
+#   - torch/__init__ raises unless torch/bin/torch_shm_manager exists,
+#   - torch.autograd.gradcheck imports torch.testing at load time.
+
 echo "▸ Copying engine source (flat layout: engine root is the working dir)"
 cp -R "$REPO/packages/voxa/voxa" "$STAGE/voxa"
 for d in api voice cli; do cp -R "$PYAPP/$d" "$STAGE/$d"; done
 cp "$PYAPP/pyproject.toml" "$PYAPP/uv.lock" "$STAGE/"
 find "$STAGE" -name "__pycache__" -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
+echo "▸ Regenerating app icons from the logo mark"
+python3 "$HERE/make_icons.py" >/dev/null
+
 echo "▸ Building the Release app"
 xcodebuild -project "$PROJ" -scheme Vocast -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DD" \
+  PRODUCT_NAME="$APP_NAME" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+  ASSETCATALOG_COMPILER_APPICON_NAME="$APPICON" \
   CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=NO build >/dev/null
-APP="$DD/Build/Products/Release/Vocast.app"
-[ -d "$APP" ] || { echo "❌ Release build not found"; exit 1; }
+APP="$DD/Build/Products/Release/$APP_NAME.app"
+[ -d "$APP" ] || { echo "❌ Release build not found at $APP"; exit 1; }
 
 echo "▸ Embedding the engine into Contents/Resources/engine"
 rm -rf "$APP/Contents/Resources/engine"
@@ -82,7 +116,7 @@ else
   codesign --force --deep --sign - --entitlements "$ENT" "$APP" 2>/dev/null || codesign --force --deep --sign - "$APP"
 fi
 
-FINAL="$BUILD/Vocast.app"
+FINAL="$BUILD/$APP_NAME.app"
 rm -rf "$FINAL"; cp -R "$APP" "$FINAL"
 SIZE="$(du -sh "$FINAL" | cut -f1)"
 echo "✅ Built: $FINAL  ($SIZE)"
@@ -91,7 +125,7 @@ echo "✅ Built: $FINAL  ($SIZE)"
 #   xcrun notarytool store-credentials vocast-notary --apple-id you@ex.com --team-id TEAMID --password APP_SPECIFIC_PW
 if [ -n "$SIGN_ID" ] && [ -n "${VOCAST_NOTARY_PROFILE:-}" ]; then
   echo "▸ Notarizing (this can take a few minutes)"
-  ZIP="$BUILD/Vocast.zip"
+  ZIP="$BUILD/$APP_NAME.zip"
   ditto -c -k --keepParent "$FINAL" "$ZIP"
   xcrun notarytool submit "$ZIP" --keychain-profile "$VOCAST_NOTARY_PROFILE" --wait
   xcrun stapler staple "$FINAL"
@@ -100,3 +134,44 @@ else
   echo "ℹ️  Not notarized. For a distributable build, set VOCAST_SIGN_ID (Developer ID"
   echo "    Application) and VOCAST_NOTARY_PROFILE (xcrun notarytool store-credentials)."
 fi
+
+# ---- Disk image ----------------------------------------------------------------
+# A .dmg is the packaging users expect: mount, drag the app onto the Applications
+# alias, eject. It does not affect Gatekeeper; an unnotarized app still needs the
+# user to allow it once, which FIRST-RUN.txt explains.
+echo "▸ Building the disk image"
+DMG="$BUILD/$APP_NAME.dmg"
+DMGROOT="$BUILD/dmgroot"
+rm -rf "$DMGROOT" "$DMG"; mkdir -p "$DMGROOT"
+cp -R "$FINAL" "$DMGROOT/"
+ln -s /Applications "$DMGROOT/Applications"
+
+if [ -z "$SIGN_ID" ]; then
+  cat > "$DMGROOT/FIRST-RUN.txt" <<TXT
+$APP_NAME
+
+Install
+  Drag $APP_NAME onto the Applications folder in this window.
+
+First launch
+  This build is not notarized by Apple, so macOS blocks it the first time and may
+  say the app is damaged. It is not damaged; macOS just cannot verify a build that
+  has not been through Apple's notary service.
+
+  To open it once:
+    1. Open the Applications folder and try to launch $APP_NAME.
+    2. Open System Settings, go to Privacy and Security, scroll to Security.
+    3. Click Open Anyway next to the message about $APP_NAME, then confirm.
+
+  Or, in Terminal:
+    xattr -d com.apple.quarantine "/Applications/$APP_NAME.app"
+
+What it needs
+  Apple Silicon and macOS 14 or later. Everything runs on this Mac; the app never
+  uploads audio. On first run it downloads the speech models it needs.
+TXT
+fi
+
+hdiutil create -volname "$APP_NAME" -srcfolder "$DMGROOT" -ov -format UDZO "$DMG" >/dev/null
+rm -rf "$DMGROOT"
+echo "✅ Disk image: $DMG  ($(du -sh "$DMG" | cut -f1))"
