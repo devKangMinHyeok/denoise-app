@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { ToolPanel, Dropzone, ReadoutTile, ProgressShimmer, ErrorBox } from "../_ui";
-import { WavePeaks } from "../_audio";
+import { WavePeaks, ToolPlayer } from "../_audio";
 import { Icon } from "../../_ui/Icon";
 import { decodeFile, computePeaks, bufferToWavBlob, sliceBuffer, detectSilence, removeSilence, fmtTime } from "../lib/audio";
 
@@ -109,7 +109,7 @@ export function SilenceRemover() {
             {mode === "auto" && <ReadoutTile label="Regions" value={String(result.count)} />}
             <ReadoutTile label="New length" value={fmtTime(result.newLen)} />
           </div>
-          {dlUrl && <audio controls src={dlUrl} style={{ width: "100%" }} />}
+          {dlUrl && <ToolPlayer src={dlUrl} />}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a href={dlUrl ?? "#"} download={`${name}_trimmed.wav`} style={{ ...btn, background: "var(--rc-ink)", color: "var(--rc-canvas)", textDecoration: "none" }}><Icon name="download" size={16} /> Download WAV</a>
             <button onClick={reset} style={{ ...btn, background: "transparent", border: "1px solid var(--rc-hairline)", color: "var(--rc-body)" }}>Start over</button>

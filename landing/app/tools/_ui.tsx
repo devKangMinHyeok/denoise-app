@@ -105,14 +105,34 @@ export function Dropzone({
   );
 }
 
-/** 결과 리드아웃 타일 (mono 수치) */
+/** 툴 리드아웃 타일 (라벨-위, 값-아래). 레퍼런스 06/07/10 등. */
 export function ReadoutTile({ label, value, tone }: { label: string; value: string; tone?: "ok" | "accent" }) {
   const col = tone === "ok" ? "var(--rc-accent-green)" : tone === "accent" ? "var(--rc-ray)" : "var(--rc-ink)";
   return (
     <div style={{ flex: "1 1 120px", minWidth: 0, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--rc-hairline)", background: C.well }}>
-      <div style={{ font: `500 18px/1.1 ${mono}`, color: col, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 7 }}>{value}</div>
+      <div style={{ font: `400 10.5px/1 ${mono}`, color: "var(--rc-ash)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 8 }}>{label}</div>
+      <div style={{ font: `500 16px/1.2 ${mono}`, color: col, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+    </div>
+  );
+}
+
+/** 카운트 통계 타일 (값-위 큰 수, 라벨-아래). reading-time 카운트용. 레퍼런스 09. */
+export function StatTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ flex: "1 1 100px", minWidth: 0, padding: "14px 16px", borderRadius: 10, border: "1px solid var(--rc-hairline)", background: C.well }}>
+      <div style={{ font: `500 24px/1 ${mono}`, color: "var(--rc-ink)", marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
       <div style={{ font: `400 11px/1 ${mono}`, color: "var(--rc-ash)", textTransform: "uppercase", letterSpacing: ".4px" }}>{label}</div>
     </div>
+  );
+}
+
+/** 파일 정보 칩 (name · meta) mono. */
+export function FileChip({ name, meta }: { name: string; meta?: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 8, border: "1px solid var(--rc-hairline)", background: "var(--rc-surface-elevated)", font: `400 12px/1 ${mono}`, color: "var(--rc-body)", maxWidth: "100%", overflow: "hidden" }}>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+      {meta && <span style={{ color: "var(--rc-mute)", flex: "none" }}>· {meta}</span>}
+    </span>
   );
 }
 
@@ -128,17 +148,16 @@ export function ProgressShimmer({ label }: { label?: string }) {
   );
 }
 
-/** 복구 가능한 에러 박스 */
-export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
+/** 복구 가능한 에러 박스 (중앙 정렬, 레퍼런스 08) */
+export function ErrorBox({ title = "Something went wrong", message, onRetry, retryLabel = "Try again" }: { title?: string; message: string; onRetry?: () => void; retryLabel?: string }) {
   return (
-    <div style={{ padding: "18px 20px", borderRadius: 12, border: "1px solid rgba(255,97,97,.35)", background: "rgba(255,97,97,.05)", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#ff6161", font: `500 14px/1.4 ${sans}`, fontFeatureSettings: FEAT }}>
-        <Icon name="alert" size={18} /> Something went wrong
-      </div>
-      <div style={{ font: `400 13.5px/1.6 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>{message} Nothing was uploaded.</div>
+    <div style={{ padding: "clamp(28px,5vw,44px) 24px", borderRadius: 12, border: "1px solid rgba(255,97,97,.35)", background: "rgba(255,97,97,.05)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
+      <span style={{ color: "#ff6161", display: "inline-flex" }}><Icon name="alert" size={28} /></span>
+      <div style={{ font: `600 17px/1.3 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>{title}</div>
+      <div style={{ maxWidth: 440, font: `400 13.5px/1.6 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-mute)" }}>{message} Nothing was uploaded.</div>
       {onRetry && (
-        <button onClick={onRetry} style={{ alignSelf: "flex-start", padding: "8px 14px", borderRadius: 8, border: "1px solid var(--rc-hairline)", background: "transparent", color: "var(--rc-ink)", font: `600 13px/1 ${sans}`, cursor: "pointer" }}>
-          Try again
+        <button onClick={onRetry} style={{ marginTop: 4, padding: "9px 18px", borderRadius: 8, border: "1px solid var(--rc-hairline)", background: "var(--rc-surface-elevated)", color: "var(--rc-body)", font: `600 13px/1 ${sans}`, cursor: "pointer" }}>
+          {retryLabel}
         </button>
       )}
     </div>

@@ -1,7 +1,43 @@
 "use client";
 import * as React from "react";
+import { Icon } from "../_ui/Icon";
 
 const RAY = "#f5732b";
+
+const mono = "var(--rc-font-mono)";
+function fmt(s: number): string {
+  if (!Number.isFinite(s)) return "0:00";
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+}
+
+/** 커스텀 오디오 플레이어: 플레이/일시정지 원 + 오렌지 스크러버 + 현재/전체 시간 (레퍼런스 07/12/13/14) */
+export function ToolPlayer({ src, accent = RAY }: { src: string; accent?: string }) {
+  const ref = React.useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [cur, setCur] = React.useState(0);
+  const [dur, setDur] = React.useState(0);
+  React.useEffect(() => { setPlaying(false); setCur(0); }, [src]);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <audio ref={ref} src={src} preload="metadata" onLoadedMetadata={(e) => setDur((e.target as HTMLAudioElement).duration || 0)} onTimeUpdate={(e) => setCur((e.target as HTMLAudioElement).currentTime)} onEnded={() => setPlaying(false)} />
+      <button
+        aria-label={playing ? "Pause" : "Play"}
+        onClick={() => { const a = ref.current; if (!a) return; if (a.paused) { a.play().catch(() => {}); setPlaying(true); } else { a.pause(); setPlaying(false); } }}
+        style={{ width: 40, height: 40, borderRadius: "50%", flex: "none", border: "none", cursor: "pointer", background: "var(--rc-ink)", color: "var(--rc-canvas)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <Icon name={playing ? "pause" : "play"} size={16} />
+      </button>
+      <span style={{ font: `400 12px/1 ${mono}`, color: "var(--rc-mute)", flex: "none" }}>{fmt(cur)}</span>
+      <div
+        onClick={(e) => { const a = ref.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; }}
+        style={{ flex: 1, height: 6, borderRadius: 3, background: "var(--rc-surface-elevated)", cursor: "pointer", overflow: "hidden" }}
+      >
+        <div style={{ width: `${dur ? (cur / dur) * 100 : 0}%`, height: "100%", background: accent }} />
+      </div>
+      <span style={{ font: `400 12px/1 ${mono}`, color: "var(--rc-mute)", flex: "none" }}>{fmt(dur)}</span>
+    </div>
+  );
+}
 
 /** AnalyserNode를 rAF로 그리는 실시간 막대 파형 (녹음/청취 피드백) */
 export function LiveWave({ analyser, color = RAY, height = 44 }: { analyser: AnalyserNode | null; color?: string; height?: number }) {

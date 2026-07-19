@@ -1,9 +1,10 @@
 "use client";
 import * as React from "react";
 import { ToolPanel, ReadoutTile, ErrorBox } from "../_ui";
-import { LiveWave, WavePeaks } from "../_audio";
+import { LiveWave, WavePeaks, ToolPlayer } from "../_audio";
 import { Icon } from "../../_ui/Icon";
 import { audioCtx, decodeFile, computePeaks, bufferToWavBlob, sliceBuffer, fmtTime, fmtSize } from "../lib/audio";
+import { runFFmpeg } from "../lib/ffmpeg";
 
 const FEAT = '"calt","kern","liga","ss03"';
 const sans = "var(--rc-font-sans)";
@@ -21,9 +22,11 @@ export function VoiceRecorder() {
   const [trim, setTrim] = React.useState<[number, number]>([0, 1]); // fractions
   const [wavUrl, setWavUrl] = React.useState<string | null>(null);
   const [wavSize, setWavSize] = React.useState(0);
+  const [mp3Busy, setMp3Busy] = React.useState(false);
   const streamRef = React.useRef<MediaStream | null>(null);
   const recRef = React.useRef<MediaRecorder | null>(null);
   const timerRef = React.useRef<number | null>(null);
+  const wavBlobRef = React.useRef<Blob | null>(null);
 
   const cleanupStream = () => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; setAnalyser(null); if (timerRef.current) clearInterval(timerRef.current); };
   React.useEffect(() => () => { cleanupStream(); if (wavUrl) URL.revokeObjectURL(wavUrl); }, [wavUrl]);
@@ -71,8 +74,24 @@ export function VoiceRecorder() {
   function buildWav(b: AudioBuffer, s: number, e: number) {
     const sliced = sliceBuffer(b, s * b.duration, e * b.duration);
     const blob = bufferToWavBlob(sliced);
+    wavBlobRef.current = blob;
     setWavSize(blob.size);
     setWavUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+  }
+
+  async function downloadMp3() {
+    const wav = wavBlobRef.current;
+    if (!wav) return;
+    setMp3Busy(true);
+    try {
+      const data = await runFFmpeg("in.wav", new Uint8Array(await wav.arrayBuffer()), ["-i", "in.wav", "-c:a", "libmp3lame", "-b:a", "192k", "out.mp3"], "out.mp3");
+      const url = URL.createObjectURL(new Blob([data.buffer as ArrayBuffer], { type: "audio/mpeg" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = "recording.mp3"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch { /* ignore, WAV still available */ } finally {
+      setMp3Busy(false);
+    }
   }
 
   function onTrim(next: [number, number]) {
@@ -120,14 +139,15 @@ export function VoiceRecorder() {
             <input type="range" min={0} max={0.98} step={0.01} value={trim[0]} onChange={(e) => onTrim([Math.min(Number(e.target.value), trim[1] - 0.02), trim[1]])} style={{ width: "100%", accentColor: "#f5732b" }} />
             <input type="range" min={0.02} max={1} step={0.01} value={trim[1]} onChange={(e) => onTrim([trim[0], Math.max(Number(e.target.value), trim[0] + 0.02)])} style={{ width: "100%", accentColor: "#f5732b" }} />
           </div>
-          {wavUrl && <audio controls src={wavUrl} style={{ width: "100%" }} />}
+          {wavUrl && <ToolPlayer src={wavUrl} />}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <ReadoutTile label="Length" value={fmtTime((trim[1] - trim[0]) * dur)} />
             <ReadoutTile label="Size" value={fmtSize(wavSize)} />
-            <ReadoutTile label="Format" value="WAV" />
+            <ReadoutTile label="Format" value="WAV or MP3" />
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a href={wavUrl ?? "#"} download="recording.wav" style={{ ...btn, background: "var(--rc-ink)", color: "var(--rc-canvas)", textDecoration: "none" }}><Icon name="download" size={16} /> Download WAV</a>
+            <button onClick={downloadMp3} disabled={mp3Busy} style={{ ...btn, background: "transparent", border: "1px solid var(--rc-hairline)", color: "var(--rc-body)", opacity: mp3Busy ? 0.6 : 1 }}><Icon name="download" size={16} /> {mp3Busy ? "Encoding MP3…" : "Download MP3"}</button>
             <button onClick={reset} style={{ ...btn, background: "transparent", border: "1px solid var(--rc-hairline)", color: "var(--rc-body)" }}>Record again</button>
           </div>
         </div>

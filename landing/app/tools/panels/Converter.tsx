@@ -2,6 +2,7 @@
 import * as React from "react";
 import { ToolPanel, Dropzone, ReadoutTile, ProgressShimmer, ErrorBox } from "../_ui";
 import { Icon } from "../../_ui/Icon";
+import { ToolPlayer } from "../_audio";
 import { loadFFmpeg, runFFmpeg } from "../lib/ffmpeg";
 import { fmtSize } from "../lib/audio";
 
@@ -112,7 +113,7 @@ export function Converter() {
       {state === "success" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {controls}
-          {url && <audio controls src={url} style={{ width: "100%" }} />}
+          {url && <ToolPlayer src={url} />}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <ReadoutTile label="Format" value={fmt.label} tone="accent" />
             {fmt.lossy && <ReadoutTile label="Bitrate" value={`${bitrate} kbps`} />}

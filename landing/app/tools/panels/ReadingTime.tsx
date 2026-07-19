@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { ToolPanel, ReadoutTile } from "../_ui";
+import { ToolPanel, StatTile } from "../_ui";
 
 const FEAT = '"calt","kern","liga","ss03"';
 const sans = "var(--rc-font-sans)";
@@ -108,9 +108,9 @@ export function ReadingTime() {
             <div style={{ font: `400 12.5px/1 ${mono}`, color: "var(--rc-mute)", marginTop: 8 }}>at {wpm} words per minute</div>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <ReadoutTile label="Words" value={stats.words.toLocaleString()} />
-            <ReadoutTile label="Characters" value={stats.chars.toLocaleString()} />
-            <ReadoutTile label="Sentences" value={String(stats.sentences)} />
+            <StatTile label="Words" value={stats.words.toLocaleString()} />
+            <StatTile label="Characters" value={stats.chars.toLocaleString()} />
+            <StatTile label="Sentences" value={String(stats.sentences)} />
           </div>
           {stats.paras.length > 0 && (
             <div style={{ borderRadius: 12, border: "1px solid var(--rc-hairline)", overflow: "hidden" }}>

@@ -2,6 +2,7 @@
 import * as React from "react";
 import { ToolPanel, Dropzone, ReadoutTile, ProgressShimmer, ErrorBox } from "../_ui";
 import { Icon } from "../../_ui/Icon";
+import { ToolPlayer } from "../_audio";
 import { loadFFmpeg, runFFmpeg } from "../lib/ffmpeg";
 
 const FEAT = '"calt","kern","liga","ss03"';
@@ -142,7 +143,7 @@ export function Loudness() {
             {m && <ReadoutTile label="Gain" value={`${(m.outI - m.inI >= 0 ? "+" : "") + (m.outI - m.inI).toFixed(1)} dB`} />}
             <ReadoutTile label="Output" value="WAV" />
           </div>
-          {url && <audio controls src={url} style={{ width: "100%" }} />}
+          {url && <ToolPlayer src={url} />}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a href={url ?? "#"} download={`${name}_${Math.abs(target)}lufs.wav`} style={{ ...btn, background: "var(--rc-ink)", color: "var(--rc-canvas)", textDecoration: "none" }}><Icon name="download" size={16} /> Download WAV</a>
             <button onClick={() => fileRef.current && normalize(fileRef.current)} style={{ ...btn, background: "transparent", border: "1px solid var(--rc-hairline)", color: "var(--rc-body)" }}>Apply target</button>

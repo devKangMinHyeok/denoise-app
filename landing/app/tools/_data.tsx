@@ -154,7 +154,7 @@ export const TOOLS: ToolDef[] = [
     viz: "recorder",
     windowTitle: "recorder",
     cardTitle: "Voice recorder",
-    cardDesc: "Record with a live waveform, trim the ends with handles, and download as WAV.",
+    cardDesc: "Record with a live waveform, trim the ends with handles, and download as WAV or MP3.",
     metaTitle: "Online voice recorder, free and private",
     metaDescription: "Record your voice in your browser, trim the start and end, and download a WAV. Nothing is uploaded. Free, no signup.",
     quickAnswer:
@@ -162,7 +162,7 @@ export const TOOLS: ToolDef[] = [
     keywords: ["voice recorder online", "online voice recorder free", "record voice in browser", "audio recorder online", "mic recorder"],
     faqs: [
       { q: "Where is my recording stored?", a: "In your browser only, until you download it. Nothing is uploaded to any server." },
-      { q: "What format do I get?", a: "You download a WAV file, which is uncompressed and works everywhere. Trimming happens before download." },
+      { q: "What format do I get?", a: "You download a WAV (uncompressed, works everywhere) or an MP3 (smaller). Trimming happens before download." },
       { q: "Can I trim the start and end?", a: "Yes. After recording, drag the start and end handles to trim, preview the result, then download." },
       { q: "Why does it ask for microphone permission?", a: "Recording needs access to your microphone. The prompt is your browser, not us, and access can be revoked anytime." },
     ],
