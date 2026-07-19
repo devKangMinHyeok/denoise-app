@@ -91,9 +91,9 @@ struct DetailPane: View {
     @ViewBuilder private var primaryAction: some View {
         if app.area == .settings {
             Button { } label: {
-                Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
+                Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.onWhite)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 28, height: 28)
                     .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(Palette.white))
             }
             .buttonStyle(.plain)
@@ -120,9 +120,9 @@ struct InspectorToggle: View {
     var body: some View {
         Button { withAnimation(Motion.calm) { app.inspectorVisible.toggle() } } label: {
             Image(systemName: "sidebar.right")
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Palette.mute)
-                .frame(width: 34, height: 34)
+                .frame(width: 28, height: 28)
                 .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(Palette.surfaceElevated))
                 .hairline(Radius.control, color: Palette.hairline)
         }

@@ -269,7 +269,7 @@ struct Transport: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            PlayCircle(playing: app.studio.playing, size: 46, filled: true) {
+            PlayCircle(playing: app.studio.playing, size: 42, filled: true) {
                 app.studio.playing.toggle()
             }
             Text(fmtTime(app.studio.currentTime)).font(.mono(13)).foregroundStyle(Palette.body)

@@ -212,7 +212,7 @@ struct DenoiseResult: View {
                     @Bindable var denoise = app.denoise
                     Segmented(options: [(ABMode.original, "Original"), (.cleaned, "Cleaned")],
                               selection: $denoise.abMode)
-                    PlayCircle(playing: false, size: 44, filled: true) { }
+                    PlayCircle(playing: false, size: 42, filled: true) { }
                     Text("Now: \(d.abMode == .cleaned ? "Cleaned" : "Original")")
                         .font(.mono(13)).foregroundStyle(Palette.mute)
                     Spacer()

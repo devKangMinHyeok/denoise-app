@@ -13,7 +13,7 @@ struct Segmented<T: Hashable>: View {
                         .font(.ui(13, sel ? .semibold : .medium))
                         .foregroundStyle(sel ? Palette.onWhite : Palette.body)
                         .fixedSize()
-                        .padding(.horizontal, 14).frame(height: 30)
+                        .padding(.horizontal, 13).frame(height: 26)
                         .background(RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                             .fill(sel ? Palette.white : .clear))
                 }

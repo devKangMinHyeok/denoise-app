@@ -224,12 +224,12 @@ struct PrimaryButton: View {
     @State private var pressed = false
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                if let s = systemImage { Image(systemName: s).font(.system(size: 13, weight: .semibold)) }
-                Text(title).font(.ui(13.5, .semibold))
+            HStack(spacing: 7) {
+                if let s = systemImage { Image(systemName: s).font(.system(size: 12, weight: .semibold)) }
+                Text(title).font(.ui(13, .semibold))
             }
             .foregroundStyle(Palette.onWhite)
-            .padding(.horizontal, 18).frame(height: 34)
+            .padding(.horizontal, 15).frame(height: 28)
             .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                 .fill(enabled ? (pressed ? Palette.primaryPressed : Palette.white) : Palette.stone))
         }
@@ -247,12 +247,12 @@ struct SecondaryButton: View {
     var action: () -> Void
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                if let s = systemImage { Image(systemName: s).font(.system(size: 13, weight: .medium)) }
-                Text(title).font(.ui(13.5, .medium))
+            HStack(spacing: 7) {
+                if let s = systemImage { Image(systemName: s).font(.system(size: 12, weight: .medium)) }
+                Text(title).font(.ui(13, .medium))
             }
             .foregroundStyle(tint)
-            .padding(.horizontal, 16).frame(height: 34)
+            .padding(.horizontal, 14).frame(height: 28)
             .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                 .fill(Palette.surfaceElevated))
             .hairline(Radius.control, color: Palette.hairline)
@@ -268,9 +268,9 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Palette.mute)
-                .frame(width: 32, height: 30)
+                .frame(width: 30, height: 28)
                 .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(Palette.surfaceElevated))
                 .hairline(Radius.control, color: Palette.hairline)
         }
