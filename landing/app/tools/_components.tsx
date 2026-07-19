@@ -57,16 +57,30 @@ function MonoLine({ children, tone }: { children: React.ReactNode; tone?: "ok" |
 export function ToolCardViz({ viz }: { viz: VizKind }) {
   if (viz === "noise")
     return (<><div style={{ display: "flex", gap: 6 }}><Pill active>Cleaned</Pill><Pill>Original</Pill></div><Waveform count={40} mode="smooth" pos={1} activeColor="var(--rc-ray)" height={28} /><MonoLine>speech loss 0.0% · noise -18 dB</MonoLine></>);
-  if (viz === "reading")
-    return (<><div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%" }}>{["The story begins on a quiet…", "By the second act the pace…"].map((r) => (<div key={r} style={{ font: `400 12px/1.4 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r}</div>))}<div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 9px", borderRadius: 6, border: "1px solid var(--rc-hairline)", background: "var(--rc-surface-elevated)", font: `400 12px/1.4 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Everything changes when…</span><span style={{ color: "var(--rc-ray)", flex: "none" }}>editing</span></div></div><MonoLine>1,240 words · 8:15</MonoLine></>);
+  if (viz === "reading") {
+    const line = { font: `400 12px/1.4 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } as const;
+    return (<><div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%" }}>
+      <div style={line}>The story begins on a quiet street…</div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 9px", borderRadius: 6, border: "1px solid var(--rc-hairline)", background: "var(--rc-surface-elevated)", font: `400 12px/1.4 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>By the second act the pace…</span><span style={{ color: "var(--rc-ray)", flex: "none" }}>editing</span></div>
+      <div style={line}>Everything changes when…</div>
+    </div><MonoLine>1,240 words · 8:15</MonoLine></>);
+  }
   if (viz === "mic")
     return (<><Waveform count={40} mode="raw" pos={1} activeColor="var(--rc-ray)" height={28} /><div style={{ height: 6, width: "100%", borderRadius: 3, background: "var(--rc-surface-elevated)", overflow: "hidden" }}><div style={{ width: "58%", height: "100%", background: "var(--rc-accent-green)" }} /></div><MonoLine tone="ok">level -12 dB · safe</MonoLine></>);
   if (viz === "recorder")
     return (<><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff6161" }} /><span style={{ font: `500 22px/1 ${mono}`, color: "var(--rc-ink)" }}>00:12</span></div><Waveform count={40} mode="raw" pos={1} activeColor="var(--rc-ray)" height={28} /></>);
   if (viz === "silence")
     return (<><div style={{ position: "relative", width: "100%" }}><Waveform count={44} mode="raw" pos={1} activeColor="var(--rc-ray)" height={30} />{[18, 54, 82].map((l) => (<span key={l} style={{ position: "absolute", top: 0, bottom: 0, left: `${l}%`, width: 10, background: "rgba(255,97,97,.22)", borderLeft: "1px solid rgba(255,97,97,.5)", borderRight: "1px solid rgba(255,97,97,.5)" }} />))}</div><MonoLine>removed 0:42 · 9 regions</MonoLine></>);
-  if (viz === "loudness")
-    return (<div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 9 }}><div><MonoLine>before</MonoLine><div style={{ height: 8, borderRadius: 4, background: "var(--rc-surface-elevated)", overflow: "hidden", marginTop: 4 }}><div style={{ width: "52%", height: "100%", background: "#434345" }} /></div></div><div><MonoLine tone="accent">after · -14 LUFS</MonoLine><div style={{ height: 8, borderRadius: 4, background: "var(--rc-surface-elevated)", overflow: "hidden", marginTop: 4 }}><div style={{ width: "74%", height: "100%", background: "linear-gradient(90deg,#ff9448,#e0561c)" }} /></div></div></div>);
+  if (viz === "loudness") {
+    const row = (label: string, val: string, accent: boolean) => (
+      <div style={{ display: "flex", justifyContent: "space-between", font: `400 11px/1 ${mono}`, color: accent ? "var(--rc-ray)" : "var(--rc-mute)", marginBottom: 4 }}><span>{label}</span><span>{val}</span></div>
+    );
+    return (<div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div>{row("before", "-19.4 LUFS", false)}<div style={{ height: 7, borderRadius: 4, background: "var(--rc-surface-elevated)", overflow: "hidden" }}><div style={{ width: "52%", height: "100%", background: "#434345" }} /></div></div>
+      <div>{row("after", "-14.0 LUFS", true)}<div style={{ height: 7, borderRadius: 4, background: "var(--rc-surface-elevated)", overflow: "hidden" }}><div style={{ width: "74%", height: "100%", background: "linear-gradient(90deg,#ff9448,#e0561c)" }} /></div></div>
+      <MonoLine>target -14 · true peak -1.2 dBTP</MonoLine>
+    </div>);
+  }
   // convert
   return (<><div style={{ font: `400 12.5px/1.4 ${mono}` }}><span style={{ color: "var(--rc-body)" }}>track.wav</span> <span style={{ color: "var(--rc-stone)" }}>→</span> <span style={{ color: "var(--rc-ray)" }}>track.mp3</span></div><div style={{ height: 6, width: "100%", borderRadius: 3, background: "var(--rc-surface-elevated)", overflow: "hidden" }}><div style={{ width: "70%", height: "100%", background: "var(--rc-ray)" }} /></div><MonoLine>mp3 · 320 kbps · on your device</MonoLine></>);
 }

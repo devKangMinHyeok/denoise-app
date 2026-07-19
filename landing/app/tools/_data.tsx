@@ -45,7 +45,7 @@ export const TOOLS: ToolDef[] = [
     viz: "noise",
     windowTitle: "noise removal",
     cardTitle: "Audio noise remover",
-    cardDesc: "Remove background noise and keep your word endings, in your browser.",
+    cardDesc: "Strip hiss, hum and room tone while your words stay clean. A/B the result and download.",
     metaTitle: "Audio noise remover, free and in your browser",
     metaDescription:
       "Remove background noise from audio or video for free. Runs entirely in your browser, nothing is uploaded. Compare original and cleaned, then download.",
@@ -85,8 +85,8 @@ export const TOOLS: ToolDef[] = [
     icon: "clock",
     viz: "reading",
     windowTitle: "script.txt",
-    cardTitle: "Reading time calculator",
-    cardDesc: "Paste a script, get the spoken length at your pace. Instant, no file.",
+    cardTitle: "Script reading time",
+    cardDesc: "Paste a script and see the narration time update live, with a per paragraph breakdown.",
     metaTitle: "Script reading time calculator, words to minutes",
     metaDescription:
       "Paste a script and get its spoken length in minutes at your speaking pace. Free, instant, and private. Shows word, character, and sentence counts and a per paragraph breakdown.",
@@ -125,7 +125,7 @@ export const TOOLS: ToolDef[] = [
     viz: "mic",
     windowTitle: "mic test",
     cardTitle: "Mic test",
-    cardDesc: "Check your microphone level and quality before you record.",
+    cardDesc: "Check your level against a safe zone, watch a live waveform, then hear a quick sample.",
     metaTitle: "Mic test online, check your microphone",
     metaDescription: "Test your microphone in your browser. See your input level, check for clipping and background noise, and record a short sample to hear yourself. Free and private.",
     quickAnswer:
@@ -154,7 +154,7 @@ export const TOOLS: ToolDef[] = [
     viz: "recorder",
     windowTitle: "recorder",
     cardTitle: "Voice recorder",
-    cardDesc: "Record, trim, and download audio, all on your device.",
+    cardDesc: "Record with a live waveform, trim the ends with handles, and download as WAV.",
     metaTitle: "Online voice recorder, free and private",
     metaDescription: "Record your voice in your browser, trim the start and end, and download a WAV. Nothing is uploaded. Free, no signup.",
     quickAnswer:
@@ -183,7 +183,7 @@ export const TOOLS: ToolDef[] = [
     viz: "silence",
     windowTitle: "silence",
     cardTitle: "Silence remover",
-    cardDesc: "Cut dead air automatically, or trim by hand.",
+    cardDesc: "See dead air highlighted, tune the threshold, and tighten a recording in one pass.",
     metaTitle: "Silence remover and audio trimmer, in your browser",
     metaDescription: "Remove silence and dead air from audio automatically, or trim by hand. Runs in your browser, nothing is uploaded. Free, then download a WAV.",
     quickAnswer:
@@ -212,7 +212,7 @@ export const TOOLS: ToolDef[] = [
     viz: "loudness",
     windowTitle: "loudness",
     cardTitle: "Loudness normalizer",
-    cardDesc: "Match YouTube, podcast, or broadcast loudness targets.",
+    cardDesc: "Match YouTube, podcast or broadcast targets, with measured loudness before and after.",
     metaTitle: "Loudness (LUFS) normalizer, free and in your browser",
     metaDescription: "Normalize audio to a LUFS target for YouTube, podcasts, or broadcast. Measures loudness and true peak, applies gain, downloads a WAV. Runs in your browser.",
     quickAnswer:
@@ -241,7 +241,7 @@ export const TOOLS: ToolDef[] = [
     viz: "convert",
     windowTitle: "convert",
     cardTitle: "Audio format converter",
-    cardDesc: "Convert between mp3, wav, m4a, and more, privately.",
+    cardDesc: "Convert between mp3, wav, m4a, ogg and flac, without uploading anything.",
     metaTitle: "Audio format converter, private and in your browser",
     metaDescription: "Convert audio between mp3, wav, m4a, ogg, and flac in your browser. Unlike upload-based converters, your file never leaves your device. Free, no signup.",
     quickAnswer:

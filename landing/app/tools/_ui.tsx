@@ -28,6 +28,8 @@ export function ToolPanel({ children, footerNote }: { children: React.ReactNode;
           padding: "14px 18px",
           borderBottom: "1px solid var(--rc-hairline)",
           font: `400 12px/1 ${mono}`,
+          letterSpacing: ".6px",
+          textTransform: "uppercase",
           color: "var(--rc-mute)",
         }}
       >
@@ -90,12 +92,12 @@ export function Dropzone({
         transition: "border-color .15s ease, background .15s ease",
       }}
     >
-      <span style={{ width: 44, height: 44, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "rgba(245,115,43,.12)", color: "var(--rc-ray)" }}>
+      <span style={{ width: 44, height: 44, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "var(--rc-surface-elevated)", border: "1px solid var(--rc-hairline)", color: "var(--rc-mute)" }}>
         <Icon name="upload" size={20} />
       </span>
       <div style={{ font: `500 15px/1.4 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>{label}</div>
       <div style={{ font: `400 13px/1.5 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-mute)", maxWidth: 380 }}>{hint}</div>
-      <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", padding: "9px 16px", borderRadius: 8, background: "var(--rc-ink)", color: "var(--rc-canvas)", font: `600 13px/1 ${sans}`, fontFeatureSettings: FEAT }}>
+      <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", padding: "9px 18px", borderRadius: 8, background: "var(--rc-surface-elevated)", border: "1px solid var(--rc-hairline)", color: "var(--rc-body)", font: `600 13px/1 ${sans}`, fontFeatureSettings: FEAT }}>
         Choose file
       </span>
       <input ref={inputRef} type="file" accept={accept} hidden onChange={(e) => e.target.files && e.target.files.length && onFiles(e.target.files)} />
@@ -108,8 +110,8 @@ export function ReadoutTile({ label, value, tone }: { label: string; value: stri
   const col = tone === "ok" ? "var(--rc-accent-green)" : tone === "accent" ? "var(--rc-ray)" : "var(--rc-ink)";
   return (
     <div style={{ flex: "1 1 120px", minWidth: 0, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--rc-hairline)", background: C.well }}>
-      <div style={{ font: `400 11px/1 ${mono}`, color: "var(--rc-ash)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>{label}</div>
-      <div style={{ font: `500 18px/1.1 ${mono}`, color: col, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+      <div style={{ font: `500 18px/1.1 ${mono}`, color: col, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 7 }}>{value}</div>
+      <div style={{ font: `400 11px/1 ${mono}`, color: "var(--rc-ash)", textTransform: "uppercase", letterSpacing: ".4px" }}>{label}</div>
     </div>
   );
 }

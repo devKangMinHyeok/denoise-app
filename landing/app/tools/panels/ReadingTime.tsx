@@ -103,8 +103,8 @@ export function ReadingTime() {
         {/* result */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ padding: "20px 22px", borderRadius: 14, border: "1px solid var(--rc-hairline)", background: "var(--rc-surface)" }}>
-            <div style={{ font: `400 11px/1 ${mono}`, color: "var(--rc-ash)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 }}>Estimated spoken time</div>
-            <div style={{ font: `500 clamp(40px,7vw,56px)/1 ${mono}`, color: "var(--rc-ink)", letterSpacing: "-1px" }}>{mmss(stats.seconds)}</div>
+            <div style={{ font: `400 11px/1 ${mono}`, color: "var(--rc-ash)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 }}>Estimated narration time</div>
+            <div style={{ font: `500 clamp(40px,7vw,56px)/1 ${mono}`, color: "var(--rc-ray)", letterSpacing: "-1px" }}>{mmss(stats.seconds)}</div>
             <div style={{ font: `400 12.5px/1 ${mono}`, color: "var(--rc-mute)", marginTop: 8 }}>at {wpm} words per minute</div>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
