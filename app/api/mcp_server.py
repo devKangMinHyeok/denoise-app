@@ -22,7 +22,7 @@ mcp = FastMCP("vocast")
 
 @mcp.tool()
 def health() -> dict:
-    """사용 가능한 기능과 엔진 상태를 반환한다.
+    """Report what this engine can do and whether it is ready.
 
     clone(보이스 클로닝)은 Apple Silicon에서만 True. denoise는 어디서나 가능.
     """
@@ -44,7 +44,7 @@ def health() -> dict:
 @mcp.tool()
 def denoise(input_path: str, output_path: str = "", mode: str = "standard",
             boost: float = 0.0) -> dict:
-    """영상·음성 파일의 배경 소음을 제거한다. 원본은 수정하지 않는다.
+    """Remove background noise from an audio or video file. The original is untouched.
 
     Args:
         input_path: 처리할 파일 경로 (mov/mp4/wav/m4a/mp3 등).
@@ -74,7 +74,7 @@ def denoise(input_path: str, output_path: str = "", mode: str = "standard",
 
 @mcp.tool()
 def list_voice_profiles() -> list:
-    """등록된 보이스 프로필 목록 (id·이름·학습량·버전)."""
+    """List the saved voice profiles, with id, name, training amount and version."""
     from api.profiles import list_profiles
     return [{"id": p["id"], "name": p.get("name"), "ready": p.get("ready"),
              "version": p.get("version"), "duration": (p.get("stats") or {}).get("duration")}
@@ -84,7 +84,7 @@ def list_voice_profiles() -> list:
 @mcp.tool()
 def clone_voice(text: str, profile_id: str = "", ref_path: str = "",
                 output_path: str = "", fast: bool = False) -> dict:
-    """텍스트를 지정한 목소리로 낭독한 오디오를 생성한다 (동기 — 수 분 소요).
+    """Narrate text in a chosen voice and return the audio. Runs synchronously and takes minutes.
 
     profile_id(등록 프로필) 또는 ref_path(목소리 담긴 파일) 중 하나를 준다.
     본인/동의받은 목소리만 사용할 것.
@@ -126,7 +126,7 @@ def clone_voice(text: str, profile_id: str = "", ref_path: str = "",
 
 @mcp.tool()
 def list_history(limit: int = 10) -> list:
-    """최근 생성 작업(클로닝) 기록 (id·제목·상태·점수·문단 수)."""
+    """Recent narration jobs, with id, title, status, score and paragraph count."""
     from api.profiles import list_history as _hist
     return [{"id": j["id"], "title": j.get("title"), "status": j.get("status"),
              "pns": j.get("pns"), "paragraphs": len(j.get("paragraphs") or [])}

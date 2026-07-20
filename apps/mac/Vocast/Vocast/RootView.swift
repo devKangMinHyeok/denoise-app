@@ -288,9 +288,9 @@ struct JobDetailInspector: View {
                     factRow("Type", job.kind.typeLabel)
                     factRow("Target", job.target)
                     factRow("Profile", job.profile)
-                    factRow("Throughput", job.throughput)
+                    if !job.throughput.isEmpty { factRow("Elapsed", job.throughput) }
                 }
-                Text("ETA is estimated from measured throughput on this Mac, about 4x realtime.")
+                Text("ETA comes from how long jobs like this actually took on this Mac.")
                     .font(.ui(12.5)).foregroundStyle(Palette.ash)
                     .fixedSize(horizontal: false, vertical: true).lineSpacing(3)
             }

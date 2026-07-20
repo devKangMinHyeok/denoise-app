@@ -35,8 +35,11 @@ struct StudioView: View {
                 DotLabel(text: app.currentProfileFacts, color: Palette.good, mono: true)
                 Spacer()
                 Text("\(app.studio.charCount) / 20,000").font(.mono(12)).foregroundStyle(Palette.mute)
-                Rectangle().fill(Palette.hairline).frame(width: 1, height: 16)
-                Text("~4x realtime").font(.mono(12)).foregroundStyle(Palette.ash)
+                if let speed = app.rates?.narrationSpeedLabel {
+                    Rectangle().fill(Palette.hairline).frame(width: 1, height: 16)
+                    Text(speed).font(.mono(12)).foregroundStyle(Palette.ash)
+                        .help("Measured on this Mac from your own renders.")
+                }
             }
             .padding(.horizontal, Space.xl).frame(height: kBarHeight)
             .overlay(alignment: .bottom) { Hairline() }
@@ -104,7 +107,7 @@ struct ComposingStudio: View {
                             .padding(.top, Space.xl + 2).padding(.leading, Space.xl + 5)
                         Spacer()
                         SecondaryButton(title: "Paste a sample script") {
-                            app.studio.scriptText = SampleData.script
+                            app.studio.scriptText = StarterContent.script
                         }
                         .padding(Space.xl)
                     }
@@ -272,7 +275,7 @@ struct Transport: View {
             Text(fmtTime(app.studio.currentTime)).font(.mono(13)).foregroundStyle(Palette.body)
                 .frame(width: 40, alignment: .leading)
             GeometryReader { geo in
-                WaveBars(peaks: app.studio.transportPeaks.isEmpty ? Waveform.peaks(90, seed: 500, floor: 0.2) : app.studio.transportPeaks,
+                WaveBars(peaks: app.studio.transportPeaks,
                          color: Palette.stone, activeColor: Palette.accent,
                          progress: app.studio.currentTime / total, height: 34)
                     .contentShape(Rectangle())

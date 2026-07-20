@@ -182,7 +182,7 @@ enum StudioViewMode { case blocks, karaoke }
 
 @MainActor @Observable
 final class StudioModel {
-    var scriptText: String = SampleData.script
+    var scriptText: String = StarterContent.script
     var phase: StudioPhase = .empty
     var blocks: [Block] = []
     var selectedBlockID: Block.ID?
@@ -264,7 +264,8 @@ final class VoicesModel {
     var openedProfileID: String?
 
     // Guided recording flow
-    let prompts = SampleData.prompts
+    /// Guided script from the engine (/api/guide), with its per-line coaching.
+    var guide: [GuideLine] = []
     var recStep = 0
     var recording = false
     var captured: [Bool] = Array(repeating: false, count: 10)
@@ -350,10 +351,11 @@ final class DenoiseModel {
     // Placeholder until a run finishes; the inspector only shows it once the real
     // report arrives (phase == .result), where fromDenoise replaces it.
     var scorecard = Scorecard(gatePassed: true, attentionReason: nil, headline: [], sub: [])
-    var recentJobs: [DenoiseJob] = SampleData.denoiseJobs
+    var recentJobs: [DenoiseJob] = []      // filled from /api/dnjobs
 
-    var originalPeaks: [Double] = Waveform.peaks(64, seed: 42, floor: 0.35)
-    var cleanedPeaks: [Double] = Waveform.peaks(64, seed: 42, floor: 0.12)
+    // Filled from the real audio once a cleanup finishes; empty until then.
+    var originalPeaks: [Double] = []
+    var cleanedPeaks: [Double] = []
 }
 
 // MARK: - Tasks
@@ -375,7 +377,7 @@ enum JobKind { case narrationRender, denoise, voiceBuild
     }
 }
 
-enum JobState { case running, queued, done }
+enum JobState { case running, queued, done, failed }
 
 @Observable
 final class Job: Identifiable {
@@ -404,7 +406,7 @@ final class Job: Identifiable {
 
 @MainActor @Observable
 final class TasksModel {
-    var jobs: [Job] = SampleData.jobs
+    var jobs: [Job] = []                   // filled from /api/tasks
     var selectedJobID: Job.ID?
 
     var running: [Job] { jobs.filter { $0.state == .running } }
@@ -422,11 +424,13 @@ final class TasksModel {
 
 // MARK: - Settings
 
+/// A tool the local MCP server exposes, read from the engine. There is no
+/// per-tool switch: the MCP server is either on or off, so the row reflects
+/// the server state rather than a per-action flag the app cannot honour.
 struct MCPAction: Identifiable {
     let id = UUID()
     let name: String
     let desc: String
-    var enabled: Bool
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
@@ -456,12 +460,14 @@ final class SettingsModel {
 
     // MCP
     var mcpEnabled = true
-    var mcpActions: [MCPAction] = SampleData.mcpActions
+    var mcpActions: [MCPAction] = []       // filled from /api/mcp/tools
 }
 
 // MARK: - Sample content
 
-enum SampleData {
+/// Example script the Studio starts with, so the first screen is not blank.
+/// This is placeholder copy the user is expected to replace, not data.
+enum StarterContent {
     static let script = """
     Noise canceling headphones feel like magic, but the idea is simple. A tiny microphone listens to the sound around you, and the headphone plays back the exact opposite of that sound.
 
@@ -471,82 +477,4 @@ enum SampleData {
 
     That is why the newest headphones do the math thousands of times a second, adjusting to the room as it changes around you.
     """
-
-    static let prompts = [
-        "The quick brown fox jumps over the lazy dog near the river.",
-        "I usually record my videos late in the evening when it is quiet.",
-        "Numbers like fourteen, ninety, and two thousand should sound natural.",
-        "Please remember to save your project before you close the app.",
-        "She sells seashells by the seashore on a bright summer morning.",
-        "This is how I sound when I am calm and reading at a steady pace.",
-        "Sometimes I get excited and my voice speeds up just a little.",
-        "A good microphone makes a real difference in the final recording.",
-        "We are almost done, just a couple more lines to go from here.",
-        "Thank you for reading these lines, your voice profile is ready to build.",
-    ]
-
-    static var profiles: [VoiceProfile] {
-        [
-            VoiceProfile(
-                name: "Ava, narration", initials: "AR", sim: "0.94", version: "v3",
-                lastUsed: "used 2 hours ago", isDefault: true, clipCount: 12,
-                totalDuration: "1m 48s", peaks: Waveform.peaks(48, seed: 7),
-                versions: [
-                    VoiceVersion(label: "v3", note: "Reinforced with 4 new clips", date: "Today", sim: "SIM 0.94", isCurrent: true),
-                    VoiceVersion(label: "v2", note: "Re-recorded 3 noisy lines", date: "Yesterday", sim: "SIM 0.91", isCurrent: false),
-                    VoiceVersion(label: "v1", note: "Initial 10-line profile", date: "Last week", sim: "SIM 0.87", isCurrent: false),
-                ]
-            ),
-            VoiceProfile(
-                name: "Ava, energetic", initials: "AR", sim: "0.91", version: "v2",
-                lastUsed: "used yesterday", isDefault: false, clipCount: 10,
-                totalDuration: "1m 32s", peaks: Waveform.peaks(48, seed: 19),
-                versions: [
-                    VoiceVersion(label: "v2", note: "Added excited takes", date: "Yesterday", sim: "SIM 0.91", isCurrent: true),
-                    VoiceVersion(label: "v1", note: "Initial 10-line profile", date: "Last week", sim: "SIM 0.86", isCurrent: false),
-                ]
-            ),
-            VoiceProfile(
-                name: "Ava, calm read", initials: "AR", sim: "0.89", version: "v1",
-                lastUsed: "used last week", isDefault: false, clipCount: 10,
-                totalDuration: "1m 40s", peaks: Waveform.peaks(48, seed: 31),
-                versions: [
-                    VoiceVersion(label: "v1", note: "Initial 10-line profile", date: "Last week", sim: "SIM 0.89", isCurrent: true),
-                ]
-            ),
-        ]
-    }
-
-    static var jobs: [Job] {
-        [
-            Job(kind: .narrationRender, title: "Narration render, block 2",
-                subtitle: "Ava, narration · 4x realtime", state: .running,
-                progress: 0.62, eta: 14, target: "block 2 of 4", profile: "Ava, narration",
-                throughput: "4.1x realtime"),
-            Job(kind: .denoise, title: "Denoise, interview-raw-take2.wav",
-                subtitle: "Resynth mode", state: .queued),
-            Job(kind: .voiceBuild, title: "Voice profile build, Ava narration",
-                subtitle: "10 clips · SIM 0.94", state: .done, timeLabel: "2 hr ago"),
-            Job(kind: .narrationRender, title: "Narration render, block 1",
-                subtitle: "11 seconds · MOS 4.3", state: .done, timeLabel: "2 hr ago"),
-            Job(kind: .denoise, title: "Denoise, podcast-ep12-room.wav",
-                subtitle: "Resynth · -49 dB residual", state: .done, timeLabel: "Yesterday"),
-        ]
-    }
-
-    static var denoiseJobs: [DenoiseJob] {
-        [
-            DenoiseJob(title: "podcast-ep12-room.wav", meta: "Resynth · -49 dB residual", timeLabel: "Yesterday"),
-            DenoiseJob(title: "voiceover-draft.m4a", meta: "Standard · -46 dB residual", timeLabel: "3 days ago"),
-        ]
-    }
-
-    static var mcpActions: [MCPAction] {
-        [
-            MCPAction(name: "clone_voice", desc: "Build a voice profile from clips", enabled: true),
-            MCPAction(name: "narrate", desc: "Render a script with a chosen profile", enabled: true),
-            MCPAction(name: "denoise", desc: "Clean an audio or video file", enabled: true),
-            MCPAction(name: "list_voices", desc: "List available voice profiles", enabled: true),
-        ]
-    }
 }

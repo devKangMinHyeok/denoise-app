@@ -102,6 +102,60 @@ struct NJob: Decodable {
     let error: String?
 }
 
+/// One entry from /api/tasks: a clone, denoise or profile-build job.
+struct ETask: Decodable {
+    let id: String
+    let kind: String?           // clone | denoise | profile_build
+    let title: String?
+    let status: String?         // preparing | generating | running | done | error
+    let stage: String?
+    let created: String?
+    let eta_sec: Double?
+    let elapsed_sec: Double?
+    let error: String?
+    let pns: Double?
+    let mode: String?
+}
+
+/// One cleanup job from /api/dnjobs.
+struct EDenoiseJob: Decodable {
+    let id: String
+    let title: String?
+    let name: String?
+    let status: String?
+    let mode: String?
+    let created: String?
+    let report: DNReport?
+}
+
+/// A line of the guided recording script, with the engine's coaching for it.
+struct GuideLine: Decodable {
+    let text: String
+    let tip: String?
+    let focus: String?
+}
+
+/// A tool the local MCP server exposes.
+struct MCPTool: Decodable {
+    let name: String
+    let desc: String
+}
+
+/// Speeds measured on this Mac. `clone_rtf` is processing seconds per second of
+/// audio produced, so 20 means rendering runs 20 times slower than realtime.
+struct EngineRates: Decodable {
+    let clone_rtf: Double?
+    let clone_fast_rtf: Double?
+    let dn_standard: Double?
+    let dn_resynth: Double?
+
+    /// How the render speed reads to a person, from the measured number.
+    var narrationSpeedLabel: String? {
+        guard let r = clone_rtf, r > 0 else { return nil }
+        return String(format: "~%.0fx slower than realtime", r)
+    }
+}
+
 // MARK: Model download
 
 struct ModelStatus: Decodable {
@@ -322,6 +376,53 @@ final class EngineClient {
     /// Playable URL for the composed narration audio.
     func narrationAudioURL(_ id: String) -> URL {
         base.appendingPathComponent("api/jobs/\(id)/audio")
+    }
+
+    // MARK: Work already done on this Mac
+
+    /// Every async job the engine knows about, newest and still-running first.
+    /// This is the one source for the Tasks area and the toolbar indicator.
+    func listTasks() async throws -> [ETask] {
+        let (data, resp) = try await get("/api/tasks")
+        try check(resp, data)
+        struct R: Decodable { let items: [ETask] }
+        return try JSONDecoder().decode(R.self, from: data).items
+    }
+
+    /// Cleanup jobs, for the Denoise area's recent list.
+    func listDenoiseJobs() async throws -> [EDenoiseJob] {
+        let (data, resp) = try await get("/api/dnjobs")
+        try check(resp, data)
+        struct R: Decodable { let items: [EDenoiseJob] }
+        return try JSONDecoder().decode(R.self, from: data).items
+    }
+
+    /// The guided recording script, with the engine's per-line coaching.
+    func guideLines() async throws -> [GuideLine] {
+        let (data, resp) = try await get("/api/guide")
+        try check(resp, data)
+        struct R: Decodable { let sentences: [GuideLine] }
+        return try JSONDecoder().decode(R.self, from: data).sentences
+    }
+
+    /// Speeds measured on this Mac, so the UI never guesses at performance.
+    func rates() async throws -> EngineRates {
+        let (data, resp) = try await get("/api/rates")
+        try check(resp, data)
+        return try JSONDecoder().decode(EngineRates.self, from: data)
+    }
+
+    /// The profile's merged reference audio, for drawing its real waveform.
+    func profileAudioURL(_ pid: String) -> URL {
+        base.appendingPathComponent("api/profiles/\(pid)/audio")
+    }
+
+    /// Tools the local MCP server actually exposes to an agent.
+    func mcpTools() async throws -> [MCPTool] {
+        let (data, resp) = try await get("/api/mcp/tools")
+        try check(resp, data)
+        struct R: Decodable { let items: [MCPTool] }
+        return try JSONDecoder().decode(R.self, from: data).items
     }
 
     // MARK: HTTP plumbing

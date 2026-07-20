@@ -193,6 +193,58 @@ def dnjobs_delete_api(jid):
     return jsonify(ok=True)
 
 
+@app.get("/api/rates")
+def rates_api():
+    """이 맥에서 실측된 처리 속도. UI가 속도를 추정으로 지어내지 않게 한다.
+
+    clone_rtf 는 "출력 1초당 처리 초"라서 20이면 실시간보다 20배 느리다는 뜻이다.
+    """
+    from api.rates import get_rates
+    return jsonify(get_rates())
+
+
+@app.get("/api/profiles/<pid>/audio")
+def profile_audio_api(pid):
+    """프로필의 병합된 참조 음성. 앱이 실제 목소리 파형을 그릴 때 쓴다."""
+    paths = profiles.profile_paths(pid)
+    merged = os.path.join(profiles._profile_dir(pid), "merged.wav")
+    if not os.path.exists(merged):
+        if not paths:
+            return jsonify(error="프로필 음성이 없습니다"), 404
+        merged = paths[0]
+    return send_file(merged, mimetype="audio/wav")
+
+
+@app.get("/api/mcp/tools")
+def mcp_tools_api():
+    """MCP 서버가 에이전트에 실제로 노출하는 도구 목록.
+
+    mcp_server 를 import 하면 FastMCP 가 딸려 오므로, 소스를 ast 로 읽어
+    @mcp.tool() 붙은 함수의 이름과 docstring 첫 줄만 뽑는다. 목록이 코드와
+    어긋날 수 없고(단일 소스), 서버 기동에 부작용도 없다.
+    """
+    import ast
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "mcp_server.py")
+    items = []
+    try:
+        tree = ast.parse(open(path, encoding="utf-8").read())
+    except (OSError, SyntaxError):
+        return jsonify(items=[])
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        decorated = any(
+            (isinstance(d, ast.Call) and getattr(d.func, "attr", "") == "tool")
+            or getattr(d, "attr", "") == "tool"
+            for d in node.decorator_list)
+        if not decorated:
+            continue
+        doc = (ast.get_docstring(node) or "").strip().split("\n")[0]
+        items.append({"name": node.name, "desc": doc})
+    return jsonify(items=items)
+
+
 # ---- 가이드 녹음 / 보이스 프로필 ----
 
 @app.get("/api/guide")

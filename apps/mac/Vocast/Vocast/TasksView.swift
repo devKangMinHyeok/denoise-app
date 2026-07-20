@@ -68,6 +68,7 @@ struct TaskRow: View {
         case .running: return Palette.accent
         case .queued: return Palette.mute
         case .done: return Palette.good
+        case .failed: return Palette.danger
         }
     }
 
@@ -76,6 +77,7 @@ struct TaskRow: View {
         case .running: Text("ETA \(fmtTime(job.eta))").font(.mono(12)).foregroundStyle(Palette.accent)
         case .queued:  Text("Waiting").font(.mono(12)).foregroundStyle(Palette.ash)
         case .done:    Text(job.timeLabel).font(.mono(12)).foregroundStyle(Palette.good)
+        case .failed:  Text("Failed").font(.mono(12)).foregroundStyle(Palette.danger)
         }
     }
 
@@ -85,6 +87,8 @@ struct TaskRow: View {
             SecondaryButton(title: "Cancel") { app.tasks.jobs.removeAll { $0.id == job.id } }
         case .done:
             SecondaryButton(title: "Open") { openJob() }
+        case .failed:
+            SecondaryButton(title: "Dismiss") { app.tasks.jobs.removeAll { $0.id == job.id } }
         }
     }
 

@@ -46,6 +46,8 @@ final class AppModel {
     var backendProfiles: [EngineProfile] = []
     var selectedProfileID: String?
     var modelStatus: ModelStatus?
+    var rates: EngineRates?                       // speeds measured on this Mac
+    var profilePeaks: [String: [Double]] = [:]    // real waveform per profile id
     private var modelPollTask: Task<Void, Never>?
     private var dnPollTask: Task<Void, Never>?
     private var dnPlayer: AVPlayer?
@@ -86,11 +88,100 @@ final class AppModel {
             backendProfiles = (try? await engine.listProfiles()) ?? []
             if selectedProfileID == nil { selectedProfileID = backendProfiles.first?.id }
             modelStatus = try? await engine.modelStatus()
+            voices.guide = (try? await engine.guideLines()) ?? []
+            rates = try? await engine.rates()
+            settings.mcpActions = ((try? await engine.mcpTools()) ?? []).map {
+                MCPAction(name: $0.name, desc: $0.desc)
+            }
+            await refreshWork()
+            await loadProfilePeaks()
         } else {
             engineReady = false
             resynthAvailable = false
         }
         engineStarting = false
+    }
+
+    // MARK: Work already done on this Mac
+
+    /// Pull the real job history from the engine into the Tasks area and the
+    /// Denoise recent list. Called on startup and after anything finishes, so the
+    /// app only ever shows work that actually happened.
+    func refreshWork() async {
+        if let items = try? await engine.listTasks() {
+            tasks.jobs = items.compactMap(Self.job(from:))
+        }
+        if let items = try? await engine.listDenoiseJobs() {
+            denoise.recentJobs = items.map { j in
+                DenoiseJob(title: j.name ?? j.title ?? j.id,
+                           meta: Self.denoiseMeta(j),
+                           timeLabel: Self.shortDate(j.created))
+            }
+        }
+    }
+
+    /// Decode each profile's reference audio once so the library shows the real
+    /// voice rather than a shape derived from its id.
+    func loadProfilePeaks() async {
+        for p in backendProfiles where profilePeaks[p.id] == nil {
+            if let peaks = await RealWaveform.peaks(from: engine.profileAudioURL(p.id), count: 48) {
+                profilePeaks[p.id] = peaks
+            }
+        }
+    }
+
+    private static func job(from t: ETask) -> Job? {
+        let kind: JobKind
+        switch t.kind {
+        case "denoise": kind = .denoise
+        case "profile_build": kind = .voiceBuild
+        default: kind = .narrationRender
+        }
+        let state: JobState
+        switch t.status {
+        case "done": state = .done
+        case "error": state = .failed
+        case "queued": state = .queued
+        default: state = .running
+        }
+        // The engine reports elapsed and eta in seconds; turn them into the
+        // fraction the UI shows, and leave it at zero when nothing is known.
+        var progress = 0.0
+        if state == .done { progress = 1 }
+        else if let e = t.elapsed_sec, let eta = t.eta_sec, eta > 0 {
+            progress = min(0.95, e / eta)
+        }
+        var subtitle = [t.stage, t.mode].compactMap { $0 }.joined(separator: " · ")
+        if state == .failed, let e = t.error { subtitle = e }
+        return Job(kind: kind,
+                   title: t.title ?? t.id,
+                   subtitle: subtitle,
+                   state: state,
+                   progress: progress,
+                   eta: max(0, (t.eta_sec ?? 0) - (t.elapsed_sec ?? 0)),
+                   timeLabel: shortDate(t.created),
+                   target: t.stage ?? "",
+                   profile: "",
+                   throughput: t.elapsed_sec.map { "\(Int($0))s elapsed" } ?? "")
+    }
+
+    private static func denoiseMeta(_ j: EDenoiseJob) -> String {
+        var parts: [String] = []
+        if let m = j.mode { parts.append(m.capitalized) }
+        if let loss = j.report?.speech_loss_pct {
+            parts.append(String(format: "%.0f%% speech preserved", max(0, 100 - loss)))
+        }
+        if parts.isEmpty, let s = j.status { parts.append(s) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The engine formats timestamps as "2026-07-20 08:26"; show just the time part
+    /// for today and the date otherwise, rather than inventing "2 hr ago".
+    private static func shortDate(_ s: String?) -> String {
+        guard let s, s.count >= 16 else { return "" }
+        let day = String(s.prefix(10))
+        let today = ISO8601DateFormatter().string(from: Date()).prefix(10)
+        return day == today ? String(s.dropFirst(11)) : day
     }
 
     // MARK: Model download (first run)
@@ -215,7 +306,7 @@ final class AppModel {
                         studio.audioURL = engine.narrationAudioURL(jid)
                         // Real waveform from the composed audio, sliced per block.
                         let full = await RealWaveform.peaks(from: engine.narrationAudioURL(jid), count: 240) ?? []
-                        studio.transportPeaks = full.isEmpty ? Waveform.peaks(90, seed: 500) : full
+                        studio.transportPeaks = full          // empty if the audio could not be read
                         studio.blocks = makeRealBlocks(st, text: text, fullPeaks: full)
                         studio.selectedBlockID = studio.blocks.first?.id
                         studio.karaokeWordIndex = 0
@@ -311,7 +402,7 @@ final class AppModel {
                 }
                 slice = Array(fullPeaks[a..<b])
             } else {
-                slice = Waveform.peaks(34, seed: UInt64(100 + i * 13))
+                slice = []            // no invented shape when there is no audio
             }
             return Block(text: t, status: .rendered,
                          duration: duration,
@@ -427,7 +518,7 @@ final class AppModel {
                         studio.audioDuration = narrationDuration(st)
                         studio.audioURL = engine.narrationAudioURL(jid)
                         let full = await RealWaveform.peaks(from: engine.narrationAudioURL(jid), count: 240) ?? []
-                        studio.transportPeaks = full.isEmpty ? Waveform.peaks(90, seed: 500) : full
+                        studio.transportPeaks = full          // empty if the audio could not be read
                         var blocks = makeRealBlocks(st, text: text, fullPeaks: full)
                         // Keep prior versions, bump the one we just regenerated.
                         for i in blocks.indices where i < versions.count { blocks[i].version = versions[i] }
@@ -808,7 +899,7 @@ final class AppModel {
         switch area {
         case .studio:
             studio.resetToEmptyScript()
-            studio.scriptText = SampleData.script
+            studio.scriptText = StarterContent.script
         case .voices:
             voices.startFlow()
         case .denoise:

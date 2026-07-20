@@ -14,9 +14,11 @@ struct VoicesView: View {
     }
 }
 
-// Decorative waveform seed from a profile id (the profile card strip is cosmetic).
-private func peaksFor(_ id: String) -> [Double] {
-    Waveform.peaks(48, seed: UInt64(abs(id.hashValue) % 100000))
+// The profile's real waveform, decoded from its reference audio. Empty until the
+// audio has been fetched, which the strip renders as a flat line rather than
+// inventing a shape from the id.
+@MainActor private func peaksFor(_ id: String, _ app: AppModel) -> [Double] {
+    app.profilePeaks[id] ?? []
 }
 
 // MARK: - Library
@@ -68,7 +70,7 @@ struct ProfileCard: View {
                     }
                     Spacer(minLength: 0)
                 }
-                WaveBars(peaks: peaksFor(profile.id), color: Palette.stone, height: 30)
+                WaveBars(peaks: peaksFor(profile.id, app), color: Palette.stone, height: 30)
                 Rectangle().fill(Palette.hairline).frame(height: 1)
                 HStack {
                     Text("Voice length").font(.mono(12)).foregroundStyle(Palette.mute)
@@ -161,11 +163,32 @@ struct GuidedRecording: View {
         }
     }
 
+    /// The line to read now, straight from the engine's guided script. Its lines are
+    /// chosen to cover greeting tone, breathing, question endings and emphasis, so
+    /// the profile hears the range it needs.
+    private var line: GuideLine? {
+        v.recStep < v.guide.count ? v.guide[v.recStep] : nil
+    }
+
     private var promptCard: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Eyebrow(text: "Read this line")
-            Text(v.prompts[v.recStep]).font(.ui(22, .regular)).foregroundStyle(Palette.ink)
+            HStack(spacing: 10) {
+                Eyebrow(text: "Read this line")
+                if let focus = line?.focus, !focus.isEmpty {
+                    Text(focus).font(.mono(11)).foregroundStyle(Palette.accent)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Capsule().fill(Palette.accent.opacity(0.12)))
+                }
+            }
+            Text(line?.text ?? "Waiting for the engine's guided script.")
+                .font(.ui(22, .regular)).foregroundStyle(line == nil ? Palette.ash : Palette.ink)
                 .lineSpacing(6).fixedSize(horizontal: false, vertical: true)
+            if let tip = line?.tip, !tip.isEmpty {
+                HStack(spacing: 7) {
+                    Image(systemName: "lightbulb").font(.system(size: 11)).foregroundStyle(Palette.mute)
+                    Text(tip).font(.ui(13)).foregroundStyle(Palette.mute)
+                }
+            }
 
             VStack(spacing: 16) {
                 HStack {
@@ -386,7 +409,7 @@ struct ProfileDetail: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Source clips").padding(.bottom, 16)
             VStack(alignment: .leading, spacing: 16) {
-                WaveBars(peaks: peaksFor(p.id), color: Palette.stone, height: 30)
+                WaveBars(peaks: peaksFor(p.id, app), color: Palette.stone, height: 30)
                 Text("\(p.clipCount) clips, \(fmtTime(p.durationSec)) total. Drag audio files here to reinforce this profile with more of your voice.")
                     .font(.ui(13.5)).foregroundStyle(Palette.mute).lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)

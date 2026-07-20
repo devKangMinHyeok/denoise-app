@@ -246,14 +246,19 @@ struct MCPPane: View {
             VStack(alignment: .leading, spacing: 0) {
                 Eyebrow(text: "Exposed actions").padding(.bottom, 12)
                 settingsCard {
+                    if settings.mcpActions.isEmpty {
+                        Text("The engine has not reported its tools yet.")
+                            .font(.ui(13.5)).foregroundStyle(Palette.ash)
+                            .padding(.horizontal, 16).frame(minHeight: 52)
+                    }
                     ForEach(Array(settings.mcpActions.enumerated()), id: \.element.id) { i, a in
                         HStack(spacing: 14) {
-                            Text(a.name).font(.mono(13)).foregroundStyle(Palette.accent).frame(width: 96, alignment: .leading)
+                            Text(a.name).font(.mono(13)).foregroundStyle(Palette.accent).frame(width: 150, alignment: .leading)
                             Text(a.desc).font(.ui(13.5)).foregroundStyle(Palette.body)
                             Spacer()
-                            Text(a.enabled && settings.mcpEnabled ? "enabled" : "disabled")
+                            Text(settings.mcpEnabled ? "enabled" : "disabled")
                                 .font(.mono(12))
-                                .foregroundStyle(a.enabled && settings.mcpEnabled ? Palette.good : Palette.ash)
+                                .foregroundStyle(settings.mcpEnabled ? Palette.good : Palette.ash)
                         }
                         .padding(.horizontal, 16).frame(minHeight: 52)
                         .opacity(settings.mcpEnabled ? 1 : 0.5)
