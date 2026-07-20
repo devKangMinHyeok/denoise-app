@@ -120,8 +120,8 @@ struct NewVoiceTile: View {
                     .font(.system(size: 20, weight: .regular)).foregroundStyle(Palette.mute)
                     .frame(width: 52, height: 52)
                     .overlay(Circle().strokeBorder(Palette.hairline, lineWidth: 1))
-                Text("New voice").font(.ui(16, .semibold)).foregroundStyle(Palette.ink)
-                Text("Record about 90 seconds of guided lines to clone your voice.")
+                Text(app.s["newVoice"]).font(.ui(16, .semibold)).foregroundStyle(Palette.ink)
+                Text(app.s["newVoiceHint"])
                     .font(.ui(13)).foregroundStyle(Palette.mute)
                     .multilineTextAlignment(.center).lineSpacing(3)
                     .frame(maxWidth: 220)
@@ -152,7 +152,7 @@ struct GuidedRecording: View {
                 Button { app.recorder.stop(); app.voices.phase = .library } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
-                        Text("Back to voices").font(.ui(13.5))
+                        Text(app.s["nVoices"]).font(.ui(13.5))
                     }.foregroundStyle(Palette.mute)
                 }.buttonStyle(.plain)
 
@@ -206,7 +206,7 @@ struct GuidedRecording: View {
     private var promptCard: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 10) {
-                Eyebrow(text: "Read this line")
+                Eyebrow(text: app.s["readThisLine"])
                 if let focus = line?.focus, !focus.isEmpty {
                     Text(focus).font(.mono(11)).foregroundStyle(Palette.accent)
                         .padding(.horizontal, 8).padding(.vertical, 3)
@@ -370,7 +370,7 @@ struct ProfileDetail: View {
                     Button { app.voices.phase = .library } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
-                            Text("Back to voices").font(.ui(13.5))
+                            Text(app.s["nVoices"]).font(.ui(13.5))
                         }.foregroundStyle(Palette.mute)
                     }.buttonStyle(.plain)
 

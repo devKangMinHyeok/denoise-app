@@ -19,13 +19,13 @@ struct StudioView: View {
         if app.studio.phase == .rendered {
             HStack(spacing: 14) {
                 @Bindable var studio = app.studio
-                Segmented(options: [(StudioViewMode.blocks, "Blocks"), (.karaoke, "Karaoke")],
+                Segmented(options: [(StudioViewMode.blocks, app.s["blocks"]), (.karaoke, app.s["karaoke"])],
                           selection: $studio.viewMode)
-                Text("\(app.studio.blocks.count) blocks · \(fmtTime(app.studio.totalDuration)) total")
+                Text("\(app.studio.blocks.count) \(app.s["blocksTotal"]) · \(fmtTime(app.studio.totalDuration)) \(app.s["totalSuffix"])")
                     .font(.mono(12)).foregroundStyle(Palette.mute)
                 Spacer()
-                SecondaryButton(title: "Export selection") { app.exportSelection() }
-                PrimaryButton(title: "Export narration") { app.exportNarration() }
+                SecondaryButton(title: app.s["exportSel"]) { app.exportSelection() }
+                PrimaryButton(title: app.s["exportNarration"]) { app.exportNarration() }
             }
             .padding(.horizontal, Space.xl).frame(height: kBarHeight)
             .overlay(alignment: .bottom) { Hairline() }
@@ -104,11 +104,11 @@ struct ComposingStudio: View {
 
                 if app.studio.scriptText.isEmpty {
                     VStack(alignment: .leading) {
-                        Text("Paste or write your script. Up to 20,000 characters.")
+                        Text(app.s["scriptPlaceholder"])
                             .font(.ui(16)).foregroundStyle(Palette.ash)
                             .padding(.top, Space.xl + 2).padding(.leading, Space.xl + 5)
                         Spacer()
-                        SecondaryButton(title: "Paste a sample script") {
+                        SecondaryButton(title: app.s["pasteSample"]) {
                             app.studio.scriptText = StarterContent.script
                         }
                         .padding(Space.xl)
@@ -126,7 +126,7 @@ struct ComposingStudio: View {
     @ViewBuilder private var footer: some View {
         HStack(alignment: .center) {
             if app.studio.rendering {
-                Text("Render turns your script into editable paragraph blocks. Each block can be replayed, re-rendered, and scored on its own.")
+                Text(app.s["renderBlurb"])
                     .font(.ui(13)).foregroundStyle(Palette.mute)
                     .frame(maxWidth: 520, alignment: .leading)
                 Spacer()
@@ -139,11 +139,11 @@ struct ComposingStudio: View {
                 .padding(.horizontal, 14).frame(height: 44)
                 .card(Palette.surfaceElevated, radius: Radius.control)
             } else {
-                Text("Render turns your script into editable paragraph blocks. Each block can be replayed, re-rendered, and scored on its own.")
+                Text(app.s["renderBlurb"])
                     .font(.ui(13)).foregroundStyle(Palette.mute)
                     .frame(maxWidth: 520, alignment: .leading)
                 Spacer()
-                PrimaryButton(title: "Render narration", systemImage: "play.fill",
+                PrimaryButton(title: app.s["renderNarration"], systemImage: "play.fill",
                               enabled: !app.studio.scriptText.isEmpty) {
                     app.renderNarration()
                 }

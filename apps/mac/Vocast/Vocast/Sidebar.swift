@@ -19,7 +19,7 @@ struct Sidebar: View {
                 SearchField(text: $app.search)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("LIBRARY").font(.mono(11)).tracking(0.4)
+                    Text(app.s["library"].uppercased()).font(.mono(11)).tracking(0.4)
                         .foregroundStyle(Palette.ash)
                         .padding(.leading, 12).padding(.bottom, 6)
 
@@ -62,7 +62,7 @@ struct SidebarRow: View {
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(selected ? Palette.accent : Palette.mute)
                     .frame(width: 18)
-                Text(area.title)
+                Text(area.title(app.s))
                     .font(.ui(14, selected ? .semibold : .regular))
                     .foregroundStyle(selected ? Palette.ink : Palette.body)
                 Spacer()
@@ -91,11 +91,12 @@ struct SidebarRow: View {
 }
 
 struct SearchField: View {
+    @Environment(AppModel.self) private var app
     @Binding var text: String
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundStyle(Palette.ash)
-            TextField("Search", text: $text)
+            TextField(app.s["search"], text: $text)
                 .textFieldStyle(.plain)
                 .font(.ui(13.5))
                 .foregroundStyle(Palette.body)
@@ -120,12 +121,13 @@ struct Keycap: View {
 }
 
 struct OfflineChip: View {
+    @Environment(AppModel.self) private var app
     var body: some View {
         HStack(spacing: 10) {
             StatusDot(color: Palette.good, size: 8)
             VStack(alignment: .leading, spacing: 2) {
-                Text("On this Mac, offline").font(.ui(13, .medium)).foregroundStyle(Palette.body)
-                Text("Nothing leaves your device").font(.mono(11)).foregroundStyle(Palette.ash)
+                Text(app.s["offline1"]).font(.ui(13, .medium)).foregroundStyle(Palette.body)
+                Text(app.s["offline2"]).font(.mono(11)).foregroundStyle(Palette.ash)
             }
             Spacer(minLength: 0)
         }

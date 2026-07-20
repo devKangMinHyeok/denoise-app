@@ -109,7 +109,7 @@ struct DetailPane: View {
         VStack(spacing: 0) {
             // The controls that used to live here are toolbar items now; see the
             // .toolbar in RootView for why. This bar keeps the title and subhead.
-            TopBar(title: app.area.title, subhead: app.area.subhead) { EmptyView() }
+            TopBar(title: app.area.title(app.s), subhead: app.area.subhead(app.s)) { EmptyView() }
             areaContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
@@ -132,7 +132,7 @@ struct PrimaryActionButton: View {
     @Environment(AppModel.self) private var app
     var body: some View {
         if app.area != .settings {
-            PrimaryButton(title: app.area.primaryActionLabel, systemImage: "plus") {
+            PrimaryButton(title: app.area.primaryActionLabel(app.s), systemImage: "plus") {
                 app.primaryAction()
             }
         }
@@ -194,10 +194,10 @@ struct InspectorPane: View {
 
     private var headerTitle: String {
         switch app.area {
-        case .studio: return app.studio.phase == .rendered ? "Quality scorecard" : "Inspector"
-        case .denoise: return app.denoise.phase == .result ? "Quality report" : "Inspector"
-        case .tasks: return app.tasks.running.first != nil ? "Job detail" : "Inspector"
-        default: return "Inspector"
+        case .studio: return app.studio.phase == .rendered ? app.s["qualityScorecard"] : app.s["inspectorT"]
+        case .denoise: return app.denoise.phase == .result ? app.s["qualityReport"] : app.s["inspectorT"]
+        case .tasks: return app.tasks.running.first != nil ? app.s["jobDetailT"] : app.s["inspectorT"]
+        default: return app.s["inspectorT"]
         }
     }
     private var headerMeta: String {
@@ -230,13 +230,13 @@ struct InspectorPane: View {
                     InspectorEmpty(text: "The engine reported no quality scores for this block.")
                 }
             } else {
-                InspectorEmpty(text: "Render your script to see a quality scorecard for each block here.")
+                InspectorEmpty(text: app.s["hintStudio"])
             }
         case .denoise:
             if app.denoise.phase == .result {
                 ScorecardView(card: app.denoise.scorecard, footnote: Scorecard.denoiseFootnote)
             } else {
-                InspectorEmpty(text: "Import a file and run a cleanup to see the quality report here.")
+                InspectorEmpty(text: app.s["hintDenoise"])
             }
         case .tasks:
             if let job = app.tasks.selectedJob, job.state == .running {
@@ -245,9 +245,9 @@ struct InspectorPane: View {
                 InspectorEmpty(text: "Select a running job to see its progress and details.")
             }
         case .voices:
-            InspectorEmpty(text: "Select a voice, or open a profile to see its versions and source clips.")
+            InspectorEmpty(text: app.s["hintVoices"])
         case .settings:
-            InspectorEmpty(text: "Contextual detail appears here.")
+            InspectorEmpty(text: app.s["hintGeneric"])
         }
     }
 }

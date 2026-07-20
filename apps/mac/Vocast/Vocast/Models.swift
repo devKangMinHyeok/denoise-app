@@ -7,24 +7,36 @@ enum Area: String, CaseIterable, Identifiable, Hashable {
     case studio, voices, denoise, tasks, settings
     var id: String { rawValue }
 
-    var title: String {
+    /// Area names resolve through the string table so the sidebar and the top bar
+    /// follow the interface language like everything else.
+    func title(_ st: Strings) -> String {
         switch self {
-        case .studio: return "Studio"
-        case .voices: return "Voices"
-        case .denoise: return "Denoise"
-        case .tasks: return "Tasks"
-        case .settings: return "Settings"
+        case .studio: return st["nStudio"]
+        case .voices: return st["nVoices"]
+        case .denoise: return st["nDenoise"]
+        case .tasks: return st["nTasks"]
+        case .settings: return st["settings"]
         }
     }
-    var subhead: String {
+    func subhead(_ st: Strings) -> String {
         switch self {
-        case .studio: return "Write, render, and narrate"
-        case .voices: return "Clone and manage your voice"
-        case .denoise: return "Clean up audio and video"
-        case .tasks: return "Running, queued, and done"
+        case .studio: return st["subStudio"]
+        case .voices: return st["subVoices"]
+        case .denoise: return st["subDenoise"]
+        case .tasks: return st["subTasks"]
         case .settings: return ""
         }
     }
+    func primaryActionLabel(_ st: Strings) -> String {
+        switch self {
+        case .studio: return st["newNarration"]
+        case .voices: return st["newVoice"]
+        case .denoise: return st["importAudio"]
+        case .tasks: return st["clearFinished"]
+        case .settings: return ""
+        }
+    }
+
     var symbol: String {
         switch self {
         case .studio: return "sparkles"
@@ -32,15 +44,6 @@ enum Area: String, CaseIterable, Identifiable, Hashable {
         case .denoise: return "waveform.path"
         case .tasks: return "clock"
         case .settings: return "gearshape"
-        }
-    }
-    var primaryActionLabel: String {
-        switch self {
-        case .studio: return "New narration"
-        case .voices: return "New voice"
-        case .denoise: return "Import audio"
-        case .tasks: return "Clear finished"
-        case .settings: return ""
         }
     }
 }
