@@ -473,6 +473,20 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case general = "General", language = "Language", models = "Models", audio = "Audio",
          privacy = "Privacy", mcp = "MCP server", about = "About"
     var id: String { rawValue }
+
+    /// The section name in the interface language. Values not in the spec's string
+    /// table (Privacy) keep their English label.
+    func label(_ st: Strings) -> String {
+        switch self {
+        case .general:  return st["setGeneral"]
+        case .language: return st["setLanguage"]
+        case .models:   return st["setModels"]
+        case .audio:    return st["setAudio"]
+        case .privacy:  return st["setPrivacy"]
+        case .mcp:      return st["setMcp"]
+        case .about:    return st["setAbout"]
+        }
+    }
 }
 
 enum AppearanceChoice: String, CaseIterable, Identifiable {

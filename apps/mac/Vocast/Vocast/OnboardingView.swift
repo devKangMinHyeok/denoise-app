@@ -118,7 +118,7 @@ struct OnboardingView: View {
                 tierChooser
             }
 
-            PrimaryButton(title: "Continue", enabled: s?.ready == true) {
+            PrimaryButton(title: app.s["continue"], enabled: s?.ready == true) {
                 withAnimation(Motion.calm) { o.step = .mic }
             }
         }

@@ -258,7 +258,7 @@ struct GuidedRecording: View {
                 Button { app.stopRecordingLine() } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "stop.fill").font(.system(size: 11))
-                        Text("Stop").font(.ui(13.5, .semibold))
+                        Text(app.s["stop"]).font(.ui(13.5, .semibold))
                     }
                     .foregroundStyle(Palette.danger)
                     .padding(.horizontal, 18).frame(height: 34)
@@ -266,14 +266,14 @@ struct GuidedRecording: View {
                     .fullClickArea()
                 }.buttonStyle(.plain)
             } else if v.currentLineCaptured {
-                SecondaryButton(title: "Retake") { app.retakeLine() }
+                SecondaryButton(title: app.s["retake"]) { app.retakeLine() }
                 if v.recStep == 9 {
-                    PrimaryButton(title: "Build profile", systemImage: "sparkles") { app.buildVoiceProfile() }
+                    PrimaryButton(title: app.s["buildProfile"], systemImage: "sparkles") { app.buildVoiceProfile() }
                 } else {
-                    PrimaryButton(title: "Next line", systemImage: "arrow.right") { app.nextLine() }
+                    PrimaryButton(title: app.s["nextLine"], systemImage: "arrow.right") { app.nextLine() }
                 }
             } else {
-                PrimaryButton(title: "Record", systemImage: "record.circle") { app.startRecordingLine() }
+                PrimaryButton(title: app.s["record"], systemImage: "record.circle") { app.startRecordingLine() }
             }
             if !rec.recording && v.capturedCount > 0 && v.recStep < 9 {
                 SecondaryButton(title: "Build now (\(v.capturedCount))") { app.buildVoiceProfile() }

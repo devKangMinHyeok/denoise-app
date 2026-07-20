@@ -18,7 +18,7 @@ struct SettingsView: View {
             ForEach(SettingsSection.allCases) { s in
                 let sel = app.settings.section == s
                 Button { app.settings.section = s } label: {
-                    Text(s.rawValue)
+                    Text(s.label(app.s))
                         .font(.ui(14, sel ? .semibold : .regular))
                         .foregroundStyle(sel ? Palette.ink : Palette.body)
                         .padding(.horizontal, 12).frame(height: 34)
@@ -92,7 +92,7 @@ struct GeneralPane: View {
     var body: some View {
         @Bindable var settings = app.settings
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "General", blurb: "Appearance, startup, and default behavior.")
+            SettingsHeader(title: app.s["setGeneral"], blurb: "Appearance, startup, and default behavior.")
             settingsCard {
                 SettingRow(label: "Appearance", sub: "Dark is the only theme for now.") {
                     Picker("", selection: $settings.appearance) {
@@ -123,7 +123,7 @@ struct ModelsPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "Models", blurb: "Downloaded voice and transcription models, kept in the app's own folder. Nothing is uploaded.")
+            SettingsHeader(title: app.s["setModels"], blurb: "Downloaded voice and transcription models, kept in the app's own folder. Nothing is uploaded.")
             settingsCard {
                 modelRow("Voice model (fast)", "1.9 GB", installed["tts_fast"] ?? false)
                 Divider().overlay(Palette.hairline)
@@ -167,7 +167,7 @@ struct AudioPane: View {
     var body: some View {
         @Bindable var settings = app.settings
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "Audio", blurb: "Input device and export format.")
+            SettingsHeader(title: app.s["setAudio"], blurb: "Input device and export format.")
             settingsCard {
                 SettingRow(label: "Input device") {
                     Picker("", selection: $settings.inputDevice) {
@@ -230,7 +230,7 @@ struct MCPPane: View {
     var body: some View {
         @Bindable var settings = app.settings
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "MCP server",
+            SettingsHeader(title: app.s["setMcp"],
                            blurb: "Let an AI agent (for example Claude) call Vocast actions on this Mac through a local MCP server. Off by default. Nothing is exposed to the network.")
 
             HStack {
@@ -277,9 +277,10 @@ struct MCPPane: View {
 // MARK: - About
 
 struct AboutPane: View {
+    @Environment(AppModel.self) private var app
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "About")
+            SettingsHeader(title: app.s["setAbout"])
             settingsCard {
                 SettingRow(label: "Version", sub: "Vocast 1.0") { Text("build 1").font(.mono(12)).foregroundStyle(Palette.mute) }
                 Divider().overlay(Palette.hairline)
