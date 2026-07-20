@@ -72,12 +72,15 @@ final class Sidecar {
         process = nil
     }
 
-    /// App-owned folder for downloaded models (Application Support/Vocast/models).
-    /// All engine model downloads are confined here via HF_HOME.
+    /// App-owned folder for downloaded models, keyed by bundle identifier so a beta
+    /// build and a release build never share one. All engine model downloads are
+    /// confined here via HF_HOME and TORCH_HOME, which keeps them removable with
+    /// the app that fetched them.
     static func modelsDir() -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
-        let dir = base.appendingPathComponent("Vocast/models", isDirectory: true)
+        let id = Bundle.main.bundleIdentifier ?? "me.vocast.Vocast"
+        let dir = base.appendingPathComponent("\(id)/models", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }

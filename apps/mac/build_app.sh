@@ -33,6 +33,24 @@ case "$VARIANT" in
   beta)    APP_NAME="Vocast Beta"; BUNDLE_ID="me.vocast.Vocast.beta"; APPICON="AppIconBeta" ;;
   *) echo "❌ VOCAST_VARIANT must be release or beta (got: $VARIANT)"; exit 1 ;;
 esac
+if [ "$VARIANT" = "release" ]; then
+  # A release build carries the real name and icon, so it must never happen by
+  # accident or as a slip of the variant flag.
+  if [ "${VOCAST_RELEASE_CONFIRM:-}" != "yes" ]; then
+    echo "❌ A release build needs VOCAST_RELEASE_CONFIRM=yes."
+    echo "   Day to day, build the beta: bash apps/mac/build_app.sh"
+    exit 1
+  fi
+  # An unsigned build named "Vocast" is the worst of both worlds: it looks official
+  # and macOS still tells the user it is damaged. Use the beta for local testing.
+  if [ -z "${VOCAST_SIGN_ID:-}" ]; then
+    echo "❌ A release build needs VOCAST_SIGN_ID (Developer ID Application)."
+    echo "   Without a signature it cannot be notarized, and users get a scary"
+    echo "   warning from an app that looks like the real thing. Use the beta instead."
+    exit 1
+  fi
+fi
+
 echo "▸ Variant: $VARIANT  ($APP_NAME, $BUNDLE_ID, icon $APPICON)"
 
 # Reusing an already staged engine turns a ten-minute rebuild into a Swift-only one.

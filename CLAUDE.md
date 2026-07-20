@@ -47,6 +47,14 @@
 7. **SEO 단일 소스**: 사이트 전역 메타 상수는 `landing/lib/site.ts`. sitemap/robots/layout 메타/
    JSON-LD(`lib/schema.ts`)가 모두 이걸 참조한다. 블로그 글을 추가/수정하면
    `landing/public/llms.txt`도 갱신한다. 감사는 `/review seo`, `/review geo`.
+8. **맥 앱은 항상 베타로 빌드**: 출시 전까지 프로덕션(release) 빌드를 뽑지 않는다. 기본은
+   `make beta`(= `bash apps/mac/build_app.sh`)이고, 시안 아이콘의 "Vocast Beta"가 나온다.
+   프로덕션은 **사용자가 "출시"를 명시적으로 지시할 때만**. 릴리스는 `VOCAST_RELEASE_CONFIRM=yes`
+   와 `VOCAST_SIGN_ID`가 둘 다 있어야 실행되고(스크립트 가드), Bash 훅
+   (`.claude/hooks/guard-release-build.py`)이 시도를 사용자에게 확인받는다.
+   Swift만 고쳤다면 `make quick`(엔진 재사용, 약 1분). 파이썬을 건드렸다면 쓰지 않는다.
+   의존성을 덜어낸 뒤에는 4개 플로우(health, denoise, 프로필 빌드, non-fast 내레이션)를
+   전부 돌려 확인한다. 지연 임포트 때문에 일부만 통과하는 일이 실제로 있었다.
 
 ## 작업 → 스킬 매핑
 
