@@ -32,6 +32,7 @@ struct StudioView: View {
         } else {
             HStack(spacing: 14) {
                 ProfileSelector()
+                LanguageChip(language: app.currentVoiceLanguage)
                 DotLabel(text: app.currentProfileFacts, color: Palette.good, mono: true)
                 Spacer()
                 Text("\(app.studio.charCount) / 20,000").font(.mono(12)).foregroundStyle(Palette.mute)
@@ -90,6 +91,7 @@ struct ComposingStudio: View {
     var body: some View {
         @Bindable var studio = app.studio
         VStack(spacing: Space.md) {
+            ScriptAdviceBanner()
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $studio.scriptText)
                     .font(.ui(16))
@@ -199,6 +201,11 @@ struct BlockCard: View {
                          height: 24)
                     .frame(maxWidth: 520)
                 Spacer(minLength: 12)
+                // The block-level echo of the script banner: this paragraph is in a
+                // language the voice does not speak. It rendered anyway.
+                if ScriptLanguage.mismatches(block.text, voice: app.currentVoiceLanguage) {
+                    DifferentLanguageTag()
+                }
                 HStack(spacing: 7) {
                     StatusDot(color: rerendering ? Palette.accent : Palette.good, size: 7, blink: rerendering)
                     Text(rerendering ? "Re-rendering" : "Rendered")
@@ -217,7 +224,10 @@ struct BlockCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
             .fill(selected ? Palette.surfaceElevated : Palette.surface))
-        .hairline(Radius.card, color: selected ? Palette.hairlineStrong : Palette.hairline)
+        .hairline(Radius.card,
+                  color: ScriptLanguage.mismatches(block.text, voice: app.currentVoiceLanguage)
+                      ? Palette.accent.opacity(0.45)
+                      : (selected ? Palette.hairlineStrong : Palette.hairline))
         .contentShape(Rectangle())
         .onTapGesture { app.studio.selectedBlockID = block.id }
     }

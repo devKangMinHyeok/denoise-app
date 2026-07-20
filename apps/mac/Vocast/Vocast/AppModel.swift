@@ -13,11 +13,13 @@ struct Toast: Identifiable, Equatable {
 
 // MARK: - Onboarding
 
-enum OnboardingStep: Int, CaseIterable { case welcome, download, mic, ready }
+/// Language comes first: it decides what every later step reads like. The rest of
+/// the flow shifts down by one, which the dot row picks up automatically.
+enum OnboardingStep: Int, CaseIterable { case language, welcome, download, mic, ready }
 
 @MainActor @Observable
 final class OnboardingModel {
-    var step: OnboardingStep = .welcome
+    var step: OnboardingStep = .language
     var tier: String = "balanced"   // balanced | advanced
 }
 
@@ -930,6 +932,24 @@ final class AppModel {
     func notify(_ message: String) { complete(message) }
 
     // MARK: New narration / primary actions
+
+    /// The profile Studio will narrate with.
+    var currentProfile: EngineProfile? {
+        selectedProfileID.flatMap { id in backendProfiles.first { $0.id == id } }
+            ?? backendProfiles.first
+    }
+
+    /// The language the active voice speaks. Everything language-aware in Studio
+    /// keys off this, not off the interface language.
+    var currentVoiceLanguage: VoiceLanguage {
+        VoiceLanguage(profileCode: currentProfile?.lang)
+    }
+
+    /// What, if anything, to say about the script against the active voice.
+    /// Quiet by default: mixed script never raises anything.
+    var scriptAdvice: ScriptAdvice {
+        ScriptAdvice.of(script: studio.scriptText, voice: currentVoiceLanguage)
+    }
 
     /// Profiles grouped by the language they speak, Korean first, with empty
     /// groups omitted. The library renders a section per entry.

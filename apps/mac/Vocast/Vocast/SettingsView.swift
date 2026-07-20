@@ -37,6 +37,7 @@ struct SettingsView: View {
     @ViewBuilder private var pane: some View {
         switch app.settings.section {
         case .general: GeneralPane()
+        case .language: LanguagePane()
         case .models:  ModelsPane()
         case .audio:   AudioPane()
         case .privacy: PrivacyPane()
@@ -285,6 +286,63 @@ struct AboutPane: View {
                 Divider().overlay(Palette.hairline)
                 SettingRow(label: "Requirements", sub: "macOS 14 or later, Apple Silicon") { EmptyView() }
             }
+        }
+    }
+}
+
+// MARK: - Language
+//
+// Two rows that say the same thing from opposite directions: this is where the
+// interface language lives, and this is not where voice languages live. The blue
+// panel states the guarantee outright, because "will this rewrite my voices?" is
+// the question a language switch raises.
+
+struct LanguagePane: View {
+    @Environment(AppModel.self) private var app
+    private var s: Strings { app.s }
+
+    var body: some View {
+        @Bindable var model = app
+        VStack(alignment: .leading, spacing: Space.xl) {
+            SettingsHeader(title: s["setLangTitle"], blurb: s["setLangBlurb"])
+
+            VStack(alignment: .leading, spacing: 10) {
+                settingsCard {
+                    SettingRow(label: s["interfaceLanguage"], sub: s["interfaceLangDetail"]) {
+                        Picker("", selection: $model.interfaceLanguage) {
+                            ForEach(InterfaceLanguage.allCases) { l in
+                                Text(l.nativeName).tag(l)
+                            }
+                        }
+                        .pickerStyle(.segmented).fixedSize().labelsHidden()
+                    }
+                }
+                HStack(spacing: 7) {
+                    StatusDot(color: Palette.good, size: 7)
+                    Text(s["applyNow"]).font(.mono(12)).foregroundStyle(Palette.good)
+                }
+                .padding(.leading, 2)
+            }
+
+            // Dimmed on purpose: it is here to point elsewhere, not to be used.
+            settingsCard {
+                SettingRow(label: s["voiceLangSetting"], sub: s["voiceLangSettingDetail"]) {
+                    SecondaryButton(title: s["nVoices"]) { app.area = .voices }
+                }
+            }
+            .opacity(0.85)
+
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 13)).foregroundStyle(Palette.accentBlue)
+                Text(s["guaranteeNote"]).font(.ui(13)).foregroundStyle(Palette.body)
+                    .lineSpacing(4).fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .fill(Palette.accentBlue.opacity(0.06)))
+            .overlay(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .strokeBorder(Palette.accentBlue.opacity(0.3), lineWidth: 1))
         }
     }
 }

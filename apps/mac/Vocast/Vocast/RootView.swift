@@ -218,7 +218,13 @@ struct InspectorPane: View {
         switch app.area {
         case .studio:
             if app.studio.phase == .rendered, let block = app.studio.selectedBlock {
-                if let card = block.scorecard {
+                // The scorecard keys off the active voice's language. Without a
+                // validated baseline the scores would be measured against something
+                // that does not apply, so they are withheld and said to be withheld.
+                if !app.currentVoiceLanguage.hasQualityBaseline {
+                    NoBaselineScorecard(language: app.currentVoiceLanguage)
+                        .padding(Space.lg)
+                } else if let card = block.scorecard {
                     ScorecardView(card: card)
                 } else {
                     InspectorEmpty(text: "The engine reported no quality scores for this block.")

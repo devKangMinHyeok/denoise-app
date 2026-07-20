@@ -465,7 +465,9 @@ struct MCPAction: Identifiable {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case general = "General", models = "Models", audio = "Audio",
+    // Language sits second, right after General: it is the setting a user is most
+    // likely to look for first, and the one that changes everything else on screen.
+    case general = "General", language = "Language", models = "Models", audio = "Audio",
          privacy = "Privacy", mcp = "MCP server", about = "About"
     var id: String { rawValue }
 }

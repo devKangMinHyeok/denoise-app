@@ -27,11 +27,52 @@ struct OnboardingView: View {
 
     @ViewBuilder private var stepContent: some View {
         switch o.step {
+        case .language: language
         case .welcome:  welcome
         case .download: download
         case .mic:      mic
         case .ready:    ready
         }
+    }
+
+    // 0. Interface language
+    //
+    // First thing asked, because it changes every screen after it. It sets the UI
+    // only: the copy says so plainly, since the next thing the user will do is
+    // create a voice and pick a language there too.
+    private var language: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "globe")
+                .font(.system(size: 22, weight: .regular)).foregroundStyle(Palette.mute)
+                .frame(width: 56, height: 56)
+                .background(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Palette.surface))
+                .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .strokeBorder(Palette.hairline, lineWidth: 1))
+
+            Text(app.s["obLangTitle"]).font(.ui(26, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["obLangBody"])
+                .font(.ui(14)).foregroundStyle(Palette.mute)
+                .multilineTextAlignment(.center).lineSpacing(5)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 460)
+
+            HStack(spacing: 16) {
+                ForEach(InterfaceLanguage.allCases) { l in
+                    LanguageOptionCard(title: l.nativeName, note: nil,
+                                       selected: app.interfaceLanguage == l) {
+                        app.interfaceLanguage = l
+                    }
+                }
+            }
+            .frame(maxWidth: 360)
+
+            Text(app.s["obLangHint"]).font(.mono(11.5)).foregroundStyle(Palette.ash)
+                .multilineTextAlignment(.center)
+
+            PrimaryButton(title: app.s["continue"]) { app.onboarding.step = .welcome }
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: 520)
     }
 
     // 1. Welcome
