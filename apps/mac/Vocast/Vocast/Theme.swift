@@ -39,6 +39,7 @@ enum Palette {
     static let accentSoft = Color(hex: 0xFF9448)
     static let accentDeep = Color(hex: 0xE0561C)
 
+    static let accentBlue = Color(hex: 0x57C1FF)   // info, and the no-baseline state
     static let good = Color(hex: 0x59D499)             // pass dots, offline, completed
     static let attention = Color(hex: 0xF5732B)        // scorecard attention, running
     static let danger = Color(hex: 0xFF6161)           // destructive, live record dot

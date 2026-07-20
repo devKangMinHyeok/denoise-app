@@ -25,7 +25,7 @@ struct VocastCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("New narration") { app.area = .studio; app.primaryAction() }
                 .keyboardShortcut("n", modifiers: .command)
-            Button("New voice") { app.area = .voices; app.voices.startFlow() }
+            Button("New voice") { app.area = .voices; app.startNewVoice() }
                 .keyboardShortcut("v", modifiers: [.command, .option])
         }
 
@@ -37,7 +37,7 @@ struct VocastCommands: Commands {
 
         // Voice menu
         CommandMenu("Voice") {
-            Button("New voice") { app.area = .voices; app.voices.startFlow() }
+            Button("New voice") { app.area = .voices; app.startNewVoice() }
                 .keyboardShortcut("v", modifiers: [.command, .option])
             Button("Import audio to clean") { app.area = .denoise; app.denoise.phase = .importEmpty }
         }

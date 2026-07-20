@@ -6,6 +6,7 @@ struct VoicesView: View {
     var body: some View {
         switch app.voices.phase {
         case .library:  VoicesLibrary()
+        case .pickLang: PickVoiceLanguage()
         case .record:   GuidedRecording()
         case .building: VoiceBuilding()
         case .result:   VoiceResult()
@@ -31,14 +32,31 @@ struct VoicesLibrary: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.xl) {
                 HStack(spacing: 12) {
-                    Text("Your voices").font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
-                    Text("\(app.backendProfiles.count) profiles · stored on this Mac")
+                    Text(app.s["yourVoices"]).font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
+                    Text(app.interfaceLanguage == .ko
+                         ? "\(app.backendProfiles.count)\(app.s["storedHere"])"
+                         : "\(app.backendProfiles.count) \(app.s["profiles"]) · \(app.s["storedHere"])")
                         .font(.mono(12)).foregroundStyle(Palette.mute)
                 }
-                LazyVGrid(columns: cols, spacing: 20) {
-                    ForEach(app.backendProfiles) { p in ProfileCard(profile: p) }
-                    NewVoiceTile()
+
+                // Language is a first-class axis here: one section per language the
+                // user actually owns voices in, so which voice speaks what is read
+                // from the structure rather than from each card.
+                ForEach(app.profilesByLanguage, id: \.0) { group in
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 8) {
+                            Circle().fill(Palette.accent).frame(width: 7, height: 7)
+                            Text(group.0 == .ko ? app.s["grpKorean"] : app.s["grpEnglish"])
+                                .font(.ui(14, .semibold)).foregroundStyle(Palette.ink)
+                            Text("\(group.1.count)").font(.mono(12)).foregroundStyle(Palette.ash)
+                        }
+                        LazyVGrid(columns: cols, spacing: 20) {
+                            ForEach(group.1) { p in ProfileCard(profile: p) }
+                        }
+                    }
                 }
+
+                LazyVGrid(columns: cols, spacing: 20) { NewVoiceTile() }
             }
             .padding(Space.xl)
         }
@@ -68,7 +86,7 @@ struct ProfileCard: View {
                             .lineLimit(2).truncationMode(.tail)
                             .fixedSize(horizontal: false, vertical: true)
                             .help(profile.name)
-                        Text("\(profile.versionLabel) · \(profile.clipCount) clips · \(profile.languageLabel)")
+                        Text("\(profile.versionLabel) · \(profile.clipCount) clips")
                             .font(.mono(12)).foregroundStyle(Palette.mute)
                             .lineLimit(1).fixedSize()
                     }
@@ -78,7 +96,7 @@ struct ProfileCard: View {
                 WaveBars(peaks: peaksFor(profile.id, app), color: Palette.stone, height: 30)
                 Rectangle().fill(Palette.hairline).frame(height: 1)
                 HStack {
-                    Text("Voice length").font(.mono(12)).foregroundStyle(Palette.mute)
+                    LanguageChip(language: VoiceLanguage(profileCode: profile.lang))
                     Spacer()
                     Text(fmtTime(profile.durationSec)).font(.mono(13)).foregroundStyle(Palette.ink)
                 }
@@ -95,7 +113,7 @@ struct ProfileCard: View {
 struct NewVoiceTile: View {
     @Environment(AppModel.self) private var app
     var body: some View {
-        Button { app.voices.startFlow() } label: {
+        Button { app.startNewVoice() } label: {
             VStack(spacing: 14) {
                 Spacer()
                 Image(systemName: "plus")
@@ -138,13 +156,18 @@ struct GuidedRecording: View {
                     }.foregroundStyle(Palette.mute)
                 }.buttonStyle(.plain)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Create a voice profile").font(.ui(22, .semibold)).foregroundStyle(Palette.ink)
-                    Text("Read each line aloud in your normal speaking voice. About 90 seconds total.")
-                        .font(.ui(14)).foregroundStyle(Palette.mute)
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(app.s["createProfile"]).font(.ui(22, .semibold)).foregroundStyle(Palette.ink)
+                        Text(app.s["readEachLine"]).font(.ui(14)).foregroundStyle(Palette.mute)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    // Locked: the language was settled in the pick step and a take
+                    // now exists, so it is shown as a fact rather than a control.
+                    LanguageChip(language: v.lang, locked: true,
+                                 label: app.s["voiceLangLabel"])
                 }
-
-                languagePicker
 
                 VStack(spacing: 8) {
                     HStack {
@@ -170,28 +193,6 @@ struct GuidedRecording: View {
             .padding(Space.xl)
             .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
-        }
-    }
-
-    /// Which language this voice will speak. It picks the guided script, and it is
-    /// also the language the engine transcribes in when it builds and scores the
-    /// profile, so it has to match what the user will actually narrate.
-    private var languagePicker: some View {
-        HStack(spacing: 12) {
-            Text("Language").font(.ui(13.5)).foregroundStyle(Palette.mute)
-            Picker("", selection: Binding(
-                get: { v.lang },
-                set: { v.lang = $0; app.loadGuide() }
-            )) {
-                Text("한국어").tag("ko")
-                Text("English").tag("en")
-            }
-            .labelsHidden().pickerStyle(.segmented).fixedSize()
-            .disabled(v.capturedCount > 0)
-            Text(v.capturedCount > 0
-                 ? "Locked once you start recording"
-                 : "This voice will narrate in this language")
-                .font(.ui(12.5)).foregroundStyle(Palette.ash)
         }
     }
 

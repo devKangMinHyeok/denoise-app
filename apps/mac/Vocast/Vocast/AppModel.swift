@@ -47,6 +47,42 @@ final class AppModel {
     var selectedProfileID: String?
     var modelStatus: ModelStatus?
     var rates: EngineRates?                       // speeds measured on this Mac
+
+    // MARK: Interface language
+    //
+    // Presentation only. Changing it re-renders every string and touches nothing
+    // else: no profile is read, written, or rebuilt. That guarantee is the point
+    // of the whole language layer, so it is stated here and surfaced to the user
+    // as a transient note whenever the language changes.
+    var interfaceLanguage: InterfaceLanguage = AppModel.storedInterfaceLanguage() {
+        didSet {
+            guard oldValue != interfaceLanguage else { return }
+            UserDefaults.standard.set(interfaceLanguage.rawValue, forKey: Self.langKey)
+            showLanguageGuarantee()
+        }
+    }
+    /// The reassurance shown for a few seconds after an interface language change.
+    var languageNoteVisible = false
+    private var languageNoteTask: Task<Void, Never>?
+    private static let langKey = "interfaceLanguage"
+
+    /// Strings for the current interface language. Views read copy through this.
+    var s: Strings { Strings(interfaceLanguage) }
+
+    private static func storedInterfaceLanguage() -> InterfaceLanguage {
+        if let raw = UserDefaults.standard.string(forKey: langKey),
+           let l = InterfaceLanguage(rawValue: raw) { return l }
+        return .systemDefault
+    }
+
+    private func showLanguageGuarantee() {
+        languageNoteVisible = true
+        languageNoteTask?.cancel()
+        languageNoteTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 5_200_000_000)
+            if !Task.isCancelled { withAnimation(Motion.calm) { languageNoteVisible = false } }
+        }
+    }
     var profilePeaks: [String: [Double]] = [:]    // real waveform per profile id
     private var modelPollTask: Task<Void, Never>?
     private var dnPollTask: Task<Void, Never>?
@@ -88,7 +124,7 @@ final class AppModel {
             backendProfiles = (try? await engine.listProfiles()) ?? []
             if selectedProfileID == nil { selectedProfileID = backendProfiles.first?.id }
             modelStatus = try? await engine.modelStatus()
-            voices.guide = (try? await engine.guideLines(lang: voices.lang)) ?? []
+            voices.guide = (try? await engine.guideLines(lang: voices.lang.rawValue)) ?? []
             rates = try? await engine.rates()
             settings.mcpActions = ((try? await engine.mcpTools()) ?? []).map {
                 MCPAction(name: $0.name, desc: $0.desc)
@@ -615,7 +651,7 @@ final class AppModel {
         buildTask?.cancel()
         buildTask = Task { @MainActor in
             do {
-                let pid = try await engine.createProfile(name: "My voice", lang: voices.lang)
+                let pid = try await engine.createProfile(name: "My voice", lang: voices.lang.rawValue)
                 for (i, url) in clips.enumerated() {
                     try await engine.addRecording(pid: pid, fileURL: url, idx: i)
                 }
@@ -880,7 +916,7 @@ final class AppModel {
         firstRunComplete = true
         if createVoice {
             area = .voices
-            voices.startFlow()
+            voices.startFlow(suggesting: VoiceLanguage(rawValue: interfaceLanguage.rawValue) ?? .ko)
         } else {
             area = .studio
         }
@@ -895,10 +931,42 @@ final class AppModel {
 
     // MARK: New narration / primary actions
 
+    /// Profiles grouped by the language they speak, Korean first, with empty
+    /// groups omitted. The library renders a section per entry.
+    var profilesByLanguage: [(VoiceLanguage, [EngineProfile])] {
+        VoiceLanguage.allCases.compactMap { lang in
+            let group = backendProfiles.filter { VoiceLanguage(profileCode: $0.lang) == lang }
+            return group.isEmpty ? nil : (lang, group)
+        }
+    }
+
+    /// Open the new voice flow at the language pick. The interface language is a
+    /// suggestion only: it seeds the selection and nothing more, because the voice
+    /// language is a property of the recording, not of the UI.
+    func startNewVoice() {
+        area = .voices
+        voices.startFlow(suggesting: VoiceLanguage(rawValue: interfaceLanguage.rawValue) ?? .ko)
+        loadGuide()
+    }
+
+    /// Leave the pick step and start recording. The language is fixed from here.
+    func beginVoiceRecording() {
+        voices.beginRecording()
+        loadGuide()
+    }
+
+    /// Reinforce an existing profile. It keeps its own language, so there is no
+    /// pick step: changing language means creating a new voice, not editing one.
+    func reinforceRecording(for profile: EngineProfile) {
+        area = .voices
+        voices.startReinforcing(lang: VoiceLanguage(profileCode: profile.lang))
+        loadGuide()
+    }
+
     /// Load the guided script for whichever language the new voice will speak.
     func loadGuide() {
         Task { @MainActor in
-            voices.guide = (try? await engine.guideLines(lang: voices.lang)) ?? []
+            voices.guide = (try? await engine.guideLines(lang: voices.lang.rawValue)) ?? []
         }
     }
 
@@ -908,7 +976,7 @@ final class AppModel {
             studio.resetToEmptyScript()
             studio.scriptText = StarterContent.script
         case .voices:
-            voices.startFlow()
+            voices.startFlow(suggesting: VoiceLanguage(rawValue: interfaceLanguage.rawValue) ?? .ko)
         case .denoise:
             denoise.phase = .importEmpty
         case .tasks:

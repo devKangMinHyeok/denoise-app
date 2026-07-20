@@ -256,7 +256,10 @@ struct VoiceProfile: Identifiable {
     var versions: [VoiceVersion]
 }
 
-enum VoicesPhase { case library, record, building, result, detail }
+/// `pickLang` is a step of its own because a voice's language is the one thing
+/// that cannot be changed later. Choosing it inside the recording screen would
+/// invite starting a take first and deciding after, which the model forbids.
+enum VoicesPhase { case library, pickLang, record, building, result, detail }
 
 @MainActor @Observable
 final class VoicesModel {
@@ -266,12 +269,12 @@ final class VoicesModel {
     // Guided recording flow
     /// Guided script from the engine (/api/guide), with its per-line coaching.
     var guide: [GuideLine] = []
-    /// Language this new voice will speak. The guided script, the transcription
-    /// used to build the profile and later scoring all follow it, so recording in
-    /// one language and narrating in another produces a worse clone.
-    /// Defaults to the Mac's own language. Locale.current would report the app's
-    /// localization, which is English only, so ask for the user's preference.
-    var lang: String = (Locale.preferredLanguages.first ?? "ko").hasPrefix("en") ? "en" : "ko"
+    /// Language the voice being created will speak. Chosen in the pickLang step,
+    /// then locked: the guided lines and the transcription that trains the clone
+    /// are both written for it, so it cannot change once a take exists.
+    var lang: VoiceLanguage = .ko
+    /// True from the moment recording begins. The pick step is the only window.
+    var langLocked = false
     var recStep = 0
     var recording = false
     var captured: [Bool] = Array(repeating: false, count: 10)
@@ -288,8 +291,30 @@ final class VoicesModel {
     var capturedSeconds: Int { min(90, capturedCount * 9) }
     var currentLineCaptured: Bool { recStep < captured.count && captured[recStep] }
 
-    func startFlow() {
+    /// Open the language pick. Recording starts only after a language is chosen.
+    func startFlow(suggesting lang: VoiceLanguage) {
+        phase = .pickLang
+        self.lang = lang
+        langLocked = false
+        resetTakes()
+    }
+
+    /// Leave the pick step and begin recording. The language is now fixed.
+    func beginRecording() {
         phase = .record
+        langLocked = true
+        resetTakes()
+    }
+
+    /// Reinforcing an existing profile reuses its language and skips the pick.
+    func startReinforcing(lang: VoiceLanguage) {
+        phase = .record
+        self.lang = lang
+        langLocked = true
+        resetTakes()
+    }
+
+    private func resetTakes() {
         recStep = 0
         recording = false
         captured = Array(repeating: false, count: 10)
