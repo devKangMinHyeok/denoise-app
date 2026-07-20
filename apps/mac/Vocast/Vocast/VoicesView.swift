@@ -59,16 +59,21 @@ struct ProfileCard: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 14) {
                     Avatar(initials: profile.initials, size: 52, elevated: !isDefault)
+                    // These cards are narrow, so anything sharing a row with text gets
+                    // squeezed, and Korean has no word breaks to fall back on: the text
+                    // then wraps one character per line. Keep the pill out of the text
+                    // column, let the name truncate, and never compress the meta line.
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
-                            Text(profile.name).font(.ui(17, .semibold)).foregroundStyle(Palette.ink)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if isDefault { TagPill(text: "default") }
-                        }
+                        Text(profile.name).font(.ui(17, .semibold)).foregroundStyle(Palette.ink)
+                            .lineLimit(2).truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .help(profile.name)
                         Text("\(profile.versionLabel) · \(profile.clipCount) clips")
                             .font(.mono(12)).foregroundStyle(Palette.mute)
+                            .lineLimit(1).fixedSize()
                     }
                     Spacer(minLength: 0)
+                    if isDefault { TagPill(text: "default") }
                 }
                 WaveBars(peaks: peaksFor(profile.id, app), color: Palette.stone, height: 30)
                 Rectangle().fill(Palette.hairline).frame(height: 1)
@@ -345,7 +350,11 @@ struct ProfileDetail: View {
                         Avatar(initials: p.initials, size: 56, elevated: !isDefault)
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 8) {
+                                // Truncate rather than let a long name squeeze itself
+                                // into a vertical stack of single characters.
                                 Text(p.name).font(.ui(22, .semibold)).foregroundStyle(Palette.ink)
+                                    .lineLimit(1).truncationMode(.tail)
+                                    .help(p.name)
                                 if isDefault { TagPill(text: "default") }
                             }
                             Text("\(p.versionLabel) · \(p.clipCount) source clips · \(fmtTime(p.durationSec))")
