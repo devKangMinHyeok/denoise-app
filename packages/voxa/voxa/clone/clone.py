@@ -13,6 +13,7 @@ import tempfile
 
 from voxa import ROOT
 from voxa.media.audio import run_ffmpeg
+from voxa.lang import speech_language
 
 MODEL_BEST = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
 MODEL_FAST = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit"
@@ -68,7 +69,7 @@ def prepare_reference(ref_path, workdir, max_sec=MAX_REF_SEC, denoise=True):
 
     from voxa import mlx_transcribe
     text = mlx_transcribe(
-        clean, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
+        clean, path_or_hf_repo=WHISPER, language=speech_language())["text"].strip()
     if not text:
         raise RuntimeError("참조 파일에서 말소리를 찾지 못했습니다. "
                            "발화가 또렷한 구간이 필요해요.")
@@ -344,7 +345,7 @@ def prepare_performance(rec_path, workdir, denoise=True):
     normalize_speech_level(perf)
     from voxa import mlx_transcribe
     text = mlx_transcribe(
-        perf, path_or_hf_repo=WHISPER, language="ko")["text"].strip()
+        perf, path_or_hf_repo=WHISPER, language=speech_language())["text"].strip()
     if not text:
         raise RuntimeError("연기 녹음에서 말소리를 찾지 못했습니다. "
                            "문장을 또렷하게 읽어주세요.")

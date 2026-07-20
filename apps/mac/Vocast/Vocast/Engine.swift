@@ -55,6 +55,11 @@ struct EngineProfile: Decodable, Identifiable {
     var built: String?
     var stats: ProfileStats?
     var version_log: [ProfileVersion]?
+    var lang: String?          // which language this voice speaks
+
+    /// How the voice's language reads in the UI. Profiles made before languages
+    /// existed have none, and the engine treats those as Korean.
+    var languageLabel: String { (lang ?? "ko") == "en" ? "English" : "한국어" }
 
     var clipCount: Int { recordings ?? 0 }
     var durationSec: Double { stats?.duration ?? 0 }
@@ -289,8 +294,11 @@ final class EngineClient {
         return try JSONDecoder().decode(R.self, from: data).profiles
     }
 
-    func createProfile(name: String) async throws -> String {
-        let (data, resp) = try await multipartPost("/api/profiles", fields: [.text(name: "name", value: name)])
+    func createProfile(name: String, lang: String) async throws -> String {
+        let (data, resp) = try await multipartPost("/api/profiles", fields: [
+            .text(name: "name", value: name),
+            .text(name: "lang", value: lang),
+        ])
         try check(resp, data)
         struct R: Decodable { let id: String }
         return try JSONDecoder().decode(R.self, from: data).id
@@ -398,8 +406,8 @@ final class EngineClient {
     }
 
     /// The guided recording script, with the engine's per-line coaching.
-    func guideLines() async throws -> [GuideLine] {
-        let (data, resp) = try await get("/api/guide")
+    func guideLines(lang: String) async throws -> [GuideLine] {
+        let (data, resp) = try await get("/api/guide?lang=\(lang)")
         try check(resp, data)
         struct R: Decodable { let sentences: [GuideLine] }
         return try JSONDecoder().decode(R.self, from: data).sentences
@@ -428,8 +436,11 @@ final class EngineClient {
     // MARK: HTTP plumbing
 
     private func get(_ path: String) async throws -> (Data, URLResponse) {
+        // Resolve against the base rather than appending a path component, which
+        // would percent-encode a query string's "?" and silently break the request.
+        let url = URL(string: path, relativeTo: base) ?? base.appendingPathComponent(path)
         do {
-            return try await session.data(from: base.appendingPathComponent(path))
+            return try await session.data(from: url)
         } catch {
             throw EngineError.transport(error.localizedDescription)
         }

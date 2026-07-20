@@ -68,7 +68,7 @@ struct ProfileCard: View {
                             .lineLimit(2).truncationMode(.tail)
                             .fixedSize(horizontal: false, vertical: true)
                             .help(profile.name)
-                        Text("\(profile.versionLabel) · \(profile.clipCount) clips")
+                        Text("\(profile.versionLabel) · \(profile.clipCount) clips · \(profile.languageLabel)")
                             .font(.mono(12)).foregroundStyle(Palette.mute)
                             .lineLimit(1).fixedSize()
                     }
@@ -144,6 +144,8 @@ struct GuidedRecording: View {
                         .font(.ui(14)).foregroundStyle(Palette.mute)
                 }
 
+                languagePicker
+
                 VStack(spacing: 8) {
                     HStack {
                         Text("Line \(v.recStep + 1) of 10").font(.mono(12)).foregroundStyle(Palette.mute)
@@ -168,6 +170,28 @@ struct GuidedRecording: View {
             .padding(Space.xl)
             .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Which language this voice will speak. It picks the guided script, and it is
+    /// also the language the engine transcribes in when it builds and scores the
+    /// profile, so it has to match what the user will actually narrate.
+    private var languagePicker: some View {
+        HStack(spacing: 12) {
+            Text("Language").font(.ui(13.5)).foregroundStyle(Palette.mute)
+            Picker("", selection: Binding(
+                get: { v.lang },
+                set: { v.lang = $0; app.loadGuide() }
+            )) {
+                Text("한국어").tag("ko")
+                Text("English").tag("en")
+            }
+            .labelsHidden().pickerStyle(.segmented).fixedSize()
+            .disabled(v.capturedCount > 0)
+            Text(v.capturedCount > 0
+                 ? "Locked once you start recording"
+                 : "This voice will narrate in this language")
+                .font(.ui(12.5)).foregroundStyle(Palette.ash)
         }
     }
 

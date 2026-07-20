@@ -21,6 +21,7 @@ import re
 import urllib.request
 
 from voxa import DNSMOS_MODEL
+from voxa.lang import speech_language
 
 SIM_HUMAN_BASELINE = 0.909
 
@@ -68,7 +69,7 @@ def char_error_rate(script_text, gen_wav, whisper_repo=None):
     from voxa import mlx_transcribe
     from voxa.clone import WHISPER
     hyp = mlx_transcribe(
-        gen_wav, path_or_hf_repo=whisper_repo or WHISPER, language="ko")["text"]
+        gen_wav, path_or_hf_repo=whisper_repo or WHISPER, language=speech_language())["text"]
     return jiwer.cer(normalize_ko(script_text), normalize_ko(hyp)) * 100, hyp
 
 

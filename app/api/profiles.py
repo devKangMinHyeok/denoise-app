@@ -16,10 +16,15 @@ import time
 import uuid
 
 from api import storage
+from voxa.lang import set_speech_language
 
 # 가이드 문장: 지표로 검증된 결함 차원(끝음 유형·억양 역동성·호흡·속도·강세)을
 # 고루 커버하도록 설계. 전체 낭독 약 90초.
-GUIDE_SENTENCES = [
+# 가이드 대본은 언어마다 한 벌씩. 문장 열 개가 각각 다른 운율을 담당하므로
+# (인사 톤 · 호흡 · 의문문 끝음 · 감탄 · 숫자 · 긴 문장 · 빠름 · 느림 · 대화체 ·
+# 마무리) 번역이 아니라 같은 역할을 하는 문장으로 짝을 맞춘다. 프로필의 언어와
+# 낭독할 언어가 어긋나면 Whisper 전사가 무너져 클론 품질이 같이 떨어진다.
+GUIDE_KO = [
     {"text": "안녕하세요! 제 목소리로 말하는 첫 번째 문장입니다.",
      "tip": "평소 인사하듯 밝고 자연스럽게", "focus": "인사 톤"},
     {"text": "오늘은 날씨가 맑고, 바람도 적당히 불어서 산책하기 좋은 날이에요.",
@@ -41,6 +46,43 @@ GUIDE_SENTENCES = [
     {"text": "지금까지 들어주셔서 감사합니다. 다음 영상에서 또 만나요.",
      "tip": "마무리답게 끝을 부드럽게 내려주세요", "focus": "마무리 끝음"},
 ]
+
+GUIDE_EN = [
+    {"text": "Hi there, this is the first sentence in my own voice.",
+     "tip": "Say it the way you would greet someone", "focus": "Greeting tone"},
+    {"text": "The sky is clear today, and there is just enough wind to make it "
+             "a good day for a walk.",
+     "tip": "Take a small breath at the comma", "focus": "Statement and breath"},
+    {"text": "But have you ever wondered how any of this actually works?",
+     "tip": "Let your voice rise at the end", "focus": "Question ending"},
+    {"text": "Wow, that result is genuinely surprising! It came out better than "
+             "I expected.",
+     "tip": "Sound like you mean it", "focus": "Emphasis"},
+    {"text": "As of July 2026, the model finishes training in about 5 minutes.",
+     "tip": "Say the numbers clearly", "focus": "Numbers"},
+    {"text": "It cleans up the noise, learns your voice, and reads your script "
+             "out loud, all of it automatically.",
+     "tip": "Keep a steady rhythm, pausing at each comma", "focus": "Long sentence"},
+    {"text": "Alright, this next part is the one that really matters, so stay "
+             "with me.",
+     "tip": "A little faster, with energy", "focus": "Quick pace"},
+    {"text": "Slowly, one piece at a time, I will walk you through it.",
+     "tip": "Deliberately slow and calm", "focus": "Slow pace"},
+    {"text": "A friend listened and asked me, is that really your own voice?",
+     "tip": "Shift your tone slightly for the quoted part", "focus": "Quoted speech"},
+    {"text": "Thank you for listening this far. I will see you in the next one.",
+     "tip": "Let the ending settle down gently", "focus": "Closing"},
+]
+
+GUIDE_SCRIPTS = {"ko": GUIDE_KO, "en": GUIDE_EN}
+
+# 한국어가 기본 (기존 호출부 호환).
+GUIDE_SENTENCES = GUIDE_KO
+
+
+def guide_sentences(lang="ko"):
+    """해당 언어의 가이드 대본. 모르는 언어면 기본값."""
+    return GUIDE_SCRIPTS.get(lang) or GUIDE_KO
 
 _LOCK = threading.Lock()
 JOBS = {}  # job_id → dict (메모리; 완료물은 히스토리에 영구 저장)
@@ -69,11 +111,22 @@ def _save_meta(pid, meta):
     storage.store.write_doc("profiles", pid, meta)
 
 
-def create_profile(name):
+def profile_lang(pid):
+    """이 프로필이 말하는 언어. 언어가 없는 옛 프로필은 한국어로 본다."""
+    try:
+        return (_load_meta(pid) or {}).get("lang") or "ko"
+    except (FileNotFoundError, OSError):
+        return "ko"
+
+
+def create_profile(name, lang="ko"):
     _ensure_dirs()
     pid = uuid.uuid4().hex[:10]
     os.makedirs(os.path.join(_profile_dir(pid), "raw"), exist_ok=True)
+    # 이 목소리가 말하는 언어. 빌드·낭독·채점의 Whisper 전사가 이걸 따른다.
+    # 언어가 없는 옛 프로필은 읽을 때 기본값(한국어)으로 본다.
     meta = {"id": pid, "name": name.strip() or "내 목소리",
+            "lang": lang if lang in GUIDE_SCRIPTS else "ko",
             "created": time.strftime("%Y-%m-%d %H:%M"),
             "recordings": 0, "ready": False, "stats": None}
     _save_meta(pid, meta)
@@ -371,6 +424,8 @@ def start_clone_job(text, fast, ref_path=None, profile_id=None,
     on_progress = _make_progress(job)
 
     def run():
+        # 이 작업의 음성 언어를 스레드 컨텍스트에 심는다 (Whisper 전사 기준).
+        set_speech_language(profile_lang(pid) if pid else "ko")
         jdir = _history_dir(job_id)
         os.makedirs(jdir, exist_ok=True)
         out = os.path.join(jdir, "output.wav")
@@ -439,6 +494,8 @@ def start_regen_job(parent_id, index):
     on_progress = _make_progress(job)
 
     def run():
+        # 이 작업의 음성 언어를 스레드 컨텍스트에 심는다 (Whisper 전사 기준).
+        set_speech_language(profile_lang(pid) if pid else "ko")
         jdir = _history_dir(job_id)
         os.makedirs(jdir, exist_ok=True)
         out = os.path.join(jdir, "output.wav")
@@ -498,6 +555,8 @@ def start_build_job(pid, denoise=True):
             _persist_job(job)
 
     def run():
+        # 이 작업의 음성 언어를 스레드 컨텍스트에 심는다 (Whisper 전사 기준).
+        set_speech_language(profile_lang(pid))
         t0 = time.time()
         try:
             build_profile(pid, denoise=denoise, on_progress=on_progress)
@@ -554,6 +613,8 @@ def start_performance_job(parent_id, index, rec_path, denoise=True):
     on_progress = _make_progress(job)
 
     def run():
+        # 이 작업의 음성 언어를 스레드 컨텍스트에 심는다 (Whisper 전사 기준).
+        set_speech_language(profile_lang(pid) if pid else "ko")
         jdir = _history_dir(job_id)
         os.makedirs(jdir, exist_ok=True)
         out = os.path.join(jdir, "output.wav")

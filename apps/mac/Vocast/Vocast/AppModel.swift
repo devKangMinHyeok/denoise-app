@@ -88,7 +88,7 @@ final class AppModel {
             backendProfiles = (try? await engine.listProfiles()) ?? []
             if selectedProfileID == nil { selectedProfileID = backendProfiles.first?.id }
             modelStatus = try? await engine.modelStatus()
-            voices.guide = (try? await engine.guideLines()) ?? []
+            voices.guide = (try? await engine.guideLines(lang: voices.lang)) ?? []
             rates = try? await engine.rates()
             settings.mcpActions = ((try? await engine.mcpTools()) ?? []).map {
                 MCPAction(name: $0.name, desc: $0.desc)
@@ -615,7 +615,7 @@ final class AppModel {
         buildTask?.cancel()
         buildTask = Task { @MainActor in
             do {
-                let pid = try await engine.createProfile(name: "My voice")
+                let pid = try await engine.createProfile(name: "My voice", lang: voices.lang)
                 for (i, url) in clips.enumerated() {
                     try await engine.addRecording(pid: pid, fileURL: url, idx: i)
                 }
@@ -894,6 +894,13 @@ final class AppModel {
     func notify(_ message: String) { complete(message) }
 
     // MARK: New narration / primary actions
+
+    /// Load the guided script for whichever language the new voice will speak.
+    func loadGuide() {
+        Task { @MainActor in
+            voices.guide = (try? await engine.guideLines(lang: voices.lang)) ?? []
+        }
+    }
 
     func primaryAction() {
         switch area {

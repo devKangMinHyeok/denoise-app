@@ -266,6 +266,12 @@ final class VoicesModel {
     // Guided recording flow
     /// Guided script from the engine (/api/guide), with its per-line coaching.
     var guide: [GuideLine] = []
+    /// Language this new voice will speak. The guided script, the transcription
+    /// used to build the profile and later scoring all follow it, so recording in
+    /// one language and narrating in another produces a worse clone.
+    /// Defaults to the Mac's own language. Locale.current would report the app's
+    /// localization, which is English only, so ask for the user's preference.
+    var lang: String = (Locale.preferredLanguages.first ?? "ko").hasPrefix("en") ? "en" : "ko"
     var recStep = 0
     var recording = false
     var captured: [Bool] = Array(repeating: false, count: 10)

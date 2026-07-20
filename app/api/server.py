@@ -249,7 +249,9 @@ def mcp_tools_api():
 
 @app.get("/api/guide")
 def guide_api():
-    return jsonify(sentences=profiles.GUIDE_SENTENCES)
+    """가이드 대본. lang 으로 언어를 고른다 (기본 한국어)."""
+    lang = request.args.get("lang") or "ko"
+    return jsonify(sentences=profiles.guide_sentences(lang), lang=lang)
 
 
 @app.get("/api/profiles")
@@ -259,9 +261,10 @@ def profiles_list_api():
 
 @app.post("/api/profiles")
 def profiles_create_api():
-    name = (request.form.get("name") or request.json.get("name", "")
-            if request.is_json else request.form.get("name", ""))
-    return jsonify(profiles.create_profile(name or "내 목소리"))
+    body = request.json if request.is_json else request.form
+    name = (body.get("name") or "").strip()
+    lang = body.get("lang") or "ko"
+    return jsonify(profiles.create_profile(name or "내 목소리", lang=lang))
 
 
 @app.post("/api/profiles/<pid>/recordings")
