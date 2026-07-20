@@ -155,6 +155,7 @@ struct OnboardingView: View {
             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(sel ? Palette.accent.opacity(0.06) : Palette.surface))
             .hairline(Radius.card, color: sel ? Palette.accent : Palette.hairline)
+            .fullClickArea()
         }.buttonStyle(.plain)
     }
 

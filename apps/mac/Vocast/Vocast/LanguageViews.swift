@@ -62,6 +62,7 @@ struct LanguageOptionCard: View {
                 .fill(selected ? Palette.accent.opacity(0.06) : Palette.surface))
             .overlay(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                 .strokeBorder(selected ? Palette.accent : Palette.hairline, lineWidth: 1))
+            .fullClickArea()
         }
         .buttonStyle(.plain)
     }
@@ -85,7 +86,7 @@ struct PickVoiceLanguage: View {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                         Text(s["nVoices"]).font(.ui(13.5))
-                    }.foregroundStyle(Palette.mute)
+                    }.foregroundStyle(Palette.mute).fullClickArea()
                 }.buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 8) {

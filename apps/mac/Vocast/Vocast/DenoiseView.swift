@@ -156,6 +156,7 @@ struct DenoiseModeSelect: View {
                 .fill(sel ? Palette.accent.opacity(0.06) : Palette.surface))
             .hairline(Radius.card, color: sel ? Palette.accent : Palette.hairline)
             .opacity(disabled ? 0.5 : 1)
+            .fullClickArea()
         }.buttonStyle(.plain)
     }
 }

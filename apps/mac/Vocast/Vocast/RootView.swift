@@ -149,6 +149,7 @@ struct InspectorToggle: View {
                 .frame(width: 28, height: 28)
                 .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(Palette.surfaceElevated))
                 .hairline(Radius.control, color: Palette.hairline)
+            .fullClickArea()
         }
         .buttonStyle(.plain)
         .help("Toggle inspector")

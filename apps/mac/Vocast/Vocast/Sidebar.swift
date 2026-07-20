@@ -85,6 +85,7 @@ struct SidebarRow: View {
                     Capsule().fill(Palette.accent).frame(width: 3, height: 18).offset(x: -6)
                 }
             }
+            .fullClickArea()
         }
         .buttonStyle(.plain)
     }

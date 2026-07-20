@@ -232,6 +232,10 @@ struct PrimaryButton: View {
             .padding(.horizontal, 15).frame(height: 28)
             .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                 .fill(enabled ? (pressed ? Palette.primaryPressed : Palette.white) : Palette.stone))
+            // The whole pill is clickable, not just the ink. buttonStyle(.plain)
+            // hit-tests the label's opaque pixels, so without this the gaps between
+            // glyphs and the rounded corners miss.
+            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
@@ -256,6 +260,7 @@ struct SecondaryButton: View {
             .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                 .fill(Palette.surfaceElevated))
             .hairline(Radius.control, color: Palette.hairline)
+            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -273,6 +278,7 @@ struct IconButton: View {
                 .frame(width: 30, height: 28)
                 .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(Palette.surfaceElevated))
                 .hairline(Radius.control, color: Palette.hairline)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -292,6 +298,7 @@ struct PlayCircle: View {
                 .frame(width: size, height: size)
                 .background(Circle().fill(filled ? Palette.white : Palette.surfaceElevated))
                 .overlay(filled ? nil : Circle().strokeBorder(Palette.hairline, lineWidth: 1))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
     }
@@ -321,5 +328,13 @@ private struct PressChange: ViewModifier {
 extension View {
     func _onPressChange(_ onChange: @escaping (Bool) -> Void) -> some View {
         modifier(PressChange(onChange: onChange))
+    }
+
+    /// Make the whole frame clickable, not just the drawn pixels. buttonStyle(.plain)
+    /// hit-tests a label's opaque content, so a button that is text or an icon on a
+    /// clear or conditional background only responds on the glyphs themselves. Apply
+    /// this to such a plain button's label so its entire rectangle takes the tap.
+    func fullClickArea() -> some View {
+        contentShape(Rectangle())
     }
 }

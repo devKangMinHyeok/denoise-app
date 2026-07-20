@@ -25,6 +25,7 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                             .fill(sel ? Palette.surfaceElevated : .clear))
+                        .fullClickArea()
                 }.buttonStyle(.plain)
             }
             Spacer()

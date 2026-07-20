@@ -105,6 +105,7 @@ struct ProfileCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .card(isDefault ? Palette.surfaceCard : Palette.surface, radius: Radius.card,
                   border: isDefault ? Palette.hairlineStrong : Palette.hairline)
+            .fullClickArea()
         }
         .buttonStyle(.plain)
     }
@@ -153,7 +154,7 @@ struct GuidedRecording: View {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                         Text(app.s["nVoices"]).font(.ui(13.5))
-                    }.foregroundStyle(Palette.mute)
+                    }.foregroundStyle(Palette.mute).fullClickArea()
                 }.buttonStyle(.plain)
 
                 HStack(alignment: .top, spacing: 16) {
@@ -262,6 +263,7 @@ struct GuidedRecording: View {
                     .foregroundStyle(Palette.danger)
                     .padding(.horizontal, 18).frame(height: 34)
                     .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.danger.opacity(0.6), lineWidth: 1))
+                    .fullClickArea()
                 }.buttonStyle(.plain)
             } else if v.currentLineCaptured {
                 SecondaryButton(title: "Retake") { app.retakeLine() }
@@ -371,7 +373,7 @@ struct ProfileDetail: View {
                         HStack(spacing: 6) {
                             Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                             Text(app.s["nVoices"]).font(.ui(13.5))
-                        }.foregroundStyle(Palette.mute)
+                        }.foregroundStyle(Palette.mute).fullClickArea()
                     }.buttonStyle(.plain)
 
                     HStack(alignment: .center, spacing: 16) {
@@ -455,6 +457,7 @@ struct ProfileDetail: View {
                 HStack {
                     Button { app.deleteProfile(p.id) } label: {
                         Text("Delete profile").font(.ui(13.5, .medium)).foregroundStyle(Palette.danger)
+                            .fullClickArea()
                     }.buttonStyle(.plain)
                     Spacer()
                     if isDefault {

@@ -16,6 +16,9 @@ struct Segmented<T: Hashable>: View {
                         .padding(.horizontal, 13).frame(height: 26)
                         .background(RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                             .fill(sel ? Palette.white : .clear))
+                        // An unselected segment has a clear fill, so its area would
+                        // not hit-test without this. The whole segment is clickable.
+                        .contentShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
