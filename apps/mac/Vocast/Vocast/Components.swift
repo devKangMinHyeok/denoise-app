@@ -226,8 +226,9 @@ struct PrimaryButton: View {
         Button(action: action) {
             HStack(spacing: 7) {
                 if let s = systemImage { Image(systemName: s).font(.system(size: 12, weight: .semibold)) }
-                Text(title).font(.ui(13, .semibold))
+                Text(title).font(.ui(13, .semibold)).lineLimit(1)
             }
+            .fixedSize()   // a button never truncates its own label
             .foregroundStyle(Palette.onWhite)
             .padding(.horizontal, 15).frame(height: 28)
             .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)

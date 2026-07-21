@@ -38,6 +38,9 @@ struct RootView: View {
                             PrimaryActionButton()
                             InspectorToggle()
                         }
+                        // Take the group's intrinsic width so the activity indicator
+                        // appearing never squeezes the button into an ellipsis.
+                        .fixedSize()
                         // The controls stay pinned to the window's trailing edge in both
                         // states, as the design shows: the inspector toggle sits at the
                         // far right whether the panel is open or closed, rather than

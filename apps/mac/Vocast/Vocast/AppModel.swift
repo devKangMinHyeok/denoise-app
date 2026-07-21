@@ -251,7 +251,7 @@ final class AppModel {
 
     // Shell UI state
     var area: Area = .studio
-    var inspectorVisible = true
+    var inspectorVisible = false   // closed by default; opened with the toolbar toggle
     var search = ""
     var firstRunComplete = ProcessInfo.processInfo.environment["VOCAST_SKIP_ONBOARDING"] == "1"
     var offline = true
