@@ -41,6 +41,9 @@ struct RootView: View {
                         // Take the group's intrinsic width so the activity indicator
                         // appearing never squeezes the button into an ellipsis.
                         .fixedSize()
+                        // A little breathing room so the inspector toggle is not jammed
+                        // against the window's right edge.
+                        .padding(.trailing, 8)
                         // The controls stay pinned to the window's trailing edge in both
                         // states, as the design shows: the inspector toggle sits at the
                         // far right whether the panel is open or closed, rather than
