@@ -3,8 +3,21 @@ import SwiftUI
 // Signature component: the quality scorecard. Reused in Studio (per block) and Denoise.
 
 struct ScorecardView: View {
+    @Environment(AppModel.self) private var app
     var card: Scorecard
-    var footnote: String = Scorecard.footnote
+    /// String-table key for the footnote; Studio uses the PNS note, Denoise overrides.
+    var footnoteKey: String = "scFootnotePNS"
+
+    /// Localized name for a headline metric, keyed off its stable acronym.
+    private func headlineName(_ m: HeadlineMetric) -> String {
+        switch m.key {
+        case "PNS":    return app.s["scPNSName"]
+        case "SIM":    return app.s["scVoiceSim"]
+        case "SPEECH": return app.s["scSpeechPreserved"]
+        case "PAUSE":  return app.s["scPauseSupp"]
+        default:       return m.name
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -12,7 +25,7 @@ struct ScorecardView: View {
                 gateBanner
                 grid
                 if !card.sub.isEmpty { subMetrics }
-                Text(footnote)
+                Text(app.s[footnoteKey])
                     .font(.ui(12.5))
                     .foregroundStyle(Palette.ash)
                     .fixedSize(horizontal: false, vertical: true)
@@ -25,7 +38,7 @@ struct ScorecardView: View {
     private var gateBanner: some View {
         HStack(spacing: 10) {
             StatusDot(color: card.gatePassed ? Palette.good : Palette.attention, size: 8)
-            Text(card.gatePassed ? "Passed quality gate"
+            Text(card.gatePassed ? app.s["gatePass"]
                  : "Needs attention: \(card.attentionReason ?? "")")
                 .font(.ui(13.5, .semibold))
                 .foregroundStyle(Palette.ink)
@@ -64,7 +77,7 @@ struct ScorecardView: View {
                         .frame(width: geo.size.width * CGFloat(m.progress))
                 }
             }.frame(height: 3)
-            Text(m.name).font(.ui(12.5)).foregroundStyle(Palette.mute)
+            Text(headlineName(m)).font(.ui(12.5)).foregroundStyle(Palette.mute)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -73,12 +86,12 @@ struct ScorecardView: View {
 
     private var subMetrics: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: "Sub-metrics").padding(.bottom, 12)
+            Eyebrow(text: app.s["scSubMetrics"]).padding(.bottom, 12)
             VStack(spacing: 0) {
                 ForEach(Array(card.sub.enumerated()), id: \.element.id) { i, s in
                     HStack {
                         StatusDot(color: s.pass ? Palette.good : Palette.attention, size: 7)
-                        Text(s.name).font(.ui(13.5)).foregroundStyle(Palette.body)
+                        Text(s.key.isEmpty ? s.name : app.s[s.key]).font(.ui(13.5)).foregroundStyle(Palette.body)
                         Spacer()
                         Text(s.value).font(.mono(13)).foregroundStyle(Palette.ink)
                     }

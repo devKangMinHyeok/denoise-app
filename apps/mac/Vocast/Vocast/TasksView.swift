@@ -6,9 +6,9 @@ struct TasksView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.xl) {
-                group("Running", app.tasks.running)
-                group("Queued", app.tasks.queued)
-                group("Done", app.tasks.done)
+                group(app.s["taskGroupRunning"], app.tasks.running)
+                group(app.s["taskGroupQueued"], app.tasks.queued)
+                group(app.s["taskGroupDone"], app.tasks.done)
             }
             .padding(Space.xl)
             .frame(maxWidth: 900)
@@ -75,20 +75,20 @@ struct TaskRow: View {
     @ViewBuilder private var trailingMeta: some View {
         switch job.state {
         case .running: Text("ETA \(fmtTime(job.eta))").font(.mono(12)).foregroundStyle(Palette.accent)
-        case .queued:  Text("Waiting").font(.mono(12)).foregroundStyle(Palette.ash)
+        case .queued:  Text(app.s["taskWaiting"]).font(.mono(12)).foregroundStyle(Palette.ash)
         case .done:    Text(job.timeLabel).font(.mono(12)).foregroundStyle(Palette.good)
-        case .failed:  Text("Failed").font(.mono(12)).foregroundStyle(Palette.danger)
+        case .failed:  Text(app.s["taskFailed"]).font(.mono(12)).foregroundStyle(Palette.danger)
         }
     }
 
     @ViewBuilder private var trailingButton: some View {
         switch job.state {
         case .running, .queued:
-            SecondaryButton(title: "Cancel") { app.tasks.jobs.removeAll { $0.id == job.id } }
+            SecondaryButton(title: app.s["btnCancel"]) { app.tasks.jobs.removeAll { $0.id == job.id } }
         case .done:
-            SecondaryButton(title: "Open") { openJob() }
+            SecondaryButton(title: app.s["taskOpen"]) { openJob() }
         case .failed:
-            SecondaryButton(title: "Dismiss") { app.tasks.jobs.removeAll { $0.id == job.id } }
+            SecondaryButton(title: app.s["taskDismiss"]) { app.tasks.jobs.removeAll { $0.id == job.id } }
         }
     }
 

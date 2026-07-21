@@ -134,7 +134,7 @@ struct ComposingStudio: View {
                     ProgressView().controlSize(.small).tint(Palette.accent)
                     Text("\(app.studio.renderStage.isEmpty ? "Rendering" : app.studio.renderStage) · \(Int(app.studio.renderProgress * 100))%")
                         .font(.mono(12)).foregroundStyle(Palette.body)
-                    SecondaryButton(title: "Cancel") { }
+                    SecondaryButton(title: app.s["btnCancel"]) { }
                 }
                 .padding(.horizontal, 14).frame(height: 44)
                 .card(Palette.surfaceElevated, radius: Radius.control)

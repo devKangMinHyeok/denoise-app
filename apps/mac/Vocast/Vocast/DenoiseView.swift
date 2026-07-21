@@ -36,9 +36,9 @@ struct DenoiseImport: View {
     private var dropzone: some View {
         VStack(spacing: 12) {
             Image(systemName: "waveform.path").font(.system(size: 26)).foregroundStyle(Palette.mute)
-            Text("Drop an audio or video file to clean").font(.ui(16, .medium)).foregroundStyle(Palette.ink)
-            Text("WAV, MP3, M4A, MP4, MOV. Processed on this Mac.").font(.mono(12)).foregroundStyle(Palette.mute)
-            SecondaryButton(title: "Choose file") { pickFile() }.padding(.top, 4)
+            Text(app.s["dnDropTitle"]).font(.ui(16, .medium)).foregroundStyle(Palette.ink)
+            Text(app.s["dnFormats"]).font(.mono(12)).foregroundStyle(Palette.mute)
+            SecondaryButton(title: app.s["dnChooseFile"]) { pickFile() }.padding(.top, 4)
         }
         .frame(maxWidth: .infinity, minHeight: 200)
         .padding(Space.xl)
@@ -57,8 +57,10 @@ struct DenoiseImport: View {
 
     private func modeCard(_ m: DenoiseMode) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(m.title).font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
-            Text(m.blurb).font(.ui(13)).foregroundStyle(Palette.mute).lineSpacing(3)
+            Text(app.s[m == .standard ? "dnModeStandard" : "dnModeResynth"])
+                .font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s[m == .standard ? "dnModeStandardBody" : "dnModeResynthBody"])
+                .font(.ui(13)).foregroundStyle(Palette.mute).lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(Space.lg)
@@ -68,7 +70,7 @@ struct DenoiseImport: View {
 
     private var recentJobs: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: "Recent jobs").padding(.bottom, 12)
+            Eyebrow(text: app.s["dnRecentJobs"]).padding(.bottom, 12)
             VStack(spacing: 0) {
                 ForEach(Array(app.denoise.recentJobs.enumerated()), id: \.element.id) { i, j in
                     HStack {
@@ -128,7 +130,7 @@ struct DenoiseModeSelect: View {
                     selectableMode(.standard)
                     selectableMode(.resynth)
                 }
-                PrimaryButton(title: "Start cleanup", systemImage: "sparkles") { app.startDenoise() }
+                PrimaryButton(title: app.s["dnStartCleanup"], systemImage: "sparkles") { app.startDenoise() }
             }
             .padding(Space.xl)
         }
@@ -140,14 +142,16 @@ struct DenoiseModeSelect: View {
         return Button { if !disabled { app.denoise.mode = m } } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
-                    Text(m.title).font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
-                    if disabled { Text("not installed").font(.mono(11)).foregroundStyle(Palette.ash) }
+                    Text(app.s[m == .standard ? "dnModeStandard" : "dnModeResynth"])
+                        .font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
+                    if disabled { Text(app.s["dnNotInstalled"]).font(.mono(11)).foregroundStyle(Palette.ash) }
                     Spacer()
                     if sel {
                         Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(Palette.accent)
                     }
                 }
-                Text(m.blurb).font(.ui(13)).foregroundStyle(Palette.mute).lineSpacing(3)
+                Text(app.s[m == .standard ? "dnModeStandardBody" : "dnModeResynthBody"])
+                    .font(.ui(13)).foregroundStyle(Palette.mute).lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(Space.lg)
@@ -182,7 +186,7 @@ struct DenoiseProcessing: View {
         VStack(spacing: 18) {
             Spacer()
             ProgressView().controlSize(.large).tint(Palette.accent)
-            Text("Cleaning audio").font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["dnCleaning"]).font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
             Text("\(app.denoise.stageLabel.isEmpty ? app.denoise.mode.title + " mode" : app.denoise.stageLabel), on this Mac.")
                 .font(.ui(14)).foregroundStyle(Palette.mute)
             VStack(spacing: 8) {
@@ -210,22 +214,25 @@ struct DenoiseResult: View {
             VStack(alignment: .leading, spacing: Space.lg) {
                 HStack(spacing: 12) {
                     Text(d.fileName).font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
-                    Text("cleaned · \(d.mode.title)").font(.mono(12)).foregroundStyle(Palette.good)
+                    Text(app.s["dnCleanedStatus"].replacingOccurrences(
+                        of: "{mode}", with: app.s[d.mode == .standard ? "dnModeStandard" : "dnModeResynth"]))
+                        .font(.mono(12)).foregroundStyle(Palette.good)
                     Spacer()
-                    PrimaryButton(title: "Export cleaned file") { app.denoiseExport() }
+                    PrimaryButton(title: app.s["dnExport"]) { app.denoiseExport() }
                 }
 
                 HStack(spacing: 16) {
-                    Segmented(options: [(ABMode.original, "Original"), (.cleaned, "Cleaned")],
+                    Segmented(options: [(ABMode.original, app.s["dnOriginal"]), (.cleaned, app.s["dnCleaned"])],
                               selection: Binding(get: { d.abMode }, set: { app.denoiseSetAB($0) }))
                     PlayCircle(playing: d.playing, size: 42, filled: true) { app.denoisePlayToggle() }
-                    Text("Now: \(d.abMode == .cleaned ? "Cleaned" : "Original")")
+                    Text(app.s["dnNow"].replacingOccurrences(
+                        of: "{side}", with: app.s[d.abMode == .cleaned ? "dnCleaned" : "dnOriginal"]))
                         .font(.mono(13)).foregroundStyle(Palette.mute)
                     Spacer()
                 }
 
-                wavePanel(title: "Original", peaks: d.originalPeaks, color: Palette.stone, active: d.abMode == .original)
-                wavePanel(title: "Cleaned", peaks: d.cleanedPeaks, color: Palette.accent, active: d.abMode == .cleaned)
+                wavePanel(title: app.s["dnOriginal"], peaks: d.originalPeaks, color: Palette.stone, active: d.abMode == .original)
+                wavePanel(title: app.s["dnCleaned"], peaks: d.cleanedPeaks, color: Palette.accent, active: d.abMode == .cleaned)
 
                 reportCard
             }
@@ -248,12 +255,12 @@ struct DenoiseResult: View {
     @ViewBuilder private var reportCard: some View {
         HStack(alignment: .top, spacing: 40) {
             if d.report.isResynth {
-                metric("Voice similarity", d.report.simText,
+                metric(app.s["scVoiceSim"], d.report.simText,
                        "How closely the cleaned voice matches the original.")
             } else {
-                metric("Speech preserved", d.report.speechPreservedText,
+                metric(app.s["scSpeechPreserved"], d.report.speechPreservedText,
                        "How much of your voice energy was kept.")
-                metric("Pause suppression", d.report.pauseSuppText,
+                metric(app.s["scPauseSupp"], d.report.pauseSuppText,
                        "Noise removed from the silences.")
             }
             Spacer()

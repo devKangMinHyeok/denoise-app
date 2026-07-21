@@ -235,7 +235,7 @@ struct InspectorPane: View {
             }
         case .denoise:
             if app.denoise.phase == .result {
-                ScorecardView(card: app.denoise.scorecard, footnote: Scorecard.denoiseFootnote)
+                ScorecardView(card: app.denoise.scorecard, footnoteKey: "scFootnoteDenoise")
             } else {
                 InspectorEmpty(text: app.s["hintDenoise"])
             }
@@ -285,6 +285,7 @@ struct InspectorEmpty: View {
 }
 
 struct JobDetailInspector: View {
+    @Environment(AppModel.self) private var app
     var job: Job
     var body: some View {
         ScrollView {
@@ -306,7 +307,7 @@ struct JobDetailInspector: View {
                     factRow("Profile", job.profile)
                     if !job.throughput.isEmpty { factRow("Elapsed", job.throughput) }
                 }
-                Text("ETA comes from how long jobs like this actually took on this Mac.")
+                Text(app.s["inspEtaNote"])
                     .font(.ui(12.5)).foregroundStyle(Palette.ash)
                     .fixedSize(horizontal: false, vertical: true).lineSpacing(3)
             }

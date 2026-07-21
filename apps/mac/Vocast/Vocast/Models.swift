@@ -89,6 +89,8 @@ struct SubMetric: Identifiable {
     let name: String
     let value: String
     let pass: Bool
+    /// String-table key for the localized name; falls back to `name` when empty.
+    var key: String = ""
 }
 
 struct Scorecard {
@@ -114,15 +116,15 @@ struct Scorecard {
         // Sub-scores enter the engine's selection score as -PENALTY * (1 - value),
         // so 1.0 is ideal. Only include the ones the engine actually reported.
         var sub: [SubMetric] = []
-        func add(_ name: String, _ value: Double?) {
+        func add(_ key: String, _ name: String, _ value: Double?) {
             guard let value else { return }
             sub.append(SubMetric(name: name, value: String(format: "%.2f", value),
-                                 pass: value >= 0.8))
+                                 pass: value >= 0.8, key: key))
         }
-        add("Ending style", take?.ending)
-        add("Energy stress", take?.stress)
-        add("Ending drop", take?.cliff)
-        add("Word clarity", take?.swallow)
+        add("scSubEnding", "Ending style", take?.ending)
+        add("scSubStress", "Energy stress", take?.stress)
+        add("scSubDrop", "Ending drop", take?.cliff)
+        add("scSubClarity", "Word clarity", take?.swallow)
 
         let weakest = sub.filter { !$0.pass }.min { $0.value < $1.value }
         let reason: String?

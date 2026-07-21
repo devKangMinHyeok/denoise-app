@@ -79,17 +79,17 @@ struct OnboardingView: View {
     private var welcome: some View {
         VStack(spacing: 20) {
             LogoMark(size: 60)
-            Text("Your voice, on your Mac").font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
-            Text("Clone your voice, narrate any script, and clean up audio. No account, no server. It all runs on this Mac and works offline after a one-time model download.")
+            Text(app.s["obWelcomeTitle"]).font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["obWelcomeBody"])
                 .font(.ui(15)).foregroundStyle(Palette.mute)
                 .multilineTextAlignment(.center).lineSpacing(4)
             HStack(spacing: 10) {
-                pill("Runs on this Mac")
-                pill("Nothing uploaded")
-                pill("Works offline")
+                pill(app.s["obPillLocal"])
+                pill(app.s["obPillNoUpload"])
+                pill(app.s["obPillOffline"])
             }
             .padding(.top, 4)
-            PrimaryButton(title: "Get started") {
+            PrimaryButton(title: app.s["obGetStarted"]) {
                 withAnimation(Motion.calm) { o.step = .download }
             }
             .padding(.top, 8)
@@ -107,7 +107,7 @@ struct OnboardingView: View {
             if !app.engineReady {
                 HStack(spacing: 10) {
                     ProgressView().controlSize(.small).tint(Palette.accent)
-                    Text("Preparing the engine on this Mac.").font(.ui(14)).foregroundStyle(Palette.mute)
+                    Text(app.s["obPreparingEngine"]).font(.ui(14)).foregroundStyle(Palette.mute)
                 }
                 .frame(maxWidth: 440)
             } else if let s, s.ready {
@@ -128,11 +128,11 @@ struct OnboardingView: View {
     private var tierChooser: some View {
         VStack(spacing: 16) {
             HStack(spacing: 12) {
-                tierCard("balanced", "Balanced", "Fast voice model plus transcription.", "3.4 GB")
-                tierCard("advanced", "High quality", "Adds the larger, higher quality voice.", "6.3 GB")
+                tierCard("balanced", app.s["obTierBalanced"], app.s["obTierBalancedBody"], "3.4 GB")
+                tierCard("advanced", app.s["obTierHighQ"], app.s["obTierHighQBody"], "6.3 GB")
             }
-            PrimaryButton(title: "Download models") { app.downloadModels(tier: o.tier) }
-            Text("Downloaded once to this Mac and kept in the app's own folder. Nothing is uploaded.")
+            PrimaryButton(title: app.s["obDownloadModels"]) { app.downloadModels(tier: o.tier) }
+            Text(app.s["obDownloadNote"])
                 .font(.ui(12.5)).foregroundStyle(Palette.ash)
                 .multilineTextAlignment(.center).frame(maxWidth: 440)
         }
@@ -171,7 +171,7 @@ struct OnboardingView: View {
             HStack {
                 Text("\(Int(s.fraction * 100))%").font(.mono(12)).foregroundStyle(Palette.mute)
                 Spacer()
-                Text("Downloading").font(.mono(12)).foregroundStyle(Palette.mute)
+                Text(app.s["obDownloading"]).font(.mono(12)).foregroundStyle(Palette.mute)
             }
         }
         .padding(Space.xl).frame(maxWidth: 440)
@@ -182,7 +182,7 @@ struct OnboardingView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 20)).foregroundStyle(Palette.good)
             VStack(alignment: .leading, spacing: 3) {
-                Text("All models downloaded").font(.ui(15, .medium)).foregroundStyle(Palette.ink)
+                Text(app.s["obModelsReady"]).font(.ui(15, .medium)).foregroundStyle(Palette.ink)
                 Text(String(format: "%.1f GB on this Mac", s.totalGB)).font(.mono(12)).foregroundStyle(Palette.mute)
             }
             Spacer()
@@ -207,13 +207,13 @@ struct OnboardingView: View {
                 .fill(Palette.surfaceElevated).frame(width: 60, height: 60)
                 .hairline(16, color: Palette.hairline)
                 .overlay(Image(systemName: "mic").font(.system(size: 26)).foregroundStyle(Palette.mute))
-            Text("Microphone access").font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
-            Text("Vocast needs your microphone to record voice samples. Recordings stay on this device and are never uploaded.")
+            Text(app.s["obMicTitle"]).font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["obMicBody"])
                 .font(.ui(15)).foregroundStyle(Palette.mute)
                 .multilineTextAlignment(.center).lineSpacing(4)
             HStack(spacing: 12) {
-                SecondaryButton(title: "Not now") { withAnimation(Motion.calm) { o.step = .ready } }
-                PrimaryButton(title: "Allow microphone") {
+                SecondaryButton(title: app.s["obMicNotNow"]) { withAnimation(Motion.calm) { o.step = .ready } }
+                PrimaryButton(title: app.s["obMicAllow"]) {
                     app.requestMic()
                     withAnimation(Motion.calm) { o.step = .ready }
                 }
@@ -227,15 +227,15 @@ struct OnboardingView: View {
         VStack(spacing: 20) {
             Circle().fill(Palette.good.opacity(0.14)).frame(width: 72, height: 72)
                 .overlay(Image(systemName: "checkmark").font(.system(size: 28, weight: .semibold)).foregroundStyle(Palette.good))
-            Text("You are set up").font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
-            Text("Create a voice profile to start narrating, or explore the studio first.")
+            Text(app.s["obReadyTitle"]).font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["obReadyBody"])
                 .font(.ui(15)).foregroundStyle(Palette.mute)
                 .multilineTextAlignment(.center).lineSpacing(4)
             HStack(spacing: 12) {
-                SecondaryButton(title: "Explore the studio") {
+                SecondaryButton(title: app.s["obReadyExplore"]) {
                     withAnimation(Motion.calm) { app.finishOnboarding(createVoice: false) }
                 }
-                PrimaryButton(title: "Create first voice") {
+                PrimaryButton(title: app.s["obReadyCreate"]) {
                     withAnimation(Motion.calm) { app.finishOnboarding(createVoice: true) }
                 }
             }

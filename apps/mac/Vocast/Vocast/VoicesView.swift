@@ -91,7 +91,7 @@ struct ProfileCard: View {
                             .lineLimit(1).fixedSize()
                     }
                     Spacer(minLength: 0)
-                    if isDefault { TagPill(text: "default") }
+                    if isDefault { TagPill(text: app.s["vDefaultPill"]) }
                 }
                 WaveBars(peaks: peaksFor(profile.id, app), color: Palette.stone, height: 30)
                 Rectangle().fill(Palette.hairline).frame(height: 1)
@@ -172,9 +172,9 @@ struct GuidedRecording: View {
 
                 VStack(spacing: 8) {
                     HStack {
-                        Text("Line \(v.recStep + 1) of 10").font(.mono(12)).foregroundStyle(Palette.mute)
+                        Text("\(app.s["lineOf"]) \(v.recStep + 1) \(app.s["of"]) 10").font(.mono(12)).foregroundStyle(Palette.mute)
                         Spacer()
-                        Text("\(v.capturedSeconds)s / ~90s captured").font(.mono(12)).foregroundStyle(Palette.mute)
+                        Text("\(v.capturedSeconds)s / ~90s \(app.s["captured"])").font(.mono(12)).foregroundStyle(Palette.mute)
                     }
                     ThinProgress(value: Double(v.capturedSeconds) / 90.0, height: 4)
                 }
@@ -236,7 +236,7 @@ struct GuidedRecording: View {
                 }
                 LiveWave(active: rec.recording, color: Palette.accent, height: 56)
                 HStack(spacing: 12) {
-                    Text("LVL").font(.mono(11)).foregroundStyle(Palette.ash)
+                    Text(app.s["vLevelLabel"]).font(.mono(11)).foregroundStyle(Palette.ash)
                     LevelBar(level: rec.recording ? rec.level : 0, height: 8)
                     Text(rec.recording ? "\(Int(rec.db)) dB" : "-∞ dB").font(.mono(12)).foregroundStyle(Palette.mute)
                         .frame(width: 56, alignment: .trailing)
@@ -290,7 +290,7 @@ struct VoiceBuilding: View {
         VStack(spacing: 20) {
             Spacer()
             ProgressView().controlSize(.large).tint(Palette.accent)
-            Text("Building your voice profile").font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["vBuildingTitle"]).font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
             Text("\(app.voices.buildStage.isEmpty ? "Analyzing your clips" : app.voices.buildStage) on this Mac. This runs as a background job, you can keep working.")
                 .font(.ui(14)).foregroundStyle(Palette.mute)
                 .multilineTextAlignment(.center).frame(maxWidth: 420).lineSpacing(3)
@@ -321,7 +321,7 @@ struct VoiceResult: View {
             Circle().fill(Palette.good.opacity(0.14))
                 .frame(width: 76, height: 76)
                 .overlay(Image(systemName: "checkmark").font(.system(size: 28, weight: .semibold)).foregroundStyle(Palette.good))
-            Text("Voice profile ready").font(.ui(24, .semibold)).foregroundStyle(Palette.ink)
+            Text(app.s["vResultTitle"]).font(.ui(24, .semibold)).foregroundStyle(Palette.ink)
             Text("\(built?.name ?? "Your voice") is now in your library and set as default.")
                 .font(.ui(14)).foregroundStyle(Palette.mute)
 
@@ -332,7 +332,7 @@ struct VoiceResult: View {
                     stat(built?.versionLabel ?? "v1", "version")
                 }
                 WaveDots(count: 56, height: 22)
-                Text("Renders will follow the rhythm and tone the app measured from your voice. You can reinforce this profile later by adding more clips.")
+                Text(app.s["vResultBody"])
                     .font(.ui(13.5)).foregroundStyle(Palette.mute)
                     .multilineTextAlignment(.center).lineSpacing(3).frame(maxWidth: 560)
             }
@@ -341,8 +341,8 @@ struct VoiceResult: View {
             .card(Palette.surface, radius: Radius.card)
 
             HStack(spacing: 12) {
-                SecondaryButton(title: "View in library") { app.voices.phase = .library }
-                PrimaryButton(title: "Start narrating") { app.area = .studio }
+                SecondaryButton(title: app.s["vViewInLibrary"]) { app.voices.phase = .library }
+                PrimaryButton(title: app.s["vStartNarrating"]) { app.area = .studio }
             }
             Spacer()
         }
@@ -385,14 +385,14 @@ struct ProfileDetail: View {
                                 Text(p.name).font(.ui(22, .semibold)).foregroundStyle(Palette.ink)
                                     .lineLimit(1).truncationMode(.tail)
                                     .help(p.name)
-                                if isDefault { TagPill(text: "default") }
+                                if isDefault { TagPill(text: app.s["vDefaultPill"]) }
                             }
                             Text("\(p.versionLabel) · \(p.clipCount) source clips · \(fmtTime(p.durationSec))")
                                 .font(.mono(12)).foregroundStyle(Palette.mute)
                         }
                         Spacer()
-                        SecondaryButton(title: "Reinforce") { pickSources(p.id) }
-                        PrimaryButton(title: "Set as default", enabled: !isDefault) { app.setDefaultProfile(p.id) }
+                        SecondaryButton(title: app.s["vReinforce"]) { pickSources(p.id) }
+                        PrimaryButton(title: app.s["vSetDefault"], enabled: !isDefault) { app.setDefaultProfile(p.id) }
                     }
 
                     HStack(alignment: .top, spacing: 20) {
@@ -402,7 +402,7 @@ struct ProfileDetail: View {
                 }
                 .padding(Space.xl)
             } else {
-                Text("Profile not found.").font(.ui(14)).foregroundStyle(Palette.mute).padding(Space.xl)
+                Text(app.s["vNotFound"]).font(.ui(14)).foregroundStyle(Palette.mute).padding(Space.xl)
             }
         }
     }
@@ -410,10 +410,10 @@ struct ProfileDetail: View {
     private func versionHistory(_ p: EngineProfile) -> some View {
         let versions = (p.version_log ?? []).sorted { $0.version > $1.version }
         return VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: "Version history").padding(.bottom, 16)
+            Eyebrow(text: app.s["vVersionHistory"]).padding(.bottom, 16)
             VStack(spacing: 12) {
                 if versions.isEmpty {
-                    Text("This profile has one version.").font(.ui(13.5)).foregroundStyle(Palette.mute)
+                    Text(app.s["vOneVersion"]).font(.ui(13.5)).foregroundStyle(Palette.mute)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(14)
                 }
                 ForEach(versions) { v in
@@ -426,9 +426,9 @@ struct ProfileDetail: View {
                         }
                         Spacer()
                         if current {
-                            Text("current").font(.mono(12)).foregroundStyle(Palette.good)
+                            Text(app.s["vCurrent"]).font(.mono(12)).foregroundStyle(Palette.good)
                         } else {
-                            SecondaryButton(title: "Roll back") { app.rollbackProfile(p.id, version: v.version) }
+                            SecondaryButton(title: app.s["vRollBack"]) { app.rollbackProfile(p.id, version: v.version) }
                         }
                     }
                     .padding(14)
@@ -446,7 +446,7 @@ struct ProfileDetail: View {
 
     private func sourceClips(_ p: EngineProfile) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: "Source clips").padding(.bottom, 16)
+            Eyebrow(text: app.s["vSourceClips"]).padding(.bottom, 16)
             VStack(alignment: .leading, spacing: 16) {
                 WaveBars(peaks: peaksFor(p.id, app), color: Palette.stone, height: 30)
                 Text("\(p.clipCount) clips, \(fmtTime(p.durationSec)) total. Drag audio files here to reinforce this profile with more of your voice.")
@@ -456,13 +456,13 @@ struct ProfileDetail: View {
                 Rectangle().fill(Palette.hairline).frame(height: 1)
                 HStack {
                     Button { app.deleteProfile(p.id) } label: {
-                        Text("Delete profile").font(.ui(13.5, .medium)).foregroundStyle(Palette.danger)
+                        Text(app.s["vDeleteProfile"]).font(.ui(13.5, .medium)).foregroundStyle(Palette.danger)
                             .fullClickArea()
                     }.buttonStyle(.plain)
                     Spacer()
                     if isDefault {
                         HStack(spacing: 6) {
-                            Text("Default").font(.mono(13)).foregroundStyle(Palette.mute)
+                            Text(app.s["vDefaultPill"]).font(.mono(13)).foregroundStyle(Palette.mute)
                             Image(systemName: "checkmark").font(.system(size: 11)).foregroundStyle(Palette.good)
                         }
                     }

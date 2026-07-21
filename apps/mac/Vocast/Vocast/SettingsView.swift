@@ -92,19 +92,19 @@ struct GeneralPane: View {
     var body: some View {
         @Bindable var settings = app.settings
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: app.s["setGeneral"], blurb: "Appearance, startup, and default behavior.")
+            SettingsHeader(title: app.s["setGeneral"], blurb: app.s["setGeneralBlurb"])
             settingsCard {
-                SettingRow(label: "Appearance", sub: "Dark is the only theme for now.") {
+                SettingRow(label: app.s["setAppearance"], sub: app.s["setAppearanceSub"]) {
                     Picker("", selection: $settings.appearance) {
                         ForEach(AppearanceChoice.allCases) { Text($0.rawValue).tag($0) }
                     }.pickerStyle(.segmented).fixedSize().labelsHidden()
                 }
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Launch at login") {
+                SettingRow(label: app.s["setLaunchLogin"]) {
                     Toggle("", isOn: $settings.launchAtLogin).labelsHidden().toggleStyle(.switch).tint(Palette.accent)
                 }
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Default voice profile") {
+                SettingRow(label: app.s["setDefaultProfile"]) {
                     Picker("", selection: $settings.defaultProfile) {
                         ForEach(app.backendProfiles.map(\.name), id: \.self) { Text($0).tag($0) }
                     }.fixedSize().labelsHidden()
@@ -123,7 +123,7 @@ struct ModelsPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: app.s["setModels"], blurb: "Downloaded voice and transcription models, kept in the app's own folder. Nothing is uploaded.")
+            SettingsHeader(title: app.s["setModels"], blurb: app.s["setModelsBlurb"])
             settingsCard {
                 modelRow("Voice model (fast)", "1.9 GB", installed["tts_fast"] ?? false)
                 Divider().overlay(Palette.hairline)
@@ -141,7 +141,7 @@ struct ModelsPane: View {
                         .font(.mono(12)).foregroundStyle(Palette.mute)
                 }
             } else if (installed["tts_best"] ?? false) == false {
-                SecondaryButton(title: "Download high quality voice model (2.9 GB)") {
+                SecondaryButton(title: app.s["setDownloadHighQ"]) {
                     app.downloadModels(tier: "advanced")
                 }
             }
@@ -167,22 +167,22 @@ struct AudioPane: View {
     var body: some View {
         @Bindable var settings = app.settings
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: app.s["setAudio"], blurb: "Input device and export format.")
+            SettingsHeader(title: app.s["setAudio"], blurb: app.s["setAudioBlurb"])
             settingsCard {
-                SettingRow(label: "Input device") {
+                SettingRow(label: app.s["setInputDevice"]) {
                     Picker("", selection: $settings.inputDevice) {
                         Text("MacBook Pro Microphone").tag("MacBook Pro Microphone")
                         Text("External USB microphone").tag("External USB microphone")
                     }.fixedSize().labelsHidden()
                 }
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Export format") {
+                SettingRow(label: app.s["setExportFormat"]) {
                     Picker("", selection: $settings.exportFormat) {
                         ForEach(["WAV", "MP3", "M4A"], id: \.self) { Text($0).tag($0) }
                     }.fixedSize().labelsHidden()
                 }
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Sample rate") {
+                SettingRow(label: app.s["setSampleRate"]) {
                     Picker("", selection: $settings.sampleRate) {
                         ForEach(["44.1 kHz", "48 kHz"], id: \.self) { Text($0).tag($0) }
                     }.fixedSize().labelsHidden()
@@ -195,16 +195,17 @@ struct AudioPane: View {
 // MARK: - Privacy
 
 struct PrivacyPane: View {
+    @Environment(AppModel.self) private var app
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsHeader(title: "Privacy and local status",
-                           blurb: "All generation and cleanup happen on device. No account, no server, no telemetry.")
+            SettingsHeader(title: app.s["setPrivacyStatus"],
+                           blurb: app.s["setPrivacyBlurb"])
             settingsCard {
-                privacyRow("Runs on this Mac", "Generation uses this machine only.")
+                privacyRow(app.s["obPillLocal"], "Generation uses this machine only.")
                 Divider().overlay(Palette.hairline)
-                privacyRow("Nothing uploaded", "Your audio never leaves the device.")
+                privacyRow(app.s["obPillNoUpload"], "Your audio never leaves the device.")
                 Divider().overlay(Palette.hairline)
-                privacyRow("Works offline", "After the first-run model download.")
+                privacyRow(app.s["obPillOffline"], "After the first-run model download.")
                 Divider().overlay(Palette.hairline)
                 privacyRow("Where data is stored", "~/Library/Application Support/Vocast")
             }
@@ -231,11 +232,11 @@ struct MCPPane: View {
         @Bindable var settings = app.settings
         VStack(alignment: .leading, spacing: Space.xl) {
             SettingsHeader(title: app.s["setMcp"],
-                           blurb: "Let an AI agent (for example Claude) call Vocast actions on this Mac through a local MCP server. Off by default. Nothing is exposed to the network.")
+                           blurb: app.s["setMcpBlurb"])
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Enable local MCP server").font(.ui(15, .medium)).foregroundStyle(Palette.ink)
+                    Text(app.s["setMcpEnable"]).font(.ui(15, .medium)).foregroundStyle(Palette.ink)
                     Text(settings.mcpEnabled ? "Running · localhost only" : "Disabled")
                         .font(.mono(12)).foregroundStyle(settings.mcpEnabled ? Palette.good : Palette.mute)
                 }
@@ -246,10 +247,10 @@ struct MCPPane: View {
             .card(Palette.surface, radius: Radius.card)
 
             VStack(alignment: .leading, spacing: 0) {
-                Eyebrow(text: "Exposed actions").padding(.bottom, 12)
+                Eyebrow(text: app.s["setMcpExposed"]).padding(.bottom, 12)
                 settingsCard {
                     if settings.mcpActions.isEmpty {
-                        Text("The engine has not reported its tools yet.")
+                        Text(app.s["setMcpEmpty"])
                             .font(.ui(13.5)).foregroundStyle(Palette.ash)
                             .padding(.horizontal, 16).frame(minHeight: 52)
                     }
@@ -282,11 +283,11 @@ struct AboutPane: View {
         VStack(alignment: .leading, spacing: Space.xl) {
             SettingsHeader(title: app.s["setAbout"])
             settingsCard {
-                SettingRow(label: "Version", sub: "Vocast 1.0") { Text("build 1").font(.mono(12)).foregroundStyle(Palette.mute) }
+                SettingRow(label: app.s["setAbtVersion"], sub: "Vocast 1.0") { Text("build 1").font(.mono(12)).foregroundStyle(Palette.mute) }
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "License", sub: "One-time purchase, $49") { EmptyView() }
+                SettingRow(label: app.s["setAbtLicense"], sub: app.s["setAbtLicenseValue"]) { EmptyView() }
                 Divider().overlay(Palette.hairline)
-                SettingRow(label: "Requirements", sub: "macOS 14 or later, Apple Silicon") { EmptyView() }
+                SettingRow(label: app.s["setAbtRequirements"], sub: app.s["setAbtRequirementsValue"]) { EmptyView() }
             }
         }
     }
