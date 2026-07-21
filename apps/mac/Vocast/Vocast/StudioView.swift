@@ -65,22 +65,33 @@ struct ProfileSelector: View {
     }
 
     var body: some View {
-        // A plain Button hosting the styled chip; a native menu lists the real voice
-        // profiles from the engine so one can be chosen for narration.
-        Button { cycle() } label: { chip }
-            .buttonStyle(.plain)
-            .contextMenu {
-                ForEach(app.backendProfiles) { p in
-                    Button(p.name) { app.selectedProfileID = p.id }
+        // Clicking the chip opens a menu of the real voice profiles from the engine,
+        // as the chevron implies. The chip carries its own chevron, so the menu's
+        // own indicator is hidden.
+        Menu {
+            if app.backendProfiles.isEmpty {
+                Text("No voice profiles yet").foregroundStyle(Palette.mute)
+            }
+            ForEach(app.backendProfiles) { p in
+                Button {
+                    app.selectedProfileID = p.id
+                } label: {
+                    if app.selectedProfileID == p.id {
+                        Label(p.name, systemImage: "checkmark")
+                    } else {
+                        Text(p.name)
+                    }
                 }
             }
-    }
-
-    private func cycle() {
-        let ids = app.backendProfiles.map(\.id)
-        guard !ids.isEmpty else { return }
-        let cur = app.selectedProfileID.flatMap { ids.firstIndex(of: $0) } ?? -1
-        app.selectedProfileID = ids[(cur + 1) % ids.count]
+        } label: {
+            chip
+        }
+        // .button + plain renders our custom chip as-is (borderlessButton would
+        // collapse it to a compact system control); the chip carries its own chevron.
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 }
 

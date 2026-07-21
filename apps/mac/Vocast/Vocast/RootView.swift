@@ -29,14 +29,20 @@ struct RootView: View {
                 // placed there looks right and does nothing. Only the title and subhead
                 // stay in the drawn bar, since text does not need to be clicked.
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 12) {
-                        ActivityIndicatorBar()
-                        if app.firstRunComplete { PrimaryActionButton() }
-                        InspectorToggle()
+                    // Onboarding replaces the shell, so none of these controls apply
+                    // then. Hiding the whole group keeps the toggle (and its chip
+                    // background) out of the onboarding screens' top bar.
+                    if app.firstRunComplete {
+                        HStack(spacing: 12) {
+                            ActivityIndicatorBar()
+                            PrimaryActionButton()
+                            InspectorToggle()
+                        }
+                        // The controls stay pinned to the window's trailing edge in both
+                        // states, as the design shows: the inspector toggle sits at the
+                        // far right whether the panel is open or closed, rather than
+                        // shifting left with the panel.
                     }
-                    // Sit at the trailing edge of the detail pane, where the design puts
-                    // them, rather than out over the inspector.
-                    .padding(.trailing, app.inspectorVisible ? kInspectorWidth - 12 : 0)
                 }
             }
             .toolbarBackground(.hidden, for: .windowToolbar)
@@ -163,12 +169,22 @@ struct ActivityIndicatorBar: View {
         if let job = app.tasks.running.first {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small).tint(Palette.accent)
-                Text("\(verb(job)) \(Int(job.progress * 100))%")
+                Text(label(job))
                     .font(.mono(12)).foregroundStyle(Palette.mute)
             }
-            .padding(.trailing, 4)
+            // The spinner sat flush against the title; give it room to breathe.
+            .padding(.leading, 6).padding(.trailing, 4)
             .transition(.opacity)
         }
+    }
+    // Progress is elapsed/eta capped near the top, so a job that outruns its
+    // estimate would freeze at "95%" and read as stuck. Once it reaches the cap,
+    // show the current stage (or a plain verb) instead of a number that stopped.
+    private func label(_ job: Job) -> String {
+        if job.progress >= 0.9 {
+            return job.stage.isEmpty ? "\(verb(job))…" : job.stage
+        }
+        return "\(verb(job)) \(Int(job.progress * 100))%"
     }
     private func verb(_ job: Job) -> String {
         switch job.kind {
@@ -186,6 +202,11 @@ struct InspectorPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // The shell ignores the top safe area so the detail pane's title can share
+            // the titlebar row. But the trailing toolbar item's padded frame sits in
+            // that same strip over the inspector column and dims whatever is under it,
+            // so the inspector's own header starts below the strip, clear of it.
+            Color.clear.frame(height: kBarHeight)
             InspectorHeader(title: headerTitle, meta: headerMeta)
             content
         }
@@ -263,7 +284,10 @@ struct InspectorHeader: View {
             if !meta.isEmpty { Text(meta).font(.mono(11)).foregroundStyle(Palette.ash) }
         }
         .padding(.horizontal, Space.lg)
-        .frame(height: 44)
+        // Same height as the detail pane's sub-toolbar, so this header and its
+        // hairline line up with the profile/meta row across the divider, and the
+        // inspector content starts at the same y as the detail content.
+        .frame(height: kBarHeight)
         .overlay(alignment: .bottom) { Hairline() }
     }
 }

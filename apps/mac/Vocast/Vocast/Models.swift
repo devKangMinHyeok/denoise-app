@@ -425,18 +425,22 @@ final class Job: Identifiable {
     var progress: Double
     var eta: Double
     var timeLabel: String
+    /// Human-readable current stage (e.g. "Generating speech"). Shown by the
+    /// top-bar indicator once the percentage pins at its cap, so a slow job reads
+    /// as working rather than frozen.
+    var stage: String
     // Job-detail facts
     var target: String
     var profile: String
     var throughput: String
 
     init(kind: JobKind, title: String, subtitle: String, state: JobState,
-         progress: Double = 0, eta: Double = 0, timeLabel: String = "",
+         progress: Double = 0, eta: Double = 0, timeLabel: String = "", stage: String = "",
          target: String = "", profile: String = "", throughput: String = "4.1x realtime") {
         self.kind = kind; self.title = title; self.subtitle = subtitle
         self.state = state; self.progress = progress; self.eta = eta
-        self.timeLabel = timeLabel; self.target = target; self.profile = profile
-        self.throughput = throughput
+        self.timeLabel = timeLabel; self.stage = stage; self.target = target
+        self.profile = profile; self.throughput = throughput
     }
 }
 

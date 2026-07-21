@@ -198,6 +198,7 @@ final class AppModel {
                    progress: progress,
                    eta: max(0, (t.eta_sec ?? 0) - (t.elapsed_sec ?? 0)),
                    timeLabel: shortDate(t.created),
+                   stage: t.stage ?? "",
                    target: t.stage ?? "",
                    profile: "",
                    throughput: t.elapsed_sec.map { "\(Int($0))s elapsed" } ?? "")
@@ -337,6 +338,7 @@ final class AppModel {
                     studio.renderETA = max(1, eta - elapsed)
                     job.progress = studio.renderProgress
                     job.eta = studio.renderETA
+                    job.stage = studio.renderStage
 
                     if st.status == "done" {
                         studio.words = st.words ?? []
@@ -548,6 +550,7 @@ final class AppModel {
                         job.progress = min(0.9, elapsed / max(eta, 1))
                     }
                     job.eta = max(1, eta - elapsed)
+                    job.stage = narrationStageText(st.stage)
 
                     if st.status == "done" {
                         // The regen job is now the current narration (recomposed audio).
@@ -667,6 +670,7 @@ final class AppModel {
                     voices.buildProgress = min(0.95, elapsed / max(eta, 1))
                     voices.buildETA = max(1, eta - elapsed)
                     job.progress = voices.buildProgress; job.eta = voices.buildETA
+                    job.stage = voices.buildStage
                     if st.status == "done" {
                         voices.builtProfileID = pid
                         selectedProfileID = pid
@@ -782,6 +786,7 @@ final class AppModel {
                     denoise.eta = max(1, eta - elapsed)
                     job.progress = denoise.progress
                     job.eta = denoise.eta
+                    job.stage = denoise.stageLabel
 
                     if st.status == "done" {
                         denoise.progress = 1
