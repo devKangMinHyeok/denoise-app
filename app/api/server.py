@@ -502,6 +502,11 @@ def main():
     ap.add_argument("--port", type=int, default=8756)
     args = ap.parse_args()
     _install_parent_watchdog()
+    # 이전 실행이 남긴 유령 작업(진행 중인 채로 죽은 것)을 정리한다. 새로 뜬
+    # 서버엔 진행 중인 작업이 있을 수 없으므로, 남아 있으면 중단된 것이다.
+    stale = profiles.reconcile_interrupted() + dnjobs.reconcile_interrupted()
+    if stale:
+        print(f"정리: 중단된 작업 {stale}건을 오류로 표시")
     ensure_ffmpeg()
     feats = "노이즈 제거" + (" + 보이스 클로닝" if clone_available() else
                             " (클로닝: 미설치 — voice/requirements-voice.txt)")

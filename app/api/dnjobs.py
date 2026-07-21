@@ -133,6 +133,24 @@ def list_dnjobs(limit=20):
     return items[:limit]
 
 
+_ACTIVE_STATUSES = ("running", "generating", "preparing", "queued")
+
+
+def reconcile_interrupted():
+    """서버 시작 시 비종료 상태로 남은 정리 작업을 '중단됨'으로 표시한다.
+    새로 뜬 프로세스에는 진행 중인 작업이 있을 수 없으므로 안전하다. profiles의
+    같은 함수와 짝을 이룬다. 정리한 개수를 돌려준다."""
+    n = 0
+    for jid in storage.store.list_ids("denoise"):
+        meta = storage.store.read_doc("denoise", jid)
+        if meta and meta.get("status") in _ACTIVE_STATUSES:
+            meta["status"] = "error"
+            meta["error"] = meta.get("error") or "interrupted"
+            storage.store.write_doc("denoise", jid, meta)
+            n += 1
+    return n
+
+
 def delete_dnjob(jid):
     with _LOCK:
         DNJOBS.pop(jid, None)

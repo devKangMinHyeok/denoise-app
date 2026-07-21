@@ -684,3 +684,27 @@ def list_history(limit=20):
             items.append(meta)
     items.sort(key=lambda x: x.get("created", ""), reverse=True)
     return items[:limit]
+
+
+# 비종료(진행 중) 상태들. 이 상태로 저장된 작업은 그걸 돌리던 프로세스가 살아있을
+# 때만 의미가 있다.
+_ACTIVE_STATUSES = ("running", "generating", "preparing", "queued")
+
+
+def reconcile_interrupted():
+    """서버가 새로 뜨면 이전 프로세스가 돌리던 작업은 이미 끝났거나 죽은 것이다.
+    그런데 그 작업이 도중에 죽으면 상태가 'preparing'/'generating'인 채로 남아,
+    /api/tasks가 그걸 영원히 '진행 중'으로 보고한다(맥 앱 상단의 유령 'Rendering
+    %'). 시작 시 한 번, 비종료 상태로 남은 작업을 '중단됨' 오류로 정리한다.
+
+    새로 뜬 프로세스에는 아직 어떤 작업도 진행 중일 수 없으므로, 실제로 도는
+    작업을 잘못 건드릴 위험이 없다. 정리한 개수를 돌려준다."""
+    n = 0
+    for jid in storage.store.list_ids("history"):
+        meta = storage.store.read_doc("history", jid)
+        if meta and meta.get("status") in _ACTIVE_STATUSES:
+            meta["status"] = "error"
+            meta["error"] = meta.get("error") or "interrupted"
+            storage.store.write_doc("history", jid, meta)
+            n += 1
+    return n
