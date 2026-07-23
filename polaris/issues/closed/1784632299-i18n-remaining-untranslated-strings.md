@@ -52,3 +52,26 @@ goal: 1784428973
 그러면 "잔여 영어 0(고유명사·오디오 단위·내부 보드 3종 제외)" 기준을 충족한다.
 
 임의 번역은 하지 않기로 함(사용자 지시). 이 이슈는 디자인 에이전트 왕복 후 처리 예정.
+
+## Resolution notes (2026-07-23)
+
+디자인 에이전트 왕복 완료. 핸드오프 패키지(`~/Downloads/handoff/vocast-i18n.json`, 136키,
+en/ko 확정)를 받아 배선 완료.
+
+- `Strings.swift`에 신규 키 추가(핸드오프 134 + 기존 footnote 2 = 136). en/ko 296키 동일,
+  중복 0, 값은 JSON과 100% 일치. `{token}` 임의 이름 치환용 `f(_:_:)` 오버로드 신설.
+- 모델 레이어를 렌더 시점 지역화로 전환: `etaLabel`/`JobKind.typeLabel`/`DenoiseMode.title`이
+  `Strings`를 받고, `Scorecard.attentionReason`(영어 고정)을 `AttentionReason` enum +
+  `attentionText(_:)`로 리팩터(언어 전환 시 재지역화).
+- 12개 파일(VocastApp, AppModel, RootView, Models, DenoiseView, OnboardingView,
+  SettingsView, VoicesView, StudioView, VoicePicker, ScorecardView, TasksView)의
+  하드코딩 영어를 전부 키 조회로 교체. 잔여 하드코딩 영어 0(고유명사·오디오 단위·기기명·
+  시작 예제 스크립트 제외).
+- D1(작업 목록) 지역화, D5 각주는 비준본 사용 + 죽은 `Scorecard.footnote` static 제거.
+- 핸드오프 136키에 없던 소규모 갭 5개는 in-house로 채움(`stDone`, `jobTargetNarration`,
+  `vNoProfileFacts`, `dnProcessingSubheadStage`, `errUnknownDetail`). 저가시성 문자열이라
+  다음 핸드오프 때 비준 대상으로 표시.
+- 검증: `xcodebuild ... build` BUILD SUCCEEDED(에러 0), 키 커버리지/중복/값 일치 스크립트 통과.
+  시각 캡처는 화면 제어 권한 거부로 생략.
+
+Spec 없이 직접 배선(핸드오프 후속 배선 작업).

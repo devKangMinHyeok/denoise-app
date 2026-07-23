@@ -84,7 +84,7 @@ struct StudioView: View {
                 if let speed = app.rates?.narrationSpeedLabel {
                     Rectangle().fill(Palette.hairline).frame(width: 1, height: 16)
                     Text(speed).font(.mono(12)).foregroundStyle(Palette.ash)
-                        .help("Measured on this Mac from your own renders.")
+                        .help(app.s["stuScorecardNote"])
                 }
             }
             .padding(.horizontal, Space.xl).frame(height: kBarHeight)
@@ -141,7 +141,7 @@ struct ComposingStudio: View {
                 Spacer()
                 HStack(spacing: 12) {
                     ProgressView().controlSize(.small).tint(Palette.accent)
-                    Text("\(app.studio.renderStage.isEmpty ? "Rendering" : app.studio.renderStage) · \(Int(app.studio.renderProgress * 100))%")
+                    Text("\(app.studio.renderStage.isEmpty ? app.s["stageRendering"] : app.studio.renderStage) · \(Int(app.studio.renderProgress * 100))%")
                         .font(.mono(12)).foregroundStyle(Palette.body)
                     SecondaryButton(title: app.s["btnCancel"]) { }
                 }
@@ -218,7 +218,7 @@ struct BlockCard: View {
                 }
                 HStack(spacing: 7) {
                     StatusDot(color: rerendering ? Palette.accent : Palette.good, size: 7, blink: rerendering)
-                    Text(rerendering ? "Re-rendering" : "Rendered")
+                    Text(app.s[rerendering ? "stageRerendering" : "stageRendered"])
                         .font(.mono(12)).foregroundStyle(rerendering ? Palette.accent : Palette.body)
                 }
                 Text(fmtTime(block.duration)).font(.mono(12)).foregroundStyle(Palette.mute)

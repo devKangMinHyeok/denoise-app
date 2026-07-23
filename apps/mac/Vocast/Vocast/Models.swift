@@ -75,8 +75,8 @@ func fmtTime(_ seconds: Double) -> String {
 /// ETA label for a running job. Remaining time floors near zero, so a job that
 /// outruns its estimate would read "ETA 0:01" indefinitely. Past that point say
 /// it is wrapping up instead of showing a number that stopped moving.
-func etaLabel(_ seconds: Double) -> String {
-    seconds <= 2 ? "finishing" : "ETA \(fmtTime(seconds))"
+func etaLabel(_ seconds: Double, _ s: Strings) -> String {
+    seconds <= 2 ? s["etaFinishing"] : "ETA \(fmtTime(seconds))"
 }
 
 // MARK: - Quality scorecard
@@ -100,13 +100,34 @@ struct SubMetric: Identifiable {
     var key: String = ""
 }
 
+/// Why a block did not pass its gate, stored as a code rather than a sentence so the
+/// banner resolves it in the current interface language at render time instead of
+/// baking English into the model when the scorecard is built.
+enum AttentionReason {
+    case belowBar
+    case subWeak(metricKey: String, metricName: String)
+    case simLow
+    case speechLoss
+}
+
 struct Scorecard {
     var gatePassed: Bool
-    var attentionReason: String?   // shown when not passed
+    var attention: AttentionReason?   // set when not passed
     var headline: [HeadlineMetric]
     var sub: [SubMetric]
 
-    static let footnote = "PNS is the prosody north-star: rhythm, emphasis, and phrasing scored against your own voice. Sub-scores run 0 to 1, higher is better. Blocks at 82 or above meet the quality bar. Measured on this Mac."
+    /// The "needs attention" reason in the interface language, or nil when passed.
+    func attentionText(_ s: Strings) -> String? {
+        switch attention {
+        case .belowBar: return s["scReasonBelowBar"]
+        case .subWeak(let key, let name):
+            let metric = (key.isEmpty ? name : s[key]).lowercased()
+            return s.f("scReasonSubWeak", ["metric": metric])
+        case .simLow: return s["scReasonSimLow"]
+        case .speechLoss: return s["scReasonSpeechLoss"]
+        case nil: return nil
+        }
+    }
 
     /// Real scorecard for one narration block, from the engine's own scores.
     /// `para` carries the paragraph's PNS, `take` the winning take's sub-scores.
@@ -134,20 +155,18 @@ struct Scorecard {
         add("scSubClarity", "Word clarity", take?.swallow)
 
         let weakest = sub.filter { !$0.pass }.min { $0.value < $1.value }
-        let reason: String?
+        let attention: AttentionReason?
         if !meetsBar {
-            reason = "prosody below the 82 quality bar"
+            attention = .belowBar
         } else if let w = weakest {
-            reason = "\(w.name.lowercased()) below target"
+            attention = .subWeak(metricKey: w.key, metricName: w.name)
         } else {
-            reason = nil
+            attention = nil
         }
         return Scorecard(gatePassed: meetsBar && weakest == nil,
-                         attentionReason: reason,
+                         attention: attention,
                          headline: [headline], sub: sub)
     }
-
-    static let denoiseFootnote = "Speech preserved is how much of your voice energy was kept. Pause suppression is how much noise was removed from the silences. Measured on this Mac."
 
     /// Build a real scorecard from the denoise engine's report.
     static func fromDenoise(_ r: DenoiseReport) -> Scorecard {
@@ -155,7 +174,7 @@ struct Scorecard {
             let pass = sim >= 0.85
             return Scorecard(
                 gatePassed: pass,
-                attentionReason: pass ? nil : "voice similarity below target",
+                attention: pass ? nil : .simLow,
                 headline: [HeadlineMetric(key: "SIM", value: String(format: "%.2f", sim),
                                           unit: "", name: "Voice similarity", progress: sim, pass: pass)],
                 sub: [])
@@ -164,7 +183,7 @@ struct Scorecard {
         let pass = r.speechLossPct < 15
         return Scorecard(
             gatePassed: pass,
-            attentionReason: pass ? nil : "speech loss above target",
+            attention: pass ? nil : .speechLoss,
             headline: [
                 HeadlineMetric(key: "SPEECH", value: String(format: "%.0f", preserved), unit: "%",
                                name: "Speech preserved", progress: preserved / 100, pass: pass),
@@ -353,7 +372,7 @@ final class VoicesModel {
 enum DenoiseMode: String, CaseIterable, Identifiable {
     case standard, resynth
     var id: String { rawValue }
-    var title: String { self == .standard ? "Standard" : "Resynth" }
+    func title(_ s: Strings) -> String { s[self == .standard ? "dnModeStandard" : "dnModeResynth"] }
     var blurb: String {
         self == .standard
             ? "Fast filtering. Removes steady background noise and hum with light touch."
@@ -407,7 +426,7 @@ final class DenoiseModel {
     var report = DenoiseReport()
     // Placeholder until a run finishes; the inspector only shows it once the real
     // report arrives (phase == .result), where fromDenoise replaces it.
-    var scorecard = Scorecard(gatePassed: true, attentionReason: nil, headline: [], sub: [])
+    var scorecard = Scorecard(gatePassed: true, attention: nil, headline: [], sub: [])
     var recentJobs: [DenoiseJob] = []      // filled from /api/dnjobs
 
     // Filled from the real audio once a cleanup finishes; empty until then.
@@ -425,11 +444,11 @@ enum JobKind { case narrationRender, denoise, voiceBuild
         case .voiceBuild: return "waveform"
         }
     }
-    var typeLabel: String {
+    func typeLabel(_ s: Strings) -> String {
         switch self {
-        case .narrationRender: return "Narration render"
-        case .denoise: return "Denoise"
-        case .voiceBuild: return "Voice profile build"
+        case .narrationRender: return s["jobKindNarration"]
+        case .denoise: return s["jobKindDenoise"]
+        case .voiceBuild: return s["jobKindVoiceBuild"]
         }
     }
 }

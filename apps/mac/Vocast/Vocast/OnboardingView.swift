@@ -100,7 +100,7 @@ struct OnboardingView: View {
     private var download: some View {
         let s = app.modelStatus
         return VStack(spacing: 24) {
-            Text((s?.ready == true) ? "Voice models ready" : "Download the voice models")
+            Text(app.s[(s?.ready == true) ? "obDownloadHeadingDone" : "obDownloadHeading"])
                 .font(.ui(30, .semibold)).foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
 
@@ -183,7 +183,7 @@ struct OnboardingView: View {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 20)).foregroundStyle(Palette.good)
             VStack(alignment: .leading, spacing: 3) {
                 Text(app.s["obModelsReady"]).font(.ui(15, .medium)).foregroundStyle(Palette.ink)
-                Text(String(format: "%.1f GB on this Mac", s.totalGB)).font(.mono(12)).foregroundStyle(Palette.mute)
+                Text(app.s.f("obGbOnMac", ["n": String(format: "%.1f", s.totalGB)])).font(.mono(12)).foregroundStyle(Palette.mute)
             }
             Spacer()
         }
@@ -193,10 +193,10 @@ struct OnboardingView: View {
 
     private func modelLabel(_ key: String?) -> String {
         switch key {
-        case "tts_fast": return "Voice model (fast)"
-        case "tts_best": return "Voice model (high quality)"
-        case "whisper": return "Transcription model"
-        default: return "Voice models"
+        case "tts_fast": return app.s["mdlVoiceFast"]
+        case "tts_best": return app.s["mdlVoiceHighQ"]
+        case "whisper": return app.s["mdlTranscription"]
+        default: return app.s["mdlVoiceGeneric"]
         }
     }
 

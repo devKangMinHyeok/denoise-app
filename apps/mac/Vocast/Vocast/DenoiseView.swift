@@ -187,14 +187,16 @@ struct DenoiseProcessing: View {
             Spacer()
             ProgressView().controlSize(.large).tint(Palette.accent)
             Text(app.s["dnCleaning"]).font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
-            Text("\(app.denoise.stageLabel.isEmpty ? app.denoise.mode.title + " mode" : app.denoise.stageLabel), on this Mac.")
+            Text(app.denoise.stageLabel.isEmpty
+                 ? app.s.f("dnProcessingSubhead", ["mode": app.denoise.mode.title(app.s)])
+                 : app.s.f("dnProcessingSubheadStage", ["stage": app.denoise.stageLabel]))
                 .font(.ui(14)).foregroundStyle(Palette.mute)
             VStack(spacing: 8) {
                 ThinProgress(value: app.denoise.progress, height: 6)
                 HStack {
                     Text("\(Int(app.denoise.progress * 100))%").font(.mono(12)).foregroundStyle(Palette.mute)
                     Spacer()
-                    Text(etaLabel(app.denoise.eta)).font(.mono(12)).foregroundStyle(Palette.mute)
+                    Text(etaLabel(app.denoise.eta, app.s)).font(.mono(12)).foregroundStyle(Palette.mute)
                 }
             }.frame(maxWidth: 420)
             Spacer()
@@ -257,12 +259,12 @@ struct DenoiseResult: View {
         HStack(alignment: .top, spacing: 40) {
             if d.report.isResynth {
                 metric(app.s["scVoiceSim"], d.report.simText,
-                       "How closely the cleaned voice matches the original.")
+                       app.s["dnSubSim"])
             } else {
                 metric(app.s["scSpeechPreserved"], d.report.speechPreservedText,
-                       "How much of your voice energy was kept.")
+                       app.s["dnSubSpeech"])
                 metric(app.s["scPauseSupp"], d.report.pauseSuppText,
-                       "Noise removed from the silences.")
+                       app.s["dnSubPause"])
             }
             Spacer()
         }

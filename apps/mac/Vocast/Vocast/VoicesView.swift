@@ -86,7 +86,7 @@ struct ProfileCard: View {
                             .lineLimit(2).truncationMode(.tail)
                             .fixedSize(horizontal: false, vertical: true)
                             .help(profile.name)
-                        Text("\(profile.versionLabel) · \(profile.clipCount) clips")
+                        Text(app.s.f("vCardClips", ["version": profile.versionLabel, "n": String(profile.clipCount)]))
                             .font(.mono(12)).foregroundStyle(Palette.mute)
                             .lineLimit(1).fixedSize()
                     }
@@ -214,7 +214,7 @@ struct GuidedRecording: View {
                         .background(Capsule().fill(Palette.accent.opacity(0.12)))
                 }
             }
-            Text(line?.text ?? "Waiting for the engine's guided script.")
+            Text(line?.text ?? app.s["vGuideWaiting"])
                 .font(.ui(22, .regular)).foregroundStyle(line == nil ? Palette.ash : Palette.ink)
                 .lineSpacing(6).fixedSize(horizontal: false, vertical: true)
             if let tip = line?.tip, !tip.isEmpty {
@@ -228,7 +228,7 @@ struct GuidedRecording: View {
                 HStack {
                     HStack(spacing: 10) {
                         StatusDot(color: rec.recording ? Palette.danger : Palette.ash, size: 9, blink: rec.recording)
-                        Text(rec.recording ? "Recording" : (v.currentLineCaptured ? "Captured" : "Ready to record"))
+                        Text(rec.recording ? app.s["vRecStatusRecording"] : (v.currentLineCaptured ? app.s["vRecStatusCaptured"] : app.s["vRecStatusReady"]))
                             .font(.mono(13)).foregroundStyle(Palette.body)
                     }
                     Spacer()
@@ -276,7 +276,7 @@ struct GuidedRecording: View {
                 PrimaryButton(title: app.s["record"], systemImage: "record.circle") { app.startRecordingLine() }
             }
             if !rec.recording && v.capturedCount > 0 && v.recStep < 9 {
-                SecondaryButton(title: "Build now (\(v.capturedCount))") { app.buildVoiceProfile() }
+                SecondaryButton(title: app.s.f("vBuildNow", ["n": String(v.capturedCount)])) { app.buildVoiceProfile() }
             }
         }
     }
@@ -291,7 +291,7 @@ struct VoiceBuilding: View {
             Spacer()
             ProgressView().controlSize(.large).tint(Palette.accent)
             Text(app.s["vBuildingTitle"]).font(.ui(20, .semibold)).foregroundStyle(Palette.ink)
-            Text("\(app.voices.buildStage.isEmpty ? "Analyzing your clips" : app.voices.buildStage) on this Mac. This runs as a background job, you can keep working.")
+            Text(app.s.f("vBuildSubline", ["stage": app.voices.buildStage.isEmpty ? app.s["stAnalyzingClips"] : app.voices.buildStage]))
                 .font(.ui(14)).foregroundStyle(Palette.mute)
                 .multilineTextAlignment(.center).frame(maxWidth: 420).lineSpacing(3)
             VStack(spacing: 8) {
@@ -299,7 +299,7 @@ struct VoiceBuilding: View {
                 HStack {
                     Text("\(Int(app.voices.buildProgress * 100))%").font(.mono(12)).foregroundStyle(Palette.mute)
                     Spacer()
-                    Text(etaLabel(app.voices.buildETA)).font(.mono(12)).foregroundStyle(Palette.mute)
+                    Text(etaLabel(app.voices.buildETA, app.s)).font(.mono(12)).foregroundStyle(Palette.mute)
                 }
             }
             .frame(maxWidth: 420)
@@ -322,14 +322,14 @@ struct VoiceResult: View {
                 .frame(width: 76, height: 76)
                 .overlay(Image(systemName: "checkmark").font(.system(size: 28, weight: .semibold)).foregroundStyle(Palette.good))
             Text(app.s["vResultTitle"]).font(.ui(24, .semibold)).foregroundStyle(Palette.ink)
-            Text("\(built?.name ?? "Your voice") is now in your library and set as default.")
+            Text(app.s.f("vResultSubline", ["name": built?.name ?? app.s["vDefaultName"]]))
                 .font(.ui(14)).foregroundStyle(Palette.mute)
 
             VStack(spacing: 18) {
                 HStack(spacing: 40) {
-                    stat("\(built?.clipCount ?? app.voices.capturedCount)", "clips analyzed")
-                    stat(fmtTime(built?.durationSec ?? 0), "of your voice")
-                    stat(built?.versionLabel ?? "v1", "version")
+                    stat("\(built?.clipCount ?? app.voices.capturedCount)", app.s["vStatClips"])
+                    stat(fmtTime(built?.durationSec ?? 0), app.s["vStatDuration"])
+                    stat(built?.versionLabel ?? "v1", app.s["vStatVersion"])
                 }
                 WaveDots(count: 56, height: 22)
                 Text(app.s["vResultBody"])
@@ -387,7 +387,7 @@ struct ProfileDetail: View {
                                     .help(p.name)
                                 if isDefault { TagPill(text: app.s["vDefaultPill"]) }
                             }
-                            Text("\(p.versionLabel) · \(p.clipCount) source clips · \(fmtTime(p.durationSec))")
+                            Text(app.s.f("vMetaSourceClips", ["version": p.versionLabel, "n": String(p.clipCount), "duration": fmtTime(p.durationSec)]))
                                 .font(.mono(12)).foregroundStyle(Palette.mute)
                         }
                         Spacer()
@@ -421,7 +421,7 @@ struct ProfileDetail: View {
                     HStack(spacing: 14) {
                         Text("v\(v.version)").font(.mono(13, .semibold)).foregroundStyle(Palette.ink).frame(width: 26, alignment: .leading)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(current ? "Current version" : "Earlier version").font(.ui(14, .medium)).foregroundStyle(Palette.ink)
+                            Text(app.s[current ? "vCurrentVersion" : "vEarlierVersion"]).font(.ui(14, .medium)).foregroundStyle(Palette.ink)
                             Text(v.built ?? "").font(.mono(12)).foregroundStyle(Palette.mute)
                         }
                         Spacer()
@@ -449,7 +449,7 @@ struct ProfileDetail: View {
             Eyebrow(text: app.s["vSourceClips"]).padding(.bottom, 16)
             VStack(alignment: .leading, spacing: 16) {
                 WaveBars(peaks: peaksFor(p.id, app), color: Palette.stone, height: 30)
-                Text("\(p.clipCount) clips, \(fmtTime(p.durationSec)) total. Drag audio files here to reinforce this profile with more of your voice.")
+                Text(app.s.f("vSourceBlurb", ["n": String(p.clipCount), "duration": fmtTime(p.durationSec)]))
                     .font(.ui(13.5)).foregroundStyle(Palette.mute).lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 20)

@@ -39,7 +39,7 @@ struct ScorecardView: View {
         HStack(spacing: 10) {
             StatusDot(color: card.gatePassed ? Palette.good : Palette.attention, size: 8)
             Text(card.gatePassed ? app.s["gatePass"]
-                 : "Needs attention: \(card.attentionReason ?? "")")
+                 : app.s.f("scNeedsAttention", ["reason": card.attentionText(app.s) ?? ""]))
                 .font(.ui(13.5, .semibold))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
