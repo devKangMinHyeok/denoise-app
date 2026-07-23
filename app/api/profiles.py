@@ -384,8 +384,11 @@ def _finish_job(job, out, t_start):
         pass
     try:  # 가라오케 가사 뷰용 단어 타임라인 (실패해도 작업은 성공)
         from voxa.analysis.prosody import prosody_deps_available, word_timeline
+        from voxa.lang import detect_text_language
         if prosody_deps_available():
-            job["words"] = word_timeline(out)
+            # 가라오케는 음성 프로필 언어가 아니라 '읽은 대본'의 언어로 정렬해야
+            # 맞는다 (한국어 목소리가 영어 문장을 읽으면 가사는 영어여야 함).
+            job["words"] = word_timeline(out, lang=detect_text_language(job.get("text", "")))
     except Exception:
         pass
     fast = bool(job.get("settings", {}).get("fast"))

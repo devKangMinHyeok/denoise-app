@@ -880,15 +880,19 @@ def select_reference_window(full_wav, min_sec=6.0, max_sec=14.0):
     return best
 
 
-def word_timeline(wav_path):
+def word_timeline(wav_path, lang=None):
     """단어별 (텍스트, 시작, 끝) 타임라인 — 가라오케식 가사 뷰의 데이터.
 
     채점용 경량 Whisper(base)로 충분 (필요한 건 정렬이지 정확한 받아쓰기가
     아니다 — 실측: 문장 채점 정렬에서 base가 turbo와 동등).
+
+    lang: 전사에 쓸 언어. 가라오케는 '실제로 읽은 대본의 언어'로 정렬해야 하므로
+    호출부가 대본 언어를 넘긴다. 생략하면 작업의 음성 언어(speech_language)로 폴백.
     """
     from voxa import mlx_transcribe
     r = mlx_transcribe(wav_path, path_or_hf_repo=WHISPER_SCORING,
-                               language=speech_language(), word_timestamps=True)
+                               language=lang or speech_language(),
+                               word_timestamps=True)
     out = []
     for seg in r.get("segments", []):
         for w in seg.get("words", []):

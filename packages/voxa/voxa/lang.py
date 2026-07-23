@@ -23,3 +23,14 @@ def set_speech_language(code):
 def speech_language():
     """현재 작업의 음성 언어 (Whisper 에 넘길 코드)."""
     return _lang.get()
+
+
+def detect_text_language(text):
+    """대본 텍스트의 언어를 대략 판별한다 (한글 글자가 있으면 ko, 아니면 en).
+
+    가라오케 워드 타임라인은 '음성 프로필의 언어'가 아니라 '실제로 읽은 대본의
+    언어'로 정렬해야 한다. 한국어 목소리로 영어 문장을 읽으면 소리는 영어이므로,
+    영어로 전사해야 가사가 맞다. SUPPORTED 밖이면 기본값."""
+    if any("가" <= ch <= "힣" for ch in (text or "")):
+        return "ko"
+    return "en" if "en" in SUPPORTED else DEFAULT
