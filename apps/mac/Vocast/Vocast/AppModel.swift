@@ -147,13 +147,14 @@ final class AppModel {
     /// Denoise recent list. Called on startup and after anything finishes, so the
     /// app only ever shows work that actually happened.
     func refreshWork() async {
+        let s = self.s
         if let items = try? await engine.listTasks() {
-            tasks.jobs = items.compactMap(Self.job(from:))
+            tasks.jobs = items.compactMap { Self.job(from: $0, s: s) }
         }
         if let items = try? await engine.listDenoiseJobs() {
             denoise.recentJobs = items.map { j in
                 DenoiseJob(title: j.name ?? j.title ?? j.id,
-                           meta: Self.denoiseMeta(j),
+                           meta: Self.denoiseMeta(j, s),
                            timeLabel: Self.shortDate(j.created))
             }
         }
@@ -169,7 +170,7 @@ final class AppModel {
         }
     }
 
-    private static func job(from t: ETask) -> Job? {
+    private static func job(from t: ETask, s: Strings) -> Job? {
         let kind: JobKind
         switch t.kind {
         case "denoise": kind = .denoise
@@ -202,16 +203,22 @@ final class AppModel {
                    stage: t.stage ?? "",
                    target: t.stage ?? "",
                    profile: "",
-                   throughput: t.elapsed_sec.map { "\(Int($0))s elapsed" } ?? "")
+                   throughput: t.elapsed_sec.map { s.f("jobElapsedS", ["n": String(Int($0))]) } ?? "")
     }
 
-    private static func denoiseMeta(_ j: EDenoiseJob) -> String {
+    private static func denoiseMeta(_ j: EDenoiseJob, _ s: Strings) -> String {
         var parts: [String] = []
-        if let m = j.mode { parts.append(m.capitalized) }
-        if let loss = j.report?.speech_loss_pct {
-            parts.append(String(format: "%.0f%% speech preserved", max(0, 100 - loss)))
+        if let m = j.mode {
+            switch m {
+            case "standard": parts.append(s["dnModeStandard"])
+            case "resynth":  parts.append(s["dnModeResynth"])
+            default:         parts.append(m.capitalized)
+            }
         }
-        if parts.isEmpty, let s = j.status { parts.append(s) }
+        if let loss = j.report?.speech_loss_pct {
+            parts.append(s.f("jobSpeechPreservedPct", ["n": String(format: "%.0f", max(0, 100 - loss))]))
+        }
+        if parts.isEmpty, let st = j.status { parts.append(st) }
         return parts.joined(separator: " · ")
     }
 
@@ -236,14 +243,14 @@ final class AppModel {
             do {
                 try await engine.startModelDownload(tier: tier)
             } catch {
-                notify("Could not start the model download. Is the engine running?")
+                notify(self.s["errDownloadStart"])
                 return
             }
             while !Task.isCancelled {
                 if let s = try? await engine.modelStatus() {
                     modelStatus = s
                     if s.ready { return }
-                    if let e = s.error, !e.isEmpty { notify("Download error: \(e)"); return }
+                    if let e = s.error, !e.isEmpty { notify(self.s.f("errDownloadError", ["detail": e])); return }
                 }
                 try? await Task.sleep(nanoseconds: 800_000_000)
             }
@@ -320,14 +327,14 @@ final class AppModel {
         guard !studio.scriptText.isEmpty, studio.phase != .rendering else { return }
         studio.phase = .rendering
         studio.rendering = true
-        studio.renderStage = "Preparing"
+        studio.renderStage = s["stPreparing"]
         stopStudioPlayback()
         let text = studio.scriptText
         let start = Date()
 
-        let job = Job(kind: .narrationRender, title: "Narration render",
-                      subtitle: "\(currentProfileName) · TTS on this Mac", state: .running,
-                      target: "narration", profile: currentProfileName)
+        let job = Job(kind: .narrationRender, title: s["jobTitleNarration"],
+                      subtitle: s.f("jobSubTts", ["profile": currentProfileName]), state: .running,
+                      target: s["jobTargetNarration"], profile: currentProfileName)
         tasks.jobs.insert(job, at: 0)
 
         renderTask?.cancel()
@@ -365,15 +372,15 @@ final class AppModel {
                         studio.phase = .rendered
                         studio.rendering = false
                         job.state = .done
-                        job.timeLabel = "just now"
-                        complete("Narration is ready.")
+                        job.timeLabel = s["jobTimeJustNow"]
+                        complete(s["toNarrationReady"])
                         return
                     }
                     if st.status == "error" {
                         studio.phase = .empty
                         studio.rendering = false
                         tasks.jobs.removeAll { $0.id == job.id }
-                        notify("Narration failed: \(st.error ?? "unknown error")")
+                        notify(s.f("errNarrationFailed", ["detail": st.error ?? s["errUnknownDetail"]]))
                         return
                     }
                     try await Task.sleep(nanoseconds: 700_000_000)
@@ -385,7 +392,7 @@ final class AppModel {
             } catch {
                 studio.phase = .empty; studio.rendering = false
                 tasks.jobs.removeAll { $0.id == job.id }
-                notify("Could not reach the local engine. Is it running?")
+                notify(s["errEngineUnreachable"])
             }
         }
     }
@@ -401,13 +408,13 @@ final class AppModel {
 
     private func narrationStageText(_ stage: String?) -> String {
         switch stage {
-        case "reference": return "Preparing the voice"
-        case "takes": return "Generating speech"
-        case "post": return "Composing"
-        case "done": return "Done"
+        case "reference": return s["stPreparingVoice"]
+        case "takes": return s["stGeneratingSpeech"]
+        case "post": return s["stComposing"]
+        case "done": return s["stDone"]
         default:
-            if let s = stage, s.hasPrefix("take ") { return "Generating speech (\(s.dropFirst(5)))" }
-            return "Generating"
+            if let st = stage, st.hasPrefix("take ") { return "\(s["stGeneratingSpeech"]) (\(st.dropFirst(5)))" }
+            return s["stGenerating"]
         }
     }
 
@@ -573,7 +580,7 @@ final class AppModel {
     func regenerateBlock(_ id: Block.ID) {
         guard let idx = studio.blocks.firstIndex(where: { $0.id == id }) else { return }
         guard let parentJob = studio.renderJobID else {
-            notify("This narration cannot regenerate single blocks. Render it again first.")
+            notify(s["errNoSingleBlock"])
             return
         }
         // Re-render just this paragraph on the engine; it recomposes the full audio.
@@ -583,9 +590,11 @@ final class AppModel {
         let versions = studio.blocks.map { $0.version }   // preserve per-block versions
         let start = Date()
 
-        let job = Job(kind: .narrationRender, title: "Narration render, block \(idx + 1)",
-                      subtitle: "\(currentProfileName) · TTS on this Mac", state: .running,
-                      target: "block \(idx + 1) of \(studio.blocks.count)", profile: currentProfileName)
+        let job = Job(kind: .narrationRender,
+                      title: s.f("jobTitleNarrationBlock", ["n": String(idx + 1)]),
+                      subtitle: s.f("jobSubTts", ["profile": currentProfileName]), state: .running,
+                      target: s.f("jobTargetBlockOf", ["n": String(idx + 1), "total": String(studio.blocks.count)]),
+                      profile: currentProfileName)
         tasks.jobs.insert(job, at: 0)
 
         regenTask?.cancel()
@@ -621,8 +630,8 @@ final class AppModel {
                         studio.currentTime = 0
                         studio.karaokeWordIndex = 0
                         job.state = .done
-                        job.timeLabel = "just now"
-                        complete("Block \(idx + 1) re-rendered.")
+                        job.timeLabel = s["jobTimeJustNow"]
+                        complete(s.f("toBlockRerendered", ["n": String(idx + 1)]))
                         return
                     }
                     if st.status == "error" {
@@ -630,7 +639,7 @@ final class AppModel {
                             studio.blocks[i].status = .rendered
                         }
                         tasks.jobs.removeAll { $0.id == job.id }
-                        notify("Block \(idx + 1) could not be re-rendered: \(st.error ?? "unknown error")")
+                        notify(s.f("errBlockRerenderFailed", ["n": String(idx + 1), "detail": st.error ?? s["errUnknownDetail"]]))
                         return
                     }
                     try await Task.sleep(nanoseconds: 700_000_000)
@@ -642,7 +651,7 @@ final class AppModel {
             } catch {
                 if let i = studio.blocks.firstIndex(where: { $0.id == id }) { studio.blocks[i].status = .rendered }
                 tasks.jobs.removeAll { $0.id == job.id }
-                notify("Could not reach the local engine. Is it running?")
+                notify(s["errEngineUnreachable"])
             }
         }
     }
@@ -668,7 +677,7 @@ final class AppModel {
             voices.recording = true
             voices.clipURLs[voices.recStep] = url
         } catch {
-            notify("Could not start the microphone. Allow microphone access and try again.")
+            notify(s["errMicStart"])
         }
     }
 
@@ -693,16 +702,16 @@ final class AppModel {
         let clips = voices.captured.indices
             .filter { voices.captured[$0] }
             .compactMap { voices.clipURLs[$0] }
-        guard !clips.isEmpty else { notify("Record at least one line first."); return }
+        guard !clips.isEmpty else { notify(s["errNeedOneLine"]); return }
 
         voices.phase = .building
         voices.buildProgress = 0
-        voices.buildStage = "Preparing"
+        voices.buildStage = s["stPreparing"]
         let start = Date()
 
-        let job = Job(kind: .voiceBuild, title: "Voice profile build",
-                      subtitle: "\(clips.count) clips · analyzing", state: .running,
-                      target: "\(clips.count) clips")
+        let job = Job(kind: .voiceBuild, title: s["jobTitleVoiceBuild"],
+                      subtitle: s.f("jobSubClipsAnalyzing", ["n": String(clips.count)]), state: .running,
+                      target: s.f("jobTargetClips", ["n": String(clips.count)]))
         tasks.jobs.insert(job, at: 0)
 
         buildTask?.cancel()
@@ -728,13 +737,13 @@ final class AppModel {
                         selectedProfileID = pid
                         backendProfiles = (try? await engine.listProfiles()) ?? backendProfiles
                         voices.phase = .result
-                        job.state = .done; job.timeLabel = "just now"; job.subtitle = "\(clips.count) clips"
-                        complete("Voice profile ready.")
+                        job.state = .done; job.timeLabel = s["jobTimeJustNow"]; job.subtitle = s.f("jobSubClips", ["n": String(clips.count)])
+                        complete(s["toVoiceReady"])
                         return
                     }
                     if st.status == "error" {
                         voices.phase = .record; job.state = .done
-                        notify("Build failed: \(st.error ?? "unknown error")")
+                        notify(s.f("errBuildFailed", ["detail": st.error ?? s["errUnknownDetail"]]))
                         return
                     }
                     try await Task.sleep(nanoseconds: 600_000_000)
@@ -743,16 +752,16 @@ final class AppModel {
                 voices.phase = .record; tasks.jobs.removeAll { $0.id == job.id }; notify(engineMessage(e))
             } catch {
                 voices.phase = .record; tasks.jobs.removeAll { $0.id == job.id }
-                notify("Could not reach the local engine.")
+                notify(s["errEngineUnreachableShort"])
             }
         }
     }
 
-    private func buildStageText(_ s: String?) -> String {
-        switch s {
-        case "reference": return "Analyzing your voice"
-        case "stats": return "Measuring your style"
-        default: return (s?.hasPrefix("prep") == true) ? "Preparing clips" : "Building"
+    private func buildStageText(_ stage: String?) -> String {
+        switch stage {
+        case "reference": return s["stAnalyzingVoice"]
+        case "stats": return s["stMeasuringStyle"]
+        default: return (stage?.hasPrefix("prep") == true) ? s["stPreparingClips"] : s["stageBuilding"]
         }
     }
 
@@ -764,7 +773,7 @@ final class AppModel {
             backendProfiles = (try? await engine.listProfiles()) ?? backendProfiles
             if selectedProfileID == id { selectedProfileID = backendProfiles.first?.id }
             voices.phase = .library
-            notify("Profile deleted.")
+            notify(s["toProfileDeleted"])
         }
     }
 
@@ -773,15 +782,15 @@ final class AppModel {
             do {
                 try await engine.rollbackProfile(pid: id, version: version)
                 backendProfiles = (try? await engine.listProfiles()) ?? backendProfiles
-                notify("Rolled back to v\(version).")
-            } catch { notify("Could not roll back.") }
+                notify(s.f("toRolledBack", ["n": String(version)]))
+            } catch { notify(s["errRollback"]) }
         }
     }
 
     func setDefaultProfile(_ id: String) {
         selectedProfileID = id
         if let p = backendProfiles.first(where: { $0.id == id }) { settings.defaultProfile = p.name }
-        notify("Set as default.")
+        notify(s["toSetDefault"])
     }
 
     func refreshProfiles() async {
@@ -797,12 +806,12 @@ final class AppModel {
                 while true {
                     let st = try await engine.narrationStatus(jobID)
                     if st.status == "done" { break }
-                    if st.status == "error" { notify("Reinforce failed."); return }
+                    if st.status == "error" { notify(s["errReinforce"]); return }
                     try await Task.sleep(nanoseconds: 700_000_000)
                 }
                 backendProfiles = (try? await engine.listProfiles()) ?? backendProfiles
-                complete("Profile reinforced.")
-            } catch { notify("Could not reinforce the profile.") }
+                complete(s["toProfileReinforced"])
+            } catch { notify(s["errReinforceProfile"]) }
         }
     }
 
@@ -810,18 +819,18 @@ final class AppModel {
 
     func startDenoise() {
         guard let fileURL = denoise.importedFileURL else {
-            notify("Import a file first.")
+            notify(s["errImportFirst"])
             return
         }
         denoise.phase = .processing
         denoise.progress = 0
-        denoise.stageLabel = "Preparing"
+        denoise.stageLabel = s["stPreparing"]
         let mode = denoise.mode.rawValue
         let start = Date()
 
-        let job = Job(kind: .denoise, title: "Denoise, \(denoise.fileName)",
-                      subtitle: "\(denoise.mode.title) mode", state: .running,
-                      target: denoise.fileName, profile: denoise.mode.title)
+        let job = Job(kind: .denoise, title: s.f("jobTitleDenoise", ["file": denoise.fileName]),
+                      subtitle: s.f("jobSubMode", ["mode": denoise.mode.title(s)]), state: .running,
+                      target: denoise.fileName, profile: denoise.mode.title(s))
         tasks.jobs.insert(job, at: 0)
 
         dnPollTask?.cancel()
@@ -854,15 +863,15 @@ final class AppModel {
                         }
                         denoise.phase = .result
                         job.state = .done
-                        job.timeLabel = "just now"
-                        complete("Cleanup done, \(denoise.mode.title) mode.")
+                        job.timeLabel = s["jobTimeJustNow"]
+                        complete(s.f("toCleanupDone", ["mode": denoise.mode.title(s)]))
                         return
                     }
                     if st.status == "error" {
                         denoise.phase = .modeSelect
                         job.state = .done
-                        job.timeLabel = "failed"
-                        notify("Cleanup failed: \(st.error ?? "unknown error")")
+                        job.timeLabel = s["jobTimeFailed"]
+                        notify(s.f("errCleanupFailed", ["detail": st.error ?? s["errUnknownDetail"]]))
                         return
                     }
                     try await Task.sleep(nanoseconds: 500_000_000)
@@ -874,18 +883,18 @@ final class AppModel {
             } catch {
                 denoise.phase = .modeSelect
                 tasks.jobs.removeAll { $0.id == job.id }
-                notify("Could not reach the local engine. Is it running?")
+                notify(s["errEngineUnreachable"])
             }
         }
     }
 
     private func stageText(_ stage: String) -> String {
         switch stage {
-        case "extract": return "Reading the file"
-        case "preview": return "Building preview"
-        case "report": return "Measuring quality"
-        case "done": return "Done"
-        default: return "Cleaning audio"
+        case "extract": return s["stReadingFile"]
+        case "preview": return s["stBuildingPreview"]
+        case "report": return s["stMeasuringQuality"]
+        case "done": return s["stDone"]
+        default: return s["stCleaningAudio"]
         }
     }
 
@@ -893,7 +902,7 @@ final class AppModel {
         switch e {
         case .notAvailable(let m): return m
         case .badResponse(_, let m): return m
-        case .transport: return "Could not reach the local engine. Is it running?"
+        case .transport: return s["errEngineUnreachable"]
         }
     }
 
@@ -933,9 +942,9 @@ final class AppModel {
                 let (tmp, _) = try await URLSession.shared.download(from: src)
                 try? FileManager.default.removeItem(at: dest)
                 try FileManager.default.moveItem(at: tmp, to: dest)
-                complete("Cleaned file exported.")
+                complete(s["toCleanedExported"])
             } catch {
-                notify("Could not export the cleaned file.")
+                notify(s["errExportCleaned"])
             }
         }
     }
@@ -955,9 +964,9 @@ final class AppModel {
     var currentProfileFacts: String {
         let p = selectedProfileID.flatMap { id in backendProfiles.first { $0.id == id } }
             ?? backendProfiles.first
-        guard let p else { return "no voice profile" }
+        guard let p else { return s["vNoProfileFacts"] }
         let clips = p.clipCount
-        return clips > 0 ? "\(p.versionLabel) · \(clips) clips" : p.versionLabel
+        return clips > 0 ? s.f("vCardClips", ["version": p.versionLabel, "n": String(clips)]) : p.versionLabel
     }
 
     var currentProfileInitials: String {
@@ -983,9 +992,9 @@ final class AppModel {
 
     // MARK: Export (fake) + lightweight toast
 
-    func exportNarration() { complete("Narration exported to your Downloads folder.") }
-    func exportSelection() { complete("Selected blocks exported to your Downloads folder.") }
-    func exportCleaned() { complete("Cleaned file exported to your Downloads folder.") }
+    func exportNarration() { complete(s["toNarrationExported"]) }
+    func exportSelection() { complete(s["toBlocksExported"]) }
+    func exportCleaned() { complete(s["toCleanedExportedDl"]) }
     func notify(_ message: String) { complete(message) }
 
     // MARK: New narration / primary actions

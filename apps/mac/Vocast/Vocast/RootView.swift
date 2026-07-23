@@ -194,9 +194,9 @@ struct ActivityIndicatorBar: View {
     }
     private func verb(_ job: Job) -> String {
         switch job.kind {
-        case .narrationRender: return "Rendering"
-        case .denoise: return "Cleaning"
-        case .voiceBuild: return "Building"
+        case .narrationRender: return app.s["stageRendering"]
+        case .denoise: return app.s["stageCleaning"]
+        case .voiceBuild: return app.s["stageBuilding"]
         }
     }
 }
@@ -233,11 +233,11 @@ struct InspectorPane: View {
         case .studio:
             if app.studio.phase == .rendered, let id = app.studio.selectedBlockID,
                let idx = app.studio.blocks.firstIndex(where: { $0.id == id }) {
-                return "block \(idx + 1)"
+                return app.s.f("inspMetaBlock", ["n": String(idx + 1)])
             }
             return ""
-        case .denoise: return app.denoise.phase == .result ? "cleaned" : ""
-        case .tasks: return app.tasks.running.first != nil ? "running" : ""
+        case .denoise: return app.denoise.phase == .result ? app.s["inspMetaCleaned"] : ""
+        case .tasks: return app.tasks.running.first != nil ? app.s["inspMetaRunning"] : ""
         default: return ""
         }
     }
@@ -255,7 +255,7 @@ struct InspectorPane: View {
                 } else if let card = block.scorecard {
                     ScorecardView(card: card)
                 } else {
-                    InspectorEmpty(text: "The engine reported no quality scores for this block.")
+                    InspectorEmpty(text: app.s["inspNoScores"])
                 }
             } else {
                 InspectorEmpty(text: app.s["hintStudio"])
@@ -270,7 +270,7 @@ struct InspectorPane: View {
             if let job = app.tasks.selectedJob, job.state == .running {
                 JobDetailInspector(job: job)
             } else {
-                InspectorEmpty(text: "Select a running job to see its progress and details.")
+                InspectorEmpty(text: app.s["inspSelectJob"])
             }
         case .voices:
             InspectorEmpty(text: app.s["hintVoices"])
@@ -321,21 +321,21 @@ struct JobDetailInspector: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(job.kind.typeLabel).font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
+                    Text(job.kind.typeLabel(app.s)).font(.ui(15, .semibold)).foregroundStyle(Palette.ink)
                     ThinProgress(value: job.progress, height: 6)
                     HStack {
                         Text("\(Int(job.progress * 100))%").font(.mono(12)).foregroundStyle(Palette.mute)
                         Spacer()
-                        Text(etaLabel(job.eta)).font(.mono(12)).foregroundStyle(Palette.mute)
+                        Text(etaLabel(job.eta, app.s)).font(.mono(12)).foregroundStyle(Palette.mute)
                     }
                 }
                 .padding(16).card(Palette.surfaceCard, radius: 10)
 
                 VStack(spacing: 12) {
-                    factRow("Type", job.kind.typeLabel)
-                    factRow("Target", job.target)
-                    factRow("Profile", job.profile)
-                    if !job.throughput.isEmpty { factRow("Elapsed", job.throughput) }
+                    factRow(app.s["jobType"], job.kind.typeLabel(app.s))
+                    factRow(app.s["jobTarget"], job.target)
+                    factRow(app.s["jobProfile"], job.profile)
+                    if !job.throughput.isEmpty { factRow(app.s["jobElapsed"], job.throughput) }
                 }
                 Text(app.s["inspEtaNote"])
                     .font(.ui(12.5)).foregroundStyle(Palette.ash)

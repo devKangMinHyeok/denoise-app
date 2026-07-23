@@ -125,19 +125,19 @@ struct ModelsPane: View {
         VStack(alignment: .leading, spacing: Space.xl) {
             SettingsHeader(title: app.s["setModels"], blurb: app.s["setModelsBlurb"])
             settingsCard {
-                modelRow("Voice model (fast)", "1.9 GB", installed["tts_fast"] ?? false)
+                modelRow(app.s["mdlVoiceFast"], "1.9 GB", installed["tts_fast"] ?? false)
                 Divider().overlay(Palette.hairline)
-                modelRow("Transcription model", "1.5 GB", installed["whisper"] ?? false)
+                modelRow(app.s["mdlTranscription"], "1.5 GB", installed["whisper"] ?? false)
                 Divider().overlay(Palette.hairline)
-                modelRow("Voice model (high quality)", "2.9 GB", installed["tts_best"] ?? false)
+                modelRow(app.s["mdlVoiceHighQ"], "2.9 GB", installed["tts_best"] ?? false)
                 Divider().overlay(Palette.hairline)
-                modelRow("Noise removal", "bundled", true)
+                modelRow(app.s["mdlNoiseRemoval"], app.s["setBundled"], true)
             }
 
             if let s = app.modelStatus, s.downloading {
                 VStack(alignment: .leading, spacing: 8) {
                     ThinProgress(value: s.fraction, height: 6, gradient: true)
-                    Text(String(format: "Downloading, %.1f / %.1f GB", s.downloadedGB, s.totalGB))
+                    Text(app.s.f("setDownloadingGB", ["a": String(format: "%.1f", s.downloadedGB), "b": String(format: "%.1f", s.totalGB)]))
                         .font(.mono(12)).foregroundStyle(Palette.mute)
                 }
             } else if (installed["tts_best"] ?? false) == false {
@@ -153,7 +153,7 @@ struct ModelsPane: View {
         SettingRow(label: name, sub: size) {
             HStack(spacing: 7) {
                 StatusDot(color: isInstalled ? Palette.good : Palette.ash, size: 7)
-                Text(isInstalled ? "installed" : "not installed")
+                Text(app.s[isInstalled ? "setInstalled" : "dnNotInstalled"])
                     .font(.mono(12)).foregroundStyle(isInstalled ? Palette.good : Palette.ash)
             }
         }
@@ -201,13 +201,13 @@ struct PrivacyPane: View {
             SettingsHeader(title: app.s["setPrivacyStatus"],
                            blurb: app.s["setPrivacyBlurb"])
             settingsCard {
-                privacyRow(app.s["obPillLocal"], "Generation uses this machine only.")
+                privacyRow(app.s["obPillLocal"], app.s["privSubLocal"])
                 Divider().overlay(Palette.hairline)
-                privacyRow(app.s["obPillNoUpload"], "Your audio never leaves the device.")
+                privacyRow(app.s["obPillNoUpload"], app.s["privSubNoUpload"])
                 Divider().overlay(Palette.hairline)
-                privacyRow(app.s["obPillOffline"], "After the first-run model download.")
+                privacyRow(app.s["obPillOffline"], app.s["privSubOffline"])
                 Divider().overlay(Palette.hairline)
-                privacyRow("Where data is stored", "~/Library/Application Support/Vocast")
+                privacyRow(app.s["privWhereStored"], "~/Library/Application Support/Vocast")
             }
         }
     }
@@ -237,7 +237,7 @@ struct MCPPane: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(app.s["setMcpEnable"]).font(.ui(15, .medium)).foregroundStyle(Palette.ink)
-                    Text(settings.mcpEnabled ? "Running · localhost only" : "Disabled")
+                    Text(app.s[settings.mcpEnabled ? "mcpRunning" : "mcpDisabled"])
                         .font(.mono(12)).foregroundStyle(settings.mcpEnabled ? Palette.good : Palette.mute)
                 }
                 Spacer()
@@ -259,7 +259,7 @@ struct MCPPane: View {
                             Text(a.name).font(.mono(13)).foregroundStyle(Palette.accent).frame(width: 150, alignment: .leading)
                             Text(a.desc).font(.ui(13.5)).foregroundStyle(Palette.body)
                             Spacer()
-                            Text(settings.mcpEnabled ? "enabled" : "disabled")
+                            Text(app.s[settings.mcpEnabled ? "mcpActionEnabled" : "mcpActionDisabled"])
                                 .font(.mono(12))
                                 .foregroundStyle(settings.mcpEnabled ? Palette.good : Palette.ash)
                         }

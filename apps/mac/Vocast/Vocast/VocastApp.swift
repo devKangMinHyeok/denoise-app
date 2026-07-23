@@ -23,44 +23,44 @@ struct VocastCommands: Commands {
     var body: some Commands {
         // File / new
         CommandGroup(replacing: .newItem) {
-            Button("New narration") { app.area = .studio; app.primaryAction() }
+            Button(app.s["menuNewNarration"]) { app.area = .studio; app.primaryAction() }
                 .keyboardShortcut("n", modifiers: .command)
-            Button("New voice") { app.area = .voices; app.startNewVoice() }
+            Button(app.s["menuNewVoice"]) { app.area = .voices; app.startNewVoice() }
                 .keyboardShortcut("v", modifiers: [.command, .option])
         }
 
         // App settings (Cmd ,)
         CommandGroup(replacing: .appSettings) {
-            Button("Settings") { app.area = .settings }
+            Button(app.s["menuSettings"]) { app.area = .settings }
                 .keyboardShortcut(",", modifiers: .command)
         }
 
         // Voice menu
-        CommandMenu("Voice") {
-            Button("New voice") { app.area = .voices; app.startNewVoice() }
+        CommandMenu(app.s["menuGroupVoice"]) {
+            Button(app.s["menuNewVoice"]) { app.area = .voices; app.startNewVoice() }
                 .keyboardShortcut("v", modifiers: [.command, .option])
-            Button("Import audio to clean") { app.area = .denoise; app.denoise.phase = .importEmpty }
+            Button(app.s["menuImportToClean"]) { app.area = .denoise; app.denoise.phase = .importEmpty }
         }
 
         // Render menu
-        CommandMenu("Render") {
-            Button("Render narration") { app.area = .studio; app.renderNarration() }
+        CommandMenu(app.s["menuRender"]) {
+            Button(app.s["menuRenderNarration"]) { app.area = .studio; app.renderNarration() }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(app.studio.scriptText.isEmpty)
-            Button("Regenerate block") {
+            Button(app.s["menuRegenerateBlock"]) {
                 if let id = app.studio.selectedBlockID { app.regenerateBlock(id) }
             }
             .keyboardShortcut("r", modifiers: .command)
             Divider()
-            Button(app.studio.playing ? "Pause" : "Play") { app.studio.playing.toggle() }
+            Button(app.studio.playing ? app.s["menuPause"] : app.s["menuPlay"]) { app.studio.playing.toggle() }
                 .keyboardShortcut(.space, modifiers: [])
         }
 
         // View menu: inspector + search
         CommandGroup(after: .sidebar) {
-            Button("Toggle inspector") { app.inspectorVisible.toggle() }
+            Button(app.s["menuToggleInspector"]) { app.inspectorVisible.toggle() }
                 .keyboardShortcut("i", modifiers: .command)
-            Button("Search") { app.area = app.area }
+            Button(app.s["menuSearch"]) { app.area = app.area }
                 .keyboardShortcut("k", modifiers: .command)
         }
     }

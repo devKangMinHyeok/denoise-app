@@ -45,9 +45,9 @@ struct VoiceTrigger: View {
         .buttonStyle(.plain)
         .animation(Motion.calm, value: open)
         .accessibilityAddTraits(.isButton)
-        .accessibilityLabel("Voice profile")
+        .accessibilityLabel(app.s["vpA11yProfile"])
         .accessibilityValue(app.currentProfileName)
-        .accessibilityHint("Opens the list of voice profiles")
+        .accessibilityHint(app.s["vpA11yProfileHint"])
     }
 }
 
@@ -66,7 +66,7 @@ struct VoiceMenuPanel: View {
     var body: some View {
         VStack(spacing: 2) {
             if profiles.isEmpty {
-                Text("No voice profiles yet")
+                Text(app.s["vpEmptyNoProfiles"])
                     .font(.ui(13)).foregroundStyle(Palette.mute)
                     .frame(height: 40).frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 8)
@@ -86,7 +86,7 @@ struct VoiceMenuPanel: View {
         // the highlight on the current selection when it opens.
         .onAppear { app.studio.voiceMenuHighlight = activeIndex }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Voice profiles")
+        .accessibilityLabel(app.s["vpA11yProfiles"])
     }
 
     private func row(_ p: EngineProfile, index: Int) -> some View {
