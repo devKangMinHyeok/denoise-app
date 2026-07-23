@@ -6,6 +6,7 @@ import { WindowMock } from "../_ui/WindowMock";
 import { Waveform } from "../_ui/Waveform";
 import { Icon } from "../_ui/Icon";
 import { KaraokeDemo } from "./KaraokeDemo";
+import { getDict, type Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 const mono = { font: "400 12px/1.5 var(--rc-font-mono)", color: "var(--rc-mute)" } as const;
@@ -137,20 +138,16 @@ function MockTasks() {
   );
 }
 
-const FEATURES = [
-  { media: <MockProfile />, title: "Your voice profile", body: "Read ten guided lines once. Vocast builds a reusable profile, version it, reinforce it, roll back anytime." },
-  { media: <MockLongform />, title: "Long-form narration", body: "Paste up to 20,000 characters. Edit any paragraph in place and re-render just that block, not the whole take." },
-  { media: <MockTransfer />, title: "Performance transfer", body: "Record a reference delivery and the clone follows your pacing, emphasis and pauses, not a flat read." },
-  { media: <MockKaraoke />, title: "Karaoke lyrics view", body: "Watch each word light up as it plays, and click any word to jump there. Proofing long narration gets fast." },
-  { media: <MockNoise />, title: "Hybrid noise removal", body: "Studio-clean audio that keeps your word endings. Standard filtering or full resynthesis when you need it." },
-  { media: <MockTasks />, title: "Task center + ETA", body: "Everything heavy runs in the background with a live ETA, so you keep writing while renders finish." },
-];
+// 목업 미디어는 로케일 무관 데코. 제목/본문은 사전에서 온다(순서 일치).
+const MEDIA = [<MockProfile />, <MockLongform />, <MockTransfer />, <MockKaraoke />, <MockNoise />, <MockTasks />];
 
-export function Features() {
+export function Features({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).features;
+  const features = t.items.map((f, i) => ({ ...f, media: MEDIA[i] }));
   return (
     <Section id="features">
       <Container>
-        <SectionHeading title="Narrate in your voice," accent="clean audio included." />
+        <SectionHeading title={t.headingTitle} accent={t.headingAccent} />
         <div
           style={{
             marginTop: 56,
@@ -159,7 +156,7 @@ export function Features() {
             gap: 16,
           }}
         >
-          {FEATURES.map((f) => (
+          {features.map((f) => (
             <FeatureCard key={f.title} media={f.media} title={f.title} style={{ background: "var(--rc-surface-card)" }}>
               {f.body}
             </FeatureCard>

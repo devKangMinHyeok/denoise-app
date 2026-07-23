@@ -8,6 +8,8 @@ import { RayBurst } from "../_ui/Glow";
 import { Icon } from "../_ui/Icon";
 import { TOOLS, liveTools, type ToolDef, type VizKind } from "./_data";
 import { FaqAccordion } from "./_ui";
+import { localePath } from "../../lib/site";
+import type { Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 const sans = "var(--rc-font-sans)";
@@ -85,7 +87,7 @@ export function ToolCardViz({ viz }: { viz: VizKind }) {
   return (<><div style={{ font: `400 12.5px/1.4 ${mono}` }}><span style={{ color: "var(--rc-body)" }}>track.wav</span> <span style={{ color: "var(--rc-stone)" }}>→</span> <span style={{ color: "var(--rc-ray)" }}>track.mp3</span></div><div style={{ height: 6, width: "100%", borderRadius: 3, background: "var(--rc-surface-elevated)", overflow: "hidden" }}><div style={{ width: "70%", height: "100%", background: "var(--rc-ray)" }} /></div><MonoLine>mp3 · 320 kbps · on your device</MonoLine></>);
 }
 
-export function ToolCard({ tool }: { tool: ToolDef }) {
+export function ToolCard({ tool, lang = "en" }: { tool: ToolDef; lang?: Lang }) {
   const inner = (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <WindowMock title={tool.windowTitle} style={{ background: "var(--rc-surface)" }} bodyStyle={{ minHeight: 154, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: 12 }}>
@@ -103,12 +105,12 @@ export function ToolCard({ tool }: { tool: ToolDef }) {
   const base: React.CSSProperties = { display: "block", padding: "clamp(20px,2.2vw,26px)", background: well, border: `1px solid ${softLine}`, borderRadius: 16, textDecoration: "none" };
   if (!tool.live) return <div style={{ ...base, opacity: 0.72 }}>{inner}</div>;
   return (
-    <Link href={`/tools/${tool.slug}/`} className="vt-card" style={base}>{inner}</Link>
+    <Link href={localePath(lang, `/tools/${tool.slug}/`)} className="vt-card" style={base}>{inner}</Link>
   );
 }
 
 // ---- index closing CTA band ----
-export function ToolsCtaBand() {
+export function ToolsCtaBand({ lang = "en" }: { lang?: Lang }) {
   return (
     <div style={{ maxWidth: 1200, margin: "clamp(48px,7vw,88px) auto 0", padding: "0 24px" }}>
       <div style={{ background: well, border: `1px solid ${softLine}`, borderRadius: 20, padding: "clamp(28px,4vw,52px)" }}>
@@ -122,8 +124,8 @@ export function ToolsCtaBand() {
           <span style={{ color: "var(--rc-ray)" }}>Free</span> <span style={{ color: "#5a5c5e" }}>to try right here in your browser. To do it in a voice cloned from your own, on scripts up to 20,000 characters, fully local,</span> <span style={{ color: "var(--rc-ink)" }}>get Vocast for $49 one time.</span>
         </h2>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
-          <Button as={Link} href="/#pricing" variant="primary">Get Vocast for $49</Button>
-          <Button as={Link} href="/#features" variant="tertiary">See how it works</Button>
+          <Button as={Link} href={localePath(lang, "/#pricing")} variant="primary">Get Vocast for $49</Button>
+          <Button as={Link} href={localePath(lang, "/#features")} variant="tertiary">See how it works</Button>
         </div>
       </div>
     </div>
@@ -131,13 +133,13 @@ export function ToolsCtaBand() {
 }
 
 // ---- tool page pieces ----
-export function Breadcrumb({ name }: { name: string }) {
+export function Breadcrumb({ name, lang = "en" }: { name: string; lang?: Lang }) {
   const sep = <span style={{ color: "var(--rc-stone)", margin: "0 8px" }}>/</span>;
   const link = { font: `500 13px/1 ${sans}`, letterSpacing: ".2px", fontFeatureSettings: FEAT, color: "var(--rc-mute)", textDecoration: "none" } as const;
   return (
     <nav style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
-      <Link href="/tools/" style={link}>Home</Link>{sep}
-      <Link href="/tools/" style={link}>Tools</Link>{sep}
+      <Link href={localePath(lang, "/")} style={link}>Home</Link>{sep}
+      <Link href={localePath(lang, "/tools/")} style={link}>Tools</Link>{sep}
       <span style={{ font: `500 13px/1 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>{name}</span>
     </nav>
   );
@@ -160,7 +162,7 @@ export function HowItWorks({ steps }: { steps: { name: string; text: string }[] 
   );
 }
 
-export function RelatedTools({ slugs }: { slugs: string[] }) {
+export function RelatedTools({ slugs, lang = "en" }: { slugs: string[]; lang?: Lang }) {
   const items = slugs.map((s) => TOOLS.find((t) => t.slug === s)).filter(Boolean) as ToolDef[];
   if (items.length === 0) return null;
   return (
@@ -177,14 +179,14 @@ export function RelatedTools({ slugs }: { slugs: string[] }) {
               </div>
             </div>
           );
-          return t.live ? <Link key={t.slug} href={`/tools/${t.slug}/`} style={{ textDecoration: "none" }}>{card}</Link> : <div key={t.slug} style={{ opacity: 0.7 }}>{card}</div>;
+          return t.live ? <Link key={t.slug} href={localePath(lang, `/tools/${t.slug}/`)} style={{ textDecoration: "none" }}>{card}</Link> : <div key={t.slug} style={{ opacity: 0.7 }}>{card}</div>;
         })}
       </div>
     </section>
   );
 }
 
-export function ConversionCta({ cta }: { cta: { title: string; body: string } }) {
+export function ConversionCta({ cta, lang = "en" }: { cta: { title: string; body: string }; lang?: Lang }) {
   return (
     <section style={{ marginTop: "clamp(48px,7vw,80px)" }}>
       <div style={{ position: "relative", border: "1px solid var(--rc-hairline)", borderRadius: 16, background: "var(--rc-surface)", padding: "clamp(28px,4vw,44px)", overflow: "hidden" }}>
@@ -192,18 +194,18 @@ export function ConversionCta({ cta }: { cta: { title: string; body: string } })
         <h2 style={{ margin: 0, font: `600 clamp(22px,3vw,28px)/1.25 ${sans}`, letterSpacing: "-.3px", fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>{cta.title}</h2>
         <p style={{ margin: "12px 0 0", maxWidth: 620, font: `400 15px/1.6 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>{cta.body}</p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-          <Button as={Link} href="/#pricing" variant="primary">Get Vocast for $49</Button>
-          <Button as={Link} href="/#features" variant="tertiary">See features</Button>
+          <Button as={Link} href={localePath(lang, "/#pricing")} variant="primary">Get Vocast for $49</Button>
+          <Button as={Link} href={localePath(lang, "/#features")} variant="tertiary">See features</Button>
         </div>
       </div>
     </section>
   );
 }
 
-export function ToolPageLayout({ tool, panel }: { tool: ToolDef; panel: React.ReactNode }) {
+export function ToolPageLayout({ tool, panel, lang = "en" }: { tool: ToolDef; panel: React.ReactNode; lang?: Lang }) {
   return (
     <Container style={{ maxWidth: 920, padding: "28px 24px 96px" }}>
-      <div style={{ marginBottom: 22 }}><Breadcrumb name={tool.name} /></div>
+      <div style={{ marginBottom: 22 }}><Breadcrumb name={tool.name} lang={lang} /></div>
       <header style={{ marginBottom: "clamp(24px,4vw,36px)" }}>
         <h1 style={{ margin: 0, font: `600 clamp(30px,5vw,44px)/1.12 ${sans}`, letterSpacing: "-.5px", fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>{tool.name}</h1>
         <p style={{ margin: "16px 0 0", maxWidth: 680, font: `400 clamp(15px,2.1vw,17px)/1.65 ${sans}`, fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>{tool.quickAnswer}</p>
@@ -216,20 +218,20 @@ export function ToolPageLayout({ tool, panel }: { tool: ToolDef; panel: React.Re
           <FaqAccordion items={tool.faqs} />
         </section>
       )}
-      {tool.related && <RelatedTools slugs={tool.related} />}
-      {tool.cta && <ConversionCta cta={tool.cta} />}
+      {tool.related && <RelatedTools slugs={tool.related} lang={lang} />}
+      {tool.cta && <ConversionCta cta={tool.cta} lang={lang} />}
     </Container>
   );
 }
 
 // ---- index grid ----
-export function ToolsGrid() {
+export function ToolsGrid({ lang = "en" }: { lang?: Lang }) {
   // 라이브 먼저, 그다음 soon
   const ordered = [...liveTools(), ...TOOLS.filter((t) => !t.live)];
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(338px,1fr))", gap: 20 }}>
-        {ordered.map((t) => <ToolCard key={t.slug} tool={t} />)}
+        {ordered.map((t) => <ToolCard key={t.slug} tool={t} lang={lang} />)}
       </div>
     </div>
   );

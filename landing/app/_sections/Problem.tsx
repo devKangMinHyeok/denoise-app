@@ -3,35 +3,24 @@ import { SectionHeading } from "@timbre/design-system";
 import { Container } from "../_ui/Container";
 import { Section } from "../_ui/Section";
 import { Icon, IconProps } from "../_ui/Icon";
+import { getDict, type Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
-const CARDS: { icon: IconProps["name"]; tint: string; title: string; body: string }[] = [
-  {
-    icon: "clock",
-    tint: "var(--rc-accent-yellow)",
-    title: "Re-recording one line costs an hour",
-    body: "Fix a single awkward take and you re-record, re-level and re-export the whole thing. Again.",
-  },
-  {
-    icon: "lock",
-    tint: "var(--rc-accent-blue)",
-    title: "Subscriptions pile up, and your voice lives on someone's server",
-    body: "Cloud voice tools bill monthly and keep your voiceprint. You never really own either one.",
-  },
-  {
-    icon: "scissors",
-    tint: "var(--rc-accent-red)",
-    title: "Noise removal that erases your word endings",
-    body: "Aggressive denoisers swallow the tail of every sentence, and the result sounds processed.",
-  },
+// 아이콘/색은 로케일 무관 데코라 여기 고정. 문구는 사전에서 온다.
+const DECOR: { icon: IconProps["name"]; tint: string }[] = [
+  { icon: "clock", tint: "var(--rc-accent-yellow)" },
+  { icon: "lock", tint: "var(--rc-accent-blue)" },
+  { icon: "scissors", tint: "var(--rc-accent-red)" },
 ];
 
-export function Problem() {
+export function Problem({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).problem;
+  const cards = t.cards.map((c, i) => ({ ...c, ...DECOR[i] }));
   return (
     <Section>
       <Container>
-        <SectionHeading title="Great narration shouldn't cost you your" accent="time or your voice." />
+        <SectionHeading title={t.headingTitle} accent={t.headingAccent} />
         <div
           style={{
             marginTop: 56,
@@ -40,7 +29,7 @@ export function Problem() {
             gap: 16,
           }}
         >
-          {CARDS.map((c) => (
+          {cards.map((c) => (
             <div
               key={c.title}
               style={{

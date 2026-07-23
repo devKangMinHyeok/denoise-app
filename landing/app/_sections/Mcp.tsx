@@ -4,6 +4,7 @@ import { Section } from "../_ui/Section";
 import { WindowMock } from "../_ui/WindowMock";
 import { AuroraGlow } from "../_ui/Glow";
 import { Icon } from "../_ui/Icon";
+import { getDict, type Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 const mono = { font: "400 12.5px/1.6 var(--rc-font-mono)" } as const;
@@ -17,6 +18,7 @@ function ToolCall({ children }: { children: React.ReactNode }) {
   );
 }
 
+// MCP 툴 이름/설명은 기술 식별자라 로케일 무관으로 인라인 유지.
 const TOOLS = [
   { name: "denoise", desc: "clean a file, keep endings" },
   { name: "clone_voice", desc: "narrate text in a profile" },
@@ -25,7 +27,8 @@ const TOOLS = [
   { name: "health", desc: "engine status" },
 ];
 
-export function Mcp() {
+export function Mcp({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).mcp;
   return (
     <Section id="mcp" style={{ overflow: "hidden" }}>
       <AuroraGlow />
@@ -47,14 +50,13 @@ export function Mcp() {
             }}
           >
             <span style={{ color: "var(--rc-ray)", display: "inline-flex" }}><Icon name="terminal" size={14} /></span>
-            AI-native · Model Context Protocol
+            {t.badge}
           </span>
           <h2 style={{ margin: "20px 0 14px", font: "600 clamp(30px,4vw,46px)/1.12 var(--rc-font-sans)", letterSpacing: "-.6px", fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>
-            Claude operates this app directly.
+            {t.heading}
           </h2>
           <p style={{ margin: 0, font: "400 clamp(15px,1.6vw,18px)/1.6 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-mute)" }}>
-            Vocast ships a local MCP server, so an AI agent can clone, narrate and denoise for you, 
-            entirely on your machine, no network in the loop.
+            {t.body}
           </p>
         </div>
 
@@ -63,14 +65,14 @@ export function Mcp() {
           <WindowMock title="Claude · vocast (local)">
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ alignSelf: "flex-end", maxWidth: "85%", padding: "10px 14px", borderRadius: 12, background: "var(--rc-surface-elevated)", border: "1px solid var(--rc-hairline)", font: "400 13px/1.5 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>
-                Clean this interview and read the intro in my voice.
+                {t.chatUser}
               </div>
               <div style={{ maxWidth: "92%", padding: "12px 14px", borderRadius: 12, background: "var(--rc-canvas)", border: "1px solid var(--rc-hairline)" }}>
                 <ToolCall>denoise(&quot;interview.mov&quot;, mode=standard) → speech loss 0.0% ✓</ToolCall>
                 <ToolCall>list_voice_profiles() → picked &quot;MyVoice&quot;</ToolCall>
                 <ToolCall>clone_voice(text=…, profile_id=&quot;MyVoice&quot;) → PNS 84.2</ToolCall>
                 <div style={{ marginTop: 8, font: "400 13px/1.5 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-body)" }}>
-                  Done, clean cut plus a narrated intro in MyVoice, saved locally.
+                  {t.chatDone}
                 </div>
               </div>
             </div>
@@ -78,16 +80,16 @@ export function Mcp() {
 
           {/* tool grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-            {TOOLS.map((t) => (
-              <div key={t.name} style={{ background: "var(--rc-surface-card)", border: "1px solid var(--rc-hairline)", borderRadius: "var(--rc-radius-md)", padding: "14px 16px" }}>
-                <div style={{ font: "500 13px/1.2 var(--rc-font-mono)", color: "var(--rc-ink)" }}>{t.name}</div>
-                <div style={{ marginTop: 6, font: "400 12px/1.4 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-mute)" }}>{t.desc}</div>
+            {TOOLS.map((tool) => (
+              <div key={tool.name} style={{ background: "var(--rc-surface-card)", border: "1px solid var(--rc-hairline)", borderRadius: "var(--rc-radius-md)", padding: "14px 16px" }}>
+                <div style={{ font: "500 13px/1.2 var(--rc-font-mono)", color: "var(--rc-ink)" }}>{tool.name}</div>
+                <div style={{ marginTop: 6, font: "400 12px/1.4 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-mute)" }}>{tool.desc}</div>
               </div>
             ))}
             <div style={{ borderRadius: "var(--rc-radius-md)", border: "1px solid rgba(245,115,43,.4)", background: "rgba(245,115,43,.08)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ color: "var(--rc-ray)", display: "inline-flex" }}><Icon name="shield" size={18} /></span>
               <div style={{ font: "500 12.5px/1.4 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>
-                All local stdio, no network, no cloud.
+                {t.localBadge}
               </div>
             </div>
           </div>

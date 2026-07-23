@@ -2,6 +2,8 @@ import * as React from "react";
 import Link from "next/link";
 import { Avatar, CategoryTag } from "@timbre/design-system";
 import type { PostCard, Author } from "./_data";
+import { localePath } from "../../lib/site";
+import type { Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
@@ -51,10 +53,10 @@ export function BlogHeader() {
 }
 
 /** Full-width featured lead card: cover left, body right (stacks under ~760px). */
-export function FeaturedPost({ post }: { post: PostCard }) {
+export function FeaturedPost({ post, lang = "en" }: { post: PostCard; lang?: Lang }) {
   return (
     <Link
-      href={`/blog/${post.slug}/`}
+      href={localePath(lang, `/blog/${post.slug}/`)}
       style={{
         display: "flex",
         flexWrap: "wrap",
@@ -95,11 +97,11 @@ export function FeaturedPost({ post }: { post: PostCard }) {
 }
 
 /** Post detail header: back link, meta, title, deck, author row bounded by hairlines. */
-export function ArticleHeader({ post }: { post: PostCard }) {
+export function ArticleHeader({ post, lang = "en" }: { post: PostCard; lang?: Lang }) {
   const a = post.authors[0];
   return (
     <header style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <Link href="/blog" style={{ font: "500 14px/1.4 var(--rc-font-sans)", letterSpacing: ".2px", fontFeatureSettings: FEAT, color: "var(--rc-mute)", textDecoration: "none" }}>
+      <Link href={localePath(lang, "/blog/")} style={{ font: "500 14px/1.4 var(--rc-font-sans)", letterSpacing: ".2px", fontFeatureSettings: FEAT, color: "var(--rc-mute)", textDecoration: "none" }}>
         ← Back to blog
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>

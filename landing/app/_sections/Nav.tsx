@@ -3,16 +3,10 @@ import * as React from "react";
 import Link from "next/link";
 import { Logo, Button } from "@timbre/design-system";
 import { Icon } from "../_ui/Icon";
+import { LangSwitch } from "./LangSwitch";
+import { getDict, type Lang } from "../../lib/i18n";
+import { localePath } from "../../lib/site";
 
-const LINKS = [
-  { label: "Features", href: "/#features" },
-  { label: "Quality", href: "/#quality" },
-  { label: "Privacy", href: "/#privacy" },
-  { label: "AI (MCP)", href: "/#mcp" },
-  { label: "Tools", href: "/tools" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Blog", href: "/blog" },
-];
 const FEAT = '"calt","kern","liga","ss03"';
 
 function NavLink({
@@ -60,7 +54,8 @@ function NavLink({
   );
 }
 
-export function Nav({ active }: { active?: string } = {}) {
+export function Nav({ lang = "en", active }: { lang?: Lang; active?: string }) {
+  const t = getDict(lang);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [mobile, setMobile] = React.useState(false);
 
@@ -74,6 +69,8 @@ export function Nav({ active }: { active?: string } = {}) {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  const buyHref = localePath(lang, "/#pricing");
 
   return (
     <nav style={{ position: "sticky", top: 14, zIndex: 50, padding: "0 16px" }}>
@@ -93,7 +90,7 @@ export function Nav({ active }: { active?: string } = {}) {
           WebkitBackdropFilter: "blur(14px)",
         }}
       >
-        <Link href="/" style={{ display: "inline-flex", flex: "none" }} aria-label="Vocast home">
+        <Link href={localePath(lang, "/")} style={{ display: "inline-flex", flex: "none" }} aria-label={t.nav.home}>
           <Logo height={22} wordmark="Vocast" />
         </Link>
         <div style={{ flex: 1 }} />
@@ -101,15 +98,16 @@ export function Nav({ active }: { active?: string } = {}) {
         {!mobile && (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {LINKS.map((l) => (
-                <NavLink key={l.href} href={l.href} active={active === l.label}>
+              {t.nav.links.map((l) => (
+                <NavLink key={l.href} href={localePath(lang, l.href)} active={active === l.label}>
                   {l.label}
                 </NavLink>
               ))}
             </div>
             <span style={{ width: 1, height: 22, background: "var(--rc-hairline)" }} />
-            <Button variant="primary" size="sm" as={Link} href="/#pricing">
-              Buy
+            <LangSwitch lang={lang} />
+            <Button variant="primary" size="sm" as={Link} href={buyHref}>
+              {t.nav.buy}
             </Button>
           </>
         )}
@@ -117,7 +115,7 @@ export function Nav({ active }: { active?: string } = {}) {
         {mobile && (
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Menu"
+            aria-label={t.nav.menu}
             style={{
               display: "inline-flex",
               padding: 8,
@@ -148,14 +146,17 @@ export function Nav({ active }: { active?: string } = {}) {
             backdropFilter: "blur(14px)",
           }}
         >
-          {LINKS.map((l) => (
-            <NavLink key={l.href} href={l.href} active={active === l.label} onClick={() => setMenuOpen(false)}>
+          {t.nav.links.map((l) => (
+            <NavLink key={l.href} href={localePath(lang, l.href)} active={active === l.label} onClick={() => setMenuOpen(false)}>
               {l.label}
             </NavLink>
           ))}
+          <div style={{ marginTop: 8 }}>
+            <LangSwitch lang={lang} />
+          </div>
           <div style={{ marginTop: 4 }}>
-            <Button variant="primary" as={Link} href="/#pricing" style={{ width: "100%" }} onClick={() => setMenuOpen(false)}>
-              Buy · $49
+            <Button variant="primary" as={Link} href={buyHref} style={{ width: "100%" }} onClick={() => setMenuOpen(false)}>
+              {t.nav.buyPrice}
             </Button>
           </div>
         </div>

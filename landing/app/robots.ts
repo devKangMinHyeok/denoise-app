@@ -1,10 +1,8 @@
 import type { MetadataRoute } from "next";
 import { abs } from "../lib/site";
 
-// output:"export" 에서 정적 /robots.txt 로 생성된다.
-// 주의: GitHub Pages 프로젝트 경로(/vocast/)라 이 파일은 /vocast/robots.txt 에 놓인다.
-// 크롤러는 보통 도메인 루트 robots만 읽으므로 참고용이며, 사이트맵은 Search Console에
-// 직접 제출한다. 커스텀 도메인/루트 배포로 옮기면 그대로 유효해진다.
+// Vercel 루트 배포(vocast.me)에서 /robots.txt 로 생성된다. 사이트맵은 도메인 루트
+// (https://vocast.me/sitemap.xml)에 놓이고 Search Console 에도 직접 제출한다.
 export const dynamic = "force-static";
 
 // AI 검색/학습 크롤러 명시적 허용 (GEO: AI 답변에 인용될 수 있게)

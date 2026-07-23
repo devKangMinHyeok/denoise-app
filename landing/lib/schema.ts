@@ -1,10 +1,11 @@
-// schema.org JSON-LD 빌더. 홈/블로그 페이지가 이 객체를 <JsonLd>로 심는다.
+// schema.org JSON-LD 빌더. 홈/블로그/툴 페이지가 이 객체를 <JsonLd>로 심는다.
 // 수치/사실만 사용하고, 리뷰 평점 등 없는 데이터는 만들지 않는다.
-import { SITE, SITE_URL, abs, absFromAsset } from "./site";
+// 로케일 인지형: url/inLanguage 는 로케일(en 루트, ko /ko/)에 맞춰 조립한다.
+import { SITE, SITE_URL, abs, absLocale, absFromAsset, localeMeta } from "./site";
+import type { Lang } from "./i18n";
 import type { FaqItem } from "../app/_sections/faq-data";
 
 const ORG_ID = `${SITE_URL}/#organization`;
-const SITE_ID = `${SITE_URL}/#website`;
 const APP_ID = `${SITE_URL}/#app`;
 
 /** "Jul 19, 2026" → "2026-07-19" (ISO date, 스키마 date 필드용) */
@@ -23,25 +24,26 @@ export function organizationSchema() {
   };
 }
 
-export function websiteSchema() {
+export function websiteSchema(lang: Lang = SITE.defaultLang) {
+  const url = absLocale(lang, "/");
   return {
     "@type": "WebSite",
-    "@id": SITE_ID,
+    "@id": `${url}#website`,
     name: SITE.name,
-    url: abs("/"),
-    inLanguage: SITE.lang,
+    url,
+    inLanguage: localeMeta(lang).htmlLang,
     publisher: { "@id": ORG_ID },
   };
 }
 
 /** 제품 자체(맥 앱) 스키마. 가격/OS/카테고리 등 factual 정보만. */
-export function softwareApplicationSchema() {
+export function softwareApplicationSchema(lang: Lang = SITE.defaultLang) {
   return {
     "@type": "SoftwareApplication",
     "@id": APP_ID,
     name: SITE.name,
-    description: SITE.description,
-    url: abs("/"),
+    description: localeMeta(lang).description,
+    url: absLocale(lang, "/"),
     applicationCategory: "MultimediaApplication",
     operatingSystem: "macOS 12+ (Apple Silicon)",
     offers: {
@@ -51,11 +53,11 @@ export function softwareApplicationSchema() {
       category: "one-time purchase",
     },
     publisher: { "@id": ORG_ID },
-    inLanguage: SITE.lang,
+    inLanguage: localeMeta(lang).htmlLang,
   };
 }
 
-export function faqPageSchema(items: FaqItem[]) {
+export function faqPageSchema(items: readonly FaqItem[]) {
   return {
     "@type": "FAQPage",
     mainEntity: items.map((it) => ({
@@ -70,13 +72,13 @@ export interface ArticleInput {
   slug: string;
   title: string;
   excerpt: string;
-  cover: string; // asset()로 basePath가 붙은 경로
+  cover: string; // asset()로 접두된 절대 경로
   date: string;
   authors: { name: string; url?: string; avatar?: string; role?: string }[];
 }
 
-export function articleSchema(post: ArticleInput) {
-  const url = abs(`/blog/${post.slug}/`);
+export function articleSchema(post: ArticleInput, lang: Lang = SITE.defaultLang) {
+  const url = absLocale(lang, `/blog/${post.slug}/`);
   return {
     "@type": "BlogPosting",
     headline: post.title,
@@ -84,7 +86,7 @@ export function articleSchema(post: ArticleInput) {
     image: absFromAsset(post.cover),
     datePublished: isoDate(post.date),
     dateModified: isoDate(post.date),
-    inLanguage: SITE.lang,
+    inLanguage: localeMeta(lang).htmlLang,
     url,
     mainEntityOfPage: url,
     author: post.authors.map((a) => ({
@@ -98,15 +100,15 @@ export function articleSchema(post: ArticleInput) {
   };
 }
 
-/** items: [{ name, path(basePath 없는 경로) }] 순서대로 위치 부여 */
-export function breadcrumbSchema(items: { name: string; path: string }[]) {
+/** items: [{ name, path(로케일 무관 경로) }] 순서대로 위치 부여 */
+export function breadcrumbSchema(items: { name: string; path: string }[], lang: Lang = SITE.defaultLang) {
   return {
     "@type": "BreadcrumbList",
     itemListElement: items.map((it, i) => ({
       "@type": "ListItem",
       position: i + 1,
       name: it.name,
-      item: abs(it.path),
+      item: absLocale(lang, it.path),
     })),
   };
 }
@@ -121,8 +123,8 @@ export interface ToolSchemaInput {
 }
 
 /** 무료 도구 = 무료(price 0) WebApplication */
-export function toolWebAppSchema(tool: ToolSchemaInput) {
-  const url = abs(`/tools/${tool.slug}/`);
+export function toolWebAppSchema(tool: ToolSchemaInput, lang: Lang = SITE.defaultLang) {
+  const url = absLocale(lang, `/tools/${tool.slug}/`);
   return {
     "@type": "WebApplication",
     name: tool.name,
@@ -133,7 +135,7 @@ export function toolWebAppSchema(tool: ToolSchemaInput) {
     browserRequirements: "Requires a modern browser. Runs entirely on the client, nothing is uploaded.",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     isAccessibleForFree: true,
-    inLanguage: SITE.lang,
+    inLanguage: localeMeta(lang).htmlLang,
     publisher: { "@id": ORG_ID },
   };
 }
@@ -154,7 +156,7 @@ export function howToSchema(tool: ToolSchemaInput) {
 }
 
 /** /tools 인덱스: 라이브 도구들의 ItemList */
-export function toolListSchema(tools: { slug: string; name: string }[]) {
+export function toolListSchema(tools: { slug: string; name: string }[], lang: Lang = SITE.defaultLang) {
   return {
     "@type": "ItemList",
     name: "Free audio tools",
@@ -163,7 +165,7 @@ export function toolListSchema(tools: { slug: string; name: string }[]) {
       "@type": "ListItem",
       position: i + 1,
       name: t.name,
-      url: abs(`/tools/${t.slug}/`),
+      url: absLocale(lang, `/tools/${t.slug}/`),
     })),
   };
 }

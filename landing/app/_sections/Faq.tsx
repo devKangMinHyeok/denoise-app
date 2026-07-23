@@ -3,7 +3,7 @@ import * as React from "react";
 import { SectionHeading } from "@timbre/design-system";
 import { Container } from "../_ui/Container";
 import { Section } from "../_ui/Section";
-import { FAQ_ITEMS as ITEMS } from "./faq-data";
+import { getDict, type Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
@@ -39,14 +39,15 @@ function Row({ q, a, open, onToggle }: { q: string; a: string; open: boolean; on
   );
 }
 
-export function Faq() {
+export function Faq({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).faq;
   const [open, setOpen] = React.useState<number | null>(0);
   return (
     <Section>
       <Container style={{ maxWidth: 820 }}>
-        <SectionHeading title="Questions," accent="answered." />
+        <SectionHeading title={t.headingTitle} accent={t.headingAccent} />
         <div style={{ marginTop: 40 }}>
-          {ITEMS.map((it, i) => (
+          {t.items.map((it, i) => (
             <Row key={i} q={it.q} a={it.a} open={open === i} onToggle={() => setOpen(open === i ? null : i)} />
           ))}
         </div>

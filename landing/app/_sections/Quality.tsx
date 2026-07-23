@@ -3,22 +3,21 @@ import { SectionHeading, GradientText, InlineLink } from "@timbre/design-system"
 import { Container } from "../_ui/Container";
 import { Section } from "../_ui/Section";
 import { Icon } from "../_ui/Icon";
-import { asset } from "../../lib/asset";
+import { getDict, type Lang } from "../../lib/i18n";
+import { localePath } from "../../lib/site";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
-const STATS = [
-  { big: <GradientText>PNS</GradientText>, label: "Prosody north-star", note: "Naturalness scored against a human baseline on every render." },
-  { big: "0.0%", label: "Word-ending loss gate", note: "Denoise is rejected if it shaves the tail of a sentence." },
-  { big: "≥ 0.85", label: "Speaker similarity", note: "Every clone is measured against your real voiceprint." },
-  { big: "78+", label: "Automated tests", note: "The whole evaluation stack is guarded in CI, not vibes." },
-];
+// 큰 지표 값은 로케일 무관(고유명사/수치)라 여기 고정. 라벨/설명은 사전에서 온다.
+const BIG: React.ReactNode[] = [<GradientText>PNS</GradientText>, "0.0%", "≥ 0.85", "78+"];
 
-export function Quality() {
+export function Quality({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).quality;
+  const stats = t.stats.map((s, i) => ({ ...s, big: BIG[i] }));
   return (
     <Section id="quality">
       <Container>
-        <SectionHeading title="We didn't build this on" accent="vibes." />
+        <SectionHeading title={t.headingTitle} accent={t.headingAccent} />
         <div
           style={{
             marginTop: 56,
@@ -27,7 +26,7 @@ export function Quality() {
             gap: 16,
           }}
         >
-          {STATS.map((s, i) => (
+          {stats.map((s, i) => (
             <div
               key={i}
               style={{
@@ -46,8 +45,8 @@ export function Quality() {
           ))}
         </div>
         <div style={{ marginTop: 28, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <InlineLink href={asset("/blog/measuring-prosody-not-vibes/")}>
-            Read the methodology
+          <InlineLink href={localePath(lang, "/blog/measuring-prosody-not-vibes/")}>
+            {t.methodologyLink}
           </InlineLink>
           <Icon name="arrowRight" size={15} />
         </div>

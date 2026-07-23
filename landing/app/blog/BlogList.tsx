@@ -1,13 +1,14 @@
 "use client";
 import * as React from "react";
 import { PillTab, BlogCard, Button } from "@timbre/design-system";
-import { asset } from "../../lib/asset";
+import { localePath } from "../../lib/site";
+import type { Lang } from "../../lib/i18n";
 import { CATEGORIES, type PostCard, type Category } from "./_data";
 
 const INITIAL = 4;
 const STEP = 3;
 
-export function BlogList({ posts }: { posts: PostCard[] }) {
+export function BlogList({ posts, lang = "en" }: { posts: PostCard[]; lang?: Lang }) {
   const [cat, setCat] = React.useState<"All" | Category>("All");
   const [visible, setVisible] = React.useState(INITIAL);
 
@@ -46,7 +47,7 @@ export function BlogList({ posts }: { posts: PostCard[] }) {
         {shown.map((p) => (
           <BlogCard
             key={p.slug}
-            href={asset(`/blog/${p.slug}/`)}
+            href={localePath(lang, `/blog/${p.slug}/`)}
             image={p.cover}
             category={p.category}
             title={p.title}
