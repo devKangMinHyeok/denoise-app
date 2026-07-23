@@ -4,10 +4,12 @@ import { Container } from "../_ui/Container";
 import { Icon } from "../_ui/Icon";
 import { RayBurst } from "../_ui/Glow";
 import { HeroPlayer } from "./HeroPlayer";
+import { getDict, type Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
-export function Hero() {
+export function Hero({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).hero;
   return (
     <section id="top" style={{ position: "relative", overflow: "hidden", padding: "clamp(56px,7vw,96px) 0 clamp(64px,8vw,104px)" }}>
       <RayBurst />
@@ -31,7 +33,7 @@ export function Hero() {
               }}
             >
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--rc-accent-green)" }} />
-              One-time purchase · 100% local · AI-agent (MCP) native
+              {t.badge}
             </span>
 
             <h1
@@ -43,9 +45,9 @@ export function Hero() {
                 color: "var(--rc-ink)",
               }}
             >
-              Turn any script into natural audio,
+              {t.titleA}
               <br />
-              <GradientText>read aloud in your own voice.</GradientText>
+              <GradientText>{t.titleB}</GradientText>
             </h1>
 
             <p
@@ -57,13 +59,12 @@ export function Hero() {
                 color: "var(--rc-body)",
               }}
             >
-              A Mac voice studio for creators. Clone your voice from a few lines, then narrate
-              20,000-character scripts that sound like you. Studio-clean audio, entirely on your machine.
+              {t.body}
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 18, marginTop: 32 }}>
               <Button variant="primary" as="a" href="#pricing">
-                Own it for $49, one-time
+                {t.ctaPrimary}
               </Button>
               <a
                 href="#top"
@@ -77,14 +78,14 @@ export function Hero() {
                   color: "var(--rc-body)",
                 }}
               >
-                Try it in your browser <Icon name="arrowRight" size={15} />
+                {t.ctaSecondary} <Icon name="arrowRight" size={15} />
               </a>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 18, color: "var(--rc-ash)" }}>
               <Icon name="check" size={14} />
               <span style={{ font: "400 13px/1.4 var(--rc-font-sans)", fontFeatureSettings: FEAT }}>
-                macOS (Apple Silicon) · No subscription · Recordings never leave your device
+                {t.note}
               </span>
             </div>
           </div>

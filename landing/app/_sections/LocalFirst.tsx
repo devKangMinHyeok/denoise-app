@@ -2,15 +2,12 @@ import * as React from "react";
 import { Container } from "../_ui/Container";
 import { Section } from "../_ui/Section";
 import { Icon } from "../_ui/Icon";
+import { getDict, type Lang } from "../../lib/i18n";
 
 const FEAT = '"calt","kern","liga","ss03"';
-const POINTS = [
-  { title: "No upload", body: "There is no server. Nothing to send, nothing to leak." },
-  { title: "Works offline", body: "After the one-time model download, run it on a plane." },
-  { title: "Your files are yours", body: "Voice, scripts and renders stay on your disk. Always." },
-];
 
-export function LocalFirst() {
+export function LocalFirst({ lang = "en" }: { lang?: Lang }) {
+  const t = getDict(lang).localFirst;
   return (
     <Section id="privacy">
       <Container>
@@ -32,11 +29,11 @@ export function LocalFirst() {
               <Icon name="shield" size={26} />
             </span>
             <h2 style={{ margin: 0, font: "600 clamp(28px,3.4vw,38px)/1.15 var(--rc-font-sans)", letterSpacing: "-.4px", fontFeatureSettings: FEAT, color: "var(--rc-ink)" }}>
-              Your files never leave the machine.
+              {t.heading}
             </h2>
           </div>
           <div style={{ flex: "1 1 320px", minWidth: 260, display: "flex", flexDirection: "column", gap: 16 }}>
-            {POINTS.map((p) => (
+            {t.points.map((p) => (
               <div key={p.title} style={{ display: "flex", gap: 12 }}>
                 <span style={{ flex: "none", color: "var(--rc-accent-green)", marginTop: 2 }}>
                   <Icon name="check" size={18} />
