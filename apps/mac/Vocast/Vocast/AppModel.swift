@@ -253,7 +253,17 @@ final class AppModel {
     var area: Area = .studio
     var inspectorVisible = false   // closed by default; opened with the toolbar toggle
     var search = ""
+    // Persisted across launches: once onboarding is finished it stays finished, so
+    // the wizard does not reappear every time the app opens. The env var still
+    // forces a skip (used by builds/tests).
+    static let onboardingKey = "firstRunComplete"
     var firstRunComplete = ProcessInfo.processInfo.environment["VOCAST_SKIP_ONBOARDING"] == "1"
+        || UserDefaults.standard.bool(forKey: AppModel.onboardingKey) {
+        didSet {
+            guard oldValue != firstRunComplete else { return }
+            UserDefaults.standard.set(firstRunComplete, forKey: Self.onboardingKey)
+        }
+    }
     var offline = true
     var toast: Toast?
 

@@ -16,7 +16,14 @@ struct WaveBars: View {
 
     var body: some View {
         GeometryReader { geo in
-            let count = peaks.count
+            // Only draw as many bars as actually fit at the minimum bar width. With
+            // more peaks than that, the per-bar width would clamp to the floor and
+            // the row would grow wider than the frame, spilling past the card edge.
+            // Downsampling to what fits keeps the wave inside its bounds.
+            let minStride = 1.5 + gap
+            let maxBars = max(1, Int((geo.size.width + gap) / minStride))
+            let bars = peaks.count > maxBars ? WaveBars.downsample(peaks, to: maxBars) : peaks
+            let count = bars.count
             let totalGap = gap * CGFloat(max(0, count - 1))
             let w = max(1.5, (geo.size.width - totalGap) / CGFloat(max(1, count)))
             HStack(alignment: .center, spacing: gap) {
@@ -24,12 +31,24 @@ struct WaveBars: View {
                     let active = progress.map { Double(i) / Double(max(1, count - 1)) <= $0 } ?? false
                     Capsule(style: .continuous)
                         .fill(progress == nil ? color : (active ? activeColor : Palette.stone))
-                        .frame(width: w, height: max(2, CGFloat(peaks[i]) * height))
+                        .frame(width: w, height: max(2, CGFloat(bars[i]) * height))
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
         }
         .frame(height: height)
+        .clipped()   // belt-and-suspenders: never bleed past the frame
+    }
+
+    /// Bucket the peaks down to `target` bars, taking the max of each bucket so the
+    /// loudest moments stay visible (no averaging them away).
+    static func downsample(_ peaks: [Double], to target: Int) -> [Double] {
+        guard target > 0, peaks.count > target else { return peaks }
+        return (0..<target).map { b in
+            let lo = b * peaks.count / target
+            let hi = max(lo + 1, (b + 1) * peaks.count / target)
+            return peaks[lo..<min(hi, peaks.count)].max() ?? 0
+        }
     }
 }
 
