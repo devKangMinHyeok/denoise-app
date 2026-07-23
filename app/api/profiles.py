@@ -375,9 +375,11 @@ def _finish_job(job, out, t_start):
     picked = max(job["takes"], key=lambda t: t.get("sel", -1e9), default=None)
     elapsed = time.time() - t_start
     rtf = None
+    audio = None
     try:  # 처리량 북극성: RTF = 처리 시간 / 오디오 길이
         import soundfile as sf
-        rtf = round(elapsed / max(sf.info(out).duration, 0.1), 1)
+        audio = max(sf.info(out).duration, 0.1)
+        rtf = round(elapsed / audio, 1)
     except Exception:
         pass
     try:  # 가라오케 가사 뷰용 단어 타임라인 (실패해도 작업은 성공)
@@ -386,10 +388,18 @@ def _finish_job(job, out, t_start):
             job["words"] = word_timeline(out)
     except Exception:
         pass
-    if rtf and not job.get("parent"):  # 부분 재생성은 RTF 통계에서 제외
-        from api.rates import update_rate
-        update_rate("clone_fast_rtf" if job.get("settings", {}).get("fast")
-                    else "clone_rtf", rtf)
+    fast = bool(job.get("settings", {}).get("fast"))
+    cold = job.pop("_cold", False)
+    if not job.get("parent"):  # 부분 재생성은 처리량 통계에서 제외
+        from api.rates import update_rate, mark_warm, get_rates
+        if cold and audio:
+            # 콜드 실행은 모델 로드가 소요시간을 부풀린다. 그 초과분을 cold_start로
+            # 따로 학습하고, warm RTF는 오염시키지 않는다.
+            warm_rtf = get_rates()["clone_fast_rtf" if fast else "clone_rtf"]
+            update_rate("cold_start", elapsed - audio * warm_rtf)
+        elif rtf:
+            update_rate("clone_fast_rtf" if fast else "clone_rtf", rtf)
+        mark_warm(fast)  # 모델이 이제 상주 — 다음 클론부터 warm
     job.update({"status": "done", "stage": "done",
                 "pns": job.pop("final_pns", None)
                 or (picked.get("pns") if picked else None),
@@ -410,14 +420,18 @@ def start_clone_job(text, fast, ref_path=None, profile_id=None,
     n_takes = takes or (1 if fast else DEFAULT_TAKES)
     job = _new_job(job_id, text, profile_name, profile_id,
                    {"fast": bool(fast), "takes": n_takes}, title=title)
-    from api.rates import estimate_clone_eta
+    from api.rates import estimate_clone_eta, is_warm
     rate = None
     if profile_id:
         try:
             rate = (_load_meta(profile_id).get("stats") or {}).get("rate")
         except (OSError, AttributeError):
             pass
-    job["eta_sec"] = estimate_clone_eta(text, fast=fast, speech_rate=rate)
+    # First clone of this model in the process pays the model-load cost; the ETA
+    # and the rate learning below account for it separately.
+    warm = is_warm(fast)
+    job["_cold"] = not warm
+    job["eta_sec"] = estimate_clone_eta(text, fast=fast, speech_rate=rate, warm=warm)
     with _LOCK:
         JOBS[job_id] = job
         _persist_job(job)  # 시작 즉시 저장 — 새로고침해도 작업 센터에 보이게
