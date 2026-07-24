@@ -3,6 +3,7 @@ import { Button, InstallCommand, GradientText } from "@timbre/design-system";
 import { Container } from "../_ui/Container";
 import { RayBurst } from "../_ui/Glow";
 import { getDict, type Lang } from "../../lib/i18n";
+import { withPrice } from "../../lib/site";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
@@ -19,7 +20,7 @@ export function FinalCta({ lang = "en" }: { lang?: Lang }) {
           </h2>
           <div style={{ marginTop: 4 }}>
             <Button variant="primary" as="a" href="#pricing" style={{ height: 44 }}>
-              {t.cta}
+              {withPrice(t.cta)}
             </Button>
           </div>
           <span style={{ font: "400 13px/1 var(--rc-font-sans)", color: "var(--rc-ash)" }}>{t.or}</span>

@@ -23,9 +23,10 @@ export function LangSwitch({ lang }: { lang: Lang }) {
   const t = getDict(lang);
   const base = stripLocale(pathname);
 
+  // 확정 디자인: "한국어 · EN" (ko 먼저, en 다음).
   const items: { code: Lang; label: string; href: string }[] = [
+    { code: "ko", label: "한국어", href: localePath("ko", base) },
     { code: "en", label: "EN", href: localePath("en", base) },
-    { code: "ko", label: "KO", href: localePath("ko", base) },
   ];
 
   return (
