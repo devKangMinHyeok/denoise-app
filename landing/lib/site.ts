@@ -24,9 +24,8 @@ export const SITE = {
 } as const;
 
 // --- 로케일별 메타 ---------------------------------------------------------
-// 한국어 tagline/description/keywords는 임의 번역하지 않는다(표준 지침). 디자인
-// 핸드오프로 채우기 전까지 영어로 폴백한다. ogLocale/htmlLang 은 번역이 아니라
-// 언어 코드이므로 지금부터 정확히 지정한다.
+// tagline/description/keywords 는 언어별 확정본(디자인/카피 핸드오프)에서 온다.
+// 한국어 keywords 는 영어 직역이 아니라 실제 한국어 검색어다.
 
 interface LocaleMeta {
   tagline: string; // 검색결과 타이틀/OG에 쓰는 짧은 태그라인
@@ -59,10 +58,32 @@ const EN_META: LocaleMeta = {
   htmlLang: "en",
 };
 
+const KO_META: LocaleMeta = {
+  tagline: "내 목소리로 어떤 원고든 낭독하기",
+  description:
+    "Vocast는 크리에이터를 위한 로컬 온디바이스 맥 음성 스튜디오입니다. 약 90초 녹음으로 내 목소리를 복제하고, 최대 20,000자 원고를 나처럼 들리는 목소리로 낭독합니다. 완전 로컬, 계정 없음, 구독 없음. $49 한 번 결제.",
+  keywords: [
+    "보이스 클로닝",
+    "AI 목소리",
+    "내 목소리 TTS",
+    "텍스트 음성 변환",
+    "온디바이스 음성",
+    "로컬 음성 스튜디오",
+    "맥 음성 앱",
+    "오디오북 내레이션",
+    "성우 대체",
+    "MCP",
+    "Apple Silicon",
+    "목소리 생성기",
+    "노이즈 제거",
+  ],
+  ogLocale: "ko_KR",
+  htmlLang: "ko",
+};
+
 const LOCALE_META: Record<Lang, LocaleMeta> = {
   en: EN_META,
-  // 한국어: 카피는 영어 폴백(핸드오프 대기), 언어 코드만 ko 로.
-  ko: { ...EN_META, ogLocale: "ko_KR", htmlLang: "ko" },
+  ko: KO_META,
 };
 
 export function localeMeta(lang: Lang): LocaleMeta {
@@ -114,4 +135,9 @@ export function hreflangMap(path: string): Record<string, string> {
 /** 이미 절대경로인 asset() 결과 → 절대 URL. (basePath 제거 후에도 하위호환) */
 export function absFromAsset(assetPath: string): string {
   return `${SITE.origin}${assetPath.startsWith("/") ? assetPath : `/${assetPath}`}`;
+}
+
+/** 카피의 {price} 토큰을 실제 가격 표기($49)로 치환한다. hero/pricing/finalCta 의 CTA용. */
+export function withPrice(s: string): string {
+  return s.replace(/\{price\}/g, `$${SITE.price.amount}`);
 }

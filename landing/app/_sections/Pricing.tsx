@@ -5,6 +5,7 @@ import { Section } from "../_ui/Section";
 import { AuroraGlow } from "../_ui/Glow";
 import { Icon } from "../_ui/Icon";
 import { getDict, type Lang } from "../../lib/i18n";
+import { withPrice } from "../../lib/site";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
@@ -42,7 +43,7 @@ export function Pricing({ lang = "en" }: { lang?: Lang }) {
             </div>
             <div style={{ marginTop: 28 }}>
               <Button variant="primary" as="a" href="#pricing" style={{ width: "100%", height: 44 }}>
-                {t.cta}
+                {withPrice(t.cta)}
               </Button>
             </div>
             <div style={{ marginTop: 14, textAlign: "center", font: "400 12.5px/1.4 var(--rc-font-sans)", fontFeatureSettings: FEAT, color: "var(--rc-ash)" }}>
