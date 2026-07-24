@@ -107,6 +107,30 @@ struct NJob: Decodable {
     let error: String?
 }
 
+/// A parent link on a regenerated narration: the paragraph regen forked from a
+/// finished job, so its history entry points back at the job it descends from.
+struct NParentLink: Decodable { let job: String? }
+
+/// One saved narration from /api/history. This is the persistent library source:
+/// the engine writes every finished narration to disk, so these survive an app
+/// restart. `parent` is set on paragraph regenerations, which fork a new id from
+/// their source job; the library collapses each parent chain into one project.
+struct NHistoryItem: Decodable {
+    let id: String
+    let kind: String?           // nil / "clone" for narrations; others are filtered out
+    let title: String?
+    let status: String?         // preparing | generating | done | error
+    let created: String?
+    let profile: String?        // voice name at render time
+    let profile_id: String?     // the voice used, or nil when made from an upload
+    let version: Int?
+    let parent: NParentLink?
+    let paragraphs: [NPara]?
+    let words: [NWord]?
+    let text: String?
+    let error: String?
+}
+
 /// One entry from /api/tasks: a clone, denoise or profile-build job.
 struct ETask: Decodable {
     let id: String
@@ -352,6 +376,15 @@ final class EngineClient {
         catch { throw EngineError.transport(error.localizedDescription) }
     }
 
+    private func patch(_ path: String, body: [String: Any]) async throws -> (Data, URLResponse) {
+        var req = URLRequest(url: base.appendingPathComponent(path))
+        req.httpMethod = "PATCH"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        do { return try await session.data(for: req) }
+        catch { throw EngineError.transport(error.localizedDescription) }
+    }
+
     func createNarration(text: String, profileID: String?, fast: Bool = false) async throws -> String {
         var fields: [MultipartField] = [
             .text(name: "text", value: text),
@@ -384,6 +417,79 @@ final class EngineClient {
     /// Playable URL for the composed narration audio.
     func narrationAudioURL(_ id: String) -> URL {
         base.appendingPathComponent("api/jobs/\(id)/audio")
+    }
+
+    // MARK: Narration library (persisted history)
+
+    /// Every saved narration the engine has on disk, newest first. This is the
+    /// Studio library's source of truth: it survives app restarts because the
+    /// engine persists each finished narration under its history store.
+    func listHistory() async throws -> [NHistoryItem] {
+        let (data, resp) = try await get("/api/history")
+        try check(resp, data)
+        struct R: Decodable { let items: [NHistoryItem] }
+        return try JSONDecoder().decode(R.self, from: data).items
+    }
+
+    /// Rename a saved narration. The new title is what the library row shows.
+    func renameHistory(id: String, title: String) async throws {
+        let (data, resp) = try await patch("/api/history/\(id)", body: ["title": title])
+        try check(resp, data)
+    }
+
+    /// Delete a saved narration from the library (removes its doc and audio).
+    func deleteHistory(id: String) async throws {
+        var req = URLRequest(url: base.appendingPathComponent("api/history/\(id)"))
+        req.httpMethod = "DELETE"
+        do {
+            let (data, resp) = try await session.data(for: req)
+            try check(resp, data)
+        } catch let e as EngineError { throw e }
+        catch { throw EngineError.transport(error.localizedDescription) }
+    }
+
+    /// The raw persisted job document, verbatim. Used when bundling a `.vocast`
+    /// project file so the export keeps every field the engine stored, not just
+    /// the ones the app decodes.
+    func rawJob(_ id: String) async throws -> Data {
+        let (data, resp) = try await get("/api/jobs/\(id)")
+        try check(resp, data)
+        return data
+    }
+
+    /// Download URL for an exported narration. `format` is wav or mp3; `blocks` (0-based
+    /// paragraph indices) narrows the export to selected blocks, whole when nil.
+    func exportAudioURL(_ id: String, format: String, blocks: [Int]?) -> URL {
+        var comps = URLComponents(url: base.appendingPathComponent("api/jobs/\(id)/export"),
+                                  resolvingAgainstBaseURL: false)!
+        var q = [URLQueryItem(name: "format", value: format)]
+        if let blocks, !blocks.isEmpty {
+            q.append(URLQueryItem(name: "blocks", value: blocks.map(String.init).joined(separator: ",")))
+        }
+        comps.queryItems = q
+        return comps.url!
+    }
+
+    /// Duplicate a saved narration into a new history entry. Returns the new id.
+    func duplicateHistory(id: String, title: String?) async throws -> String {
+        let (data, resp) = try await jsonPost("/api/history/\(id)/duplicate",
+                                              body: title.map { ["title": $0] } ?? [:])
+        try check(resp, data)
+        struct R: Decodable { let id: String }
+        return try JSONDecoder().decode(R.self, from: data).id
+    }
+
+    /// Register a `.vocast` bundle (its manifest JSON + audio) as a new saved
+    /// narration. Returns the new id.
+    func importHistory(manifest: Data, audio: Data) async throws -> String {
+        let manifestStr = String(data: manifest, encoding: .utf8) ?? "{}"
+        let (data, resp) = try await multipartPost("/api/history/import", fields: [
+            .text(name: "manifest", value: manifestStr),
+            .file(name: "audio", filename: "output.wav", mime: "audio/wav", data: audio),
+        ])
+        try check(resp, data)
+        struct R: Decodable { let id: String }
+        return try JSONDecoder().decode(R.self, from: data).id
     }
 
     // MARK: Work already done on this Mac
