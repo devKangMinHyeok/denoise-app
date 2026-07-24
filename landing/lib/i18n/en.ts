@@ -27,6 +27,10 @@ export const en = {
         "href": "/#mcp"
       },
       {
+        "label": "Tools",
+        "href": "/tools"
+      },
+      {
         "label": "Pricing",
         "href": "/#pricing"
       },

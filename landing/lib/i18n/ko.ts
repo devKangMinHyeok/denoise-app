@@ -23,6 +23,10 @@ export const ko: Dict = {
         "href": "/#mcp"
       },
       {
+        "label": "도구",
+        "href": "/tools"
+      },
+      {
         "label": "가격",
         "href": "/#pricing"
       },
