@@ -5,6 +5,7 @@ import { Icon } from "../_ui/Icon";
 import { RayBurst } from "../_ui/Glow";
 import { HeroPlayer } from "./HeroPlayer";
 import { getDict, type Lang } from "../../lib/i18n";
+import { withPrice } from "../../lib/site";
 
 const FEAT = '"calt","kern","liga","ss03"';
 
@@ -64,7 +65,7 @@ export function Hero({ lang = "en" }: { lang?: Lang }) {
 
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 18, marginTop: 32 }}>
               <Button variant="primary" as="a" href="#pricing">
-                {t.ctaPrimary}
+                {withPrice(t.ctaPrimary)}
               </Button>
               <a
                 href="#top"
